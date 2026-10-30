@@ -1,0 +1,41 @@
+:root {
+  /* Re-declaramos las variables para que este archivo sea autónomo */
+  --color-darkest: #031C06;
+  --color-dark: #043B05;
+  --color-primary: #207B25;
+  --color-accent: #71CC49;
+  --color-neutral: #90B081;
+}
+
+.swal-popup-custom {
+  background: #fdfdfd !important;
+  border-radius: 1rem !important;
+}
+.swal-title-custom {
+  color: var(--color-darkest) !important;
+}
+.swal-html-container-custom {
+  color: var(--color-dark) !important;
+}
+.swal-icon-custom.swal2-warning {
+  color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+.swal-button-confirm-custom {
+  background-color: var(--color-primary) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+.swal-button-confirm-custom:hover {
+  background-color: var(--color-dark) !important;
+}
+.swal-button-cancel-custom {
+  background-color: transparent !important;
+  border: 2px solid #aaa !important;
+  color: #555 !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+.swal-button-cancel-custom:hover {
+  background-color: #f0f0f0 !important;
+}

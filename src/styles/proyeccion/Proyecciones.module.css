@@ -1,0 +1,33 @@
+/* Contenedor para la barra de pestañas */
+.tabContainer {
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 2rem;
+}
+
+/* Estilo para cada botón de pestaña */
+.tabButton {
+  background-color: transparent;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: -2px; /* Truco para que el borde inferior se solape */
+  border-bottom: 2px solid transparent; /* Borde inferior inactivo */
+  
+  /* --- ESTE ES EL CAMBIO CLAVE --- */
+  color: var(--color-neutral); /* Usamos el color neutro de tu paleta para el texto inactivo */
+  
+  transition: all 0.2s ease-in-out;
+}
+
+/* Efecto al pasar el cursor sobre una pestaña inactiva */
+.tabButton:not(.active):hover {
+  color: var(--color-dark);
+}
+
+/* Estilo para la pestaña que está ACTIVA */
+.active {
+  color: var(--color-primary); /* El color primario para destacar */
+  border-bottom: 2px solid var(--color-primary); /* Borde inferior que indica la selección */
+}

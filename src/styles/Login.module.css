@@ -1,0 +1,96 @@
+:root {
+  --verde-fondo: #043B05;
+  --verde-contenedor: #031C06;
+  --blanco: #ffffff;
+  --acento: #25c94a;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Poppins", sans-serif;
+  background-color: var(--verde-fondo);
+}
+
+/* Fondo principal (ocupa toda la pantalla) */
+.formWrapper {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--verde-fondo);
+  backdrop-filter: blur(2px);
+}
+
+/* Contenedor del formulario (ahora cuadrado) */
+.formContainer {
+  width: 500px;
+  height: 500px;
+  border-radius: 25px;
+  background: var(--verde-contenedor);
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--blanco);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Logo redondo con texto */
+.logoCircle {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: var(--acento);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--verde-contenedor);
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Título y campos */
+.formContainer h1 {
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: var(--blanco);
+}
+
+.formContainer input[type="text"],
+.formContainer input[type="password"] {
+  width: 100%;
+  height: 44px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  background-color: #f0f0f0;
+  font-size: 1rem;
+  color: #333;
+  outline: none;
+}
+
+/* Botón */
+.customBtn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  background-color: var(--acento);
+  color: var(--verde-contenedor);
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.customBtn:hover {
+  background-color: #1db03f;
+  transform: translateY(-2px);
+}

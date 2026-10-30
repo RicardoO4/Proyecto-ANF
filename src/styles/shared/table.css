@@ -1,0 +1,143 @@
+/* 
+  Archivo: /styles/shared/table.css
+  Estilos DEFINITIVOS y UNIFICADOS para todas las vistas con tablas.
+*/
+
+:root {
+  --color-darkest: #182c3f;
+  --background-card: #ffffff;
+  --border-color: #e9ecef;
+  --color-primary: #207B25; 
+  --color-danger: #dc3545;
+  --color-secondary-text: #6c757d;
+}
+
+/* --- Contenedor Principal de la Vista --- */
+.view-container {
+  /* ... sin cambios aquí ... */
+  padding: 1.5rem;
+  background-color: var(--background-card);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border: 1px solid var(--border-color);
+  width: 100%;
+}
+
+/* --- Encabezado de la Vista --- */
+.view-header {
+  /* ... sin cambios aquí ... */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.view-title {
+  /* ... sin cambios aquí ... */
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--color-darkest);
+  margin: 0;
+}
+
+/* --- Estilos de Botones --- */
+/* ... sin cambios en los botones ... */
+.btn-primary {
+  background-color: var(--color-darkest); 
+  border: 2px solid var(--color-darkest);
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-primary:hover {
+  background-color: transparent;
+  color: var(--color-darkest);
+}
+.btn-icon {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  color: var(--color-secondary-text);
+  font-size: 1rem;
+}
+.btn-icon:hover {
+  background-color: #e9ecef;
+}
+.btn-icon.edit:hover { color: var(--color-primary); }
+.btn-icon.delete:hover { color: var(--color-danger); }
+.btn-icon.view:hover { color: #0d6efd; }
+.btn-icon.calculate:hover { color: #fd7e14; }
+
+/* --- Estilos de la Tabla --- */
+.table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table thead th {
+  background-color: var(--color-darkest);
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  padding: 1rem 1.5rem;
+  text-align: left;
+  vertical-align: middle;
+  position: sticky;
+  top: 0; /* Pega el encabezado en la parte superior del contenedor de scroll */
+  z-index: 1; /* Asegura que el encabezado esté por encima de las filas al hacer scroll */
+}
+
+.table tbody tr {
+  border-top: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.table tbody td {
+  padding: 1.25rem 1.5rem;
+  vertical-align: middle;
+  color: #343a40;
+}
+
+/* --- Utilidades para la Tabla --- */
+.actions-column {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px; 
+}
+
+
+.table-responsive {
+    overflow-y: auto; /* Muestra el scroll vertical cuando sea necesario */
+    max-height: 60vh;  /* Define una altura máxima. ¡Puedes ajustar este valor! */
+    
+    /* Mantenemos el scroll horizontal por si la tabla también es muy ancha */
+    overflow-x: auto; 
+}

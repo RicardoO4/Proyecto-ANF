@@ -1,0 +1,51 @@
+.modalContent {
+  background-color: var(--background-main);
+  color: var(--text-dark);
+  border: none; /* Asegura que no haya borde de Bootstrap */
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  padding: 1rem; /* Padding base, los hijos tendrán más */
+}
+
+.modalHeader {
+  border: none; /* Anulamos el borde por defecto de .modal-header */
+  border-bottom: 1px solid var(--border-color); /* Aplicamos nuestro propio borde */
+  padding: 1.5rem 2rem;
+  margin: 0;
+}
+
+.modalTitle {
+  font-weight: 600;
+  font-size: 1.75rem;
+  color: var(--color-darkest);
+}
+
+.modalFooter {
+  border: none; /* Anulamos el borde por defecto de .modal-footer */
+  border-top: 1px solid var(--border-color); /* Aplicamos nuestro propio borde */
+  padding: 1.5rem 2rem;
+  margin: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+/* Estilos para los campos del formulario dentro del modal */
+.modalContent .form-label {
+  font-weight: 500;
+  color: var(--color-dark);
+  margin-bottom: 0.5rem;
+}
+
+.modalContent .form-control {
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  border: 2px solid #ced4da; /* Borde por defecto un poco más grueso */
+  transition: border-color 0.2s;
+}
+
+.modalContent .form-control:focus {
+  border-color: var(--color-primary); 
+  box-shadow: none;
+  outline: none;
+}

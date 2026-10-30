@@ -1,0 +1,62 @@
+.viewContainer {
+  padding: 1.5rem;
+  background-color: var(--background-card);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border: 1px solid var(--border-color);
+}
+
+.viewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.viewTitle {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--color-darkest);
+}
+
+.table {
+  border-collapse: collapse; /* Cambiamos a collapse para el estilo de encabezado clásico */
+  width: 100%;
+}
+
+/* --- SECCIÓN MODIFICADA: ENCABEZADO DE LA TABLA --- */
+.table thead th {
+  background-color: var(--color-darkest); /* El color oscuro que te gustó */
+  color: white;
+  border-bottom: 2px solid var(--color-primary); /* Un acento de color sutil */
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  padding: 1rem 1.5rem;
+  text-align: left; /* Alineación estándar */
+}
+
+.table thead th:last-child {
+  text-align: right; /* La columna de acciones se alinea a la derecha */
+}
+/* --- FIN DE LA SECCIÓN MODIFICADA --- */
+
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s;
+}
+
+.table tbody tr:hover {
+  background-color: #f1f3f5;
+}
+
+.table tbody td {
+  padding: 1.25rem 1.5rem;
+  vertical-align: middle;
+}
+.table tbody td:last-child {
+  text-align: right;
+}

@@ -1,0 +1,76 @@
+/*
+  Archivo: AnalisisHV.module.css
+  (Guárdalo junto a tu componente AnalisisHV.js)
+*/
+
+/* Contenedor para los selectores y el botón */
+.filterBar {
+  display: flex;
+  flex-wrap: wrap; /* Para que sea responsive en pantallas pequeñas */
+  gap: 1.5rem;
+  align-items: flex-end; /* Alinea los elementos por la parte de abajo */
+  margin-bottom: 2rem;
+}
+
+/* Estilo para cada grupo de label + select */
+.formControl {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1; /* Permite que crezcan */
+  min-width: 150px;
+}
+
+.formControl label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-secondary-text, #6c757d);
+}
+
+.formControl select {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e9ecef);
+  font-size: 1rem;
+  background-color: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.formControl select:focus {
+  outline: none;
+  border-color: var(--color-darkest, #182c3f);
+  box-shadow: 0 0 0 3px rgba(24, 44, 63, 0.1);
+}
+
+.formControl select:disabled {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+}
+
+/* Contenedor para los botones Horizontal/Vertical */
+.toggleBar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.toggleButton {
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  
+  /* Estilo "Outlined" por defecto */
+  background-color: transparent;
+  color: var(--color-darkest, #182c3f);
+  border: 2px solid var(--color-darkest, #182c3f);
+}
+
+/* Estilo "Contained" o Activo */
+.toggleButtonActive {
+  background-color: var(--color-darkest, #182c3f);
+  color: white;
+  border-color: var(--color-darkest, #182c3f);
+}

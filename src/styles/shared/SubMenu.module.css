@@ -1,0 +1,62 @@
+/* --- ESTILO BASE (Móvil Primero) --- */
+.subnav {
+  /* Usamos el color más oscuro de tu nueva paleta, como en el original */
+  background-color: var(--color-darkest); 
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  margin-bottom: 2.5rem;
+  padding: 0.75rem; /* Padding para el contenedor en móvil */
+}
+
+.subnavContainer {
+  display: flex;
+  gap: 0.5rem;
+  /* En móvil, los botones se apilan verticalmente */
+  flex-direction: column;
+}
+
+.subnavBtn {
+  background: none;
+  /* Usamos el color neutro para los enlaces inactivos */
+  color: var(--color-neutral);
+  padding: 0.7rem 1.2rem; 
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  font-size: 0.95rem;
+  text-align: center;
+  white-space: nowrap; 
+}
+
+/* Efecto hover sutil para todos los botones */
+.subnavBtn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-light);
+}
+
+/* Estilo para el botón ACTIVO */
+.subnavBtn.active {
+  background-color: var(--color-primary); /* El verde primario para destacar */
+  color: white;
+  font-weight: 600;
+}
+
+
+/* --- BREAKPOINT PARA TABLETS Y ESCRITORIO (>= 768px) --- */
+@media (min-width: 768px) {
+  .subnavContainer {
+    /* Cambia a la distribución horizontal */
+    flex-direction: row; 
+    align-items: center;
+    
+    /* ESTA ES LA CLAVE: los enlaces se ajustan automáticamente */
+    /* Distribuye el espacio disponible entre los elementos */
+    justify-content: space-between; 
+  }
+
+  .subnav {
+    padding: 0.5rem 1rem; /* Ajustamos el padding para la vista horizontal */
+  }
+}

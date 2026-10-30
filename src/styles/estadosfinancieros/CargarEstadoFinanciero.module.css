@@ -1,0 +1,71 @@
+.formBox {
+  max-width: 700px;
+  margin: 2.5rem auto;
+  padding: 2.5rem; /* Le devolvemos el padding para que se vea bien */
+  border-radius: 16px; /* Añadimos el borde redondeado de nuevo */
+
+  /* --- CAMBIO REALIZADO AQUÍ --- */
+  background-color: #e3f5db; /* Un verde suave y profesional */
+  
+  border: 1px solid #cce5c9;  /* Un borde un poco más oscuro para definir la caja */
+  box-shadow: none;
+}
+
+.instructions {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.instructions p {
+  font-size: 1rem;
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+}
+
+.fileInputContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.fileInputLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background-color: transparent; 
+  border: 2px solid var(--color-darkest);
+  color: var(--color-darkest);
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+}
+
+.fileInputLabel:hover {
+  background-color: var(--color-darkest);
+  color: white;
+}
+
+.fileName {
+  font-style: italic;
+  color: var(--color-primary);
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.submitContainer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}

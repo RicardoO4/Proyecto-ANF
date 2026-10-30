@@ -1,0 +1,75 @@
+/* --- Contenedor Principal --- */
+.viewWrapper {
+  padding: 1.5rem;
+  background-color: #f8f9fa; /* Fondo general claro */
+  border-radius: 8px;
+  animation: fadeIn 0.5s ease-in-out;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* --- Selector de Empresa --- */
+.empresaSelector {
+  margin-bottom: 2rem;
+}
+
+/* --- Paneles --- */
+.panelsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+@media (min-width: 992px) {
+  .panelsContainer {
+    flex-direction: row;
+  }
+}
+.panel {
+  flex: 1;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  background-color: var(--background-card);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+.panel h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--color-darkest);
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+.panel button {
+  margin-top: auto;
+  width: 100%;
+}
+
+/* --- Contenedor para el Árbol/Tabla con Scroll --- */
+.scrollableContainer {
+  height: 500px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 1rem;
+}
+
+/* --- Estilos Globales para rc-tree (para que funcionen desde el module) --- */
+:global(.rc-tree) {
+  font-family: inherit;
+}
+:global(.rc-tree-treenode) {
+  padding: 3px 0;
+}
+:global(.rc-tree-node-content-wrapper:hover) {
+  background-color: #e9f0e8; /* Un verde muy sutil de la paleta */
+}
+:global(.rc-tree-checkbox:not(.rc-tree-checkbox-disabled) .rc-tree-checkbox-inner) {
+  border-color: var(--color-primary);
+}
+:global(.rc-tree-checkbox-checked .rc-tree-checkbox-inner) {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}

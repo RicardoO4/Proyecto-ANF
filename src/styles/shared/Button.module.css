@@ -1,0 +1,51 @@
+/* Botón Primario (Acción principal: Guardar, Crear) */
+.btnPrimary {
+  /* Usa la variable del color fuerte de la paleta */
+  background-color: var(--color-darkest); 
+  border: 2px solid var(--color-darkest);
+  color: white;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+}
+.btnPrimary:hover {
+  background-color: transparent;
+  color: var(--color-primary);
+}
+
+/* Botón Secundario (Acción de cancelación o secundaria) */
+.btnSecondary {
+  /* Usa la variable del color suave de la paleta */
+  background-color: transparent; 
+  border: 2px solid var(--color-darkest);
+  color: var(--color-darkest);
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+}
+.btnSecondary:hover {
+  background-color: var(--color-darkest);
+  color: white;
+}
+
+/* Botones de Ícono para Tablas (Editar, Eliminar) */
+.btnIcon {
+  background: transparent;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 8px;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+  color: #6c757d;
+}
+.btnIcon:hover {
+  background-color: #e9ecef;
+}
+.btnIconEdit:hover { color: var(--color-primary); }
+.btnIconDelete:hover { color: #dc3545; }

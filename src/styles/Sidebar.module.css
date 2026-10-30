@@ -1,0 +1,87 @@
+.sidebar {
+  background-color: var(--background-sidebar);
+  min-height: 100vh;
+  transition: width 0.3s ease-in-out;
+  color: var(--text-light);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 72px; 
+}
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-dark);
+}
+.sidebarLogoLink {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.2s;
+}
+.sidebarLogoLink:hover {
+  color: var(--color-accent);
+}
+.sidebarLogo {
+  display: none;
+  font-weight: bold;
+  font-size: 1.5rem;
+  letter-spacing: 1px;
+}
+.sidebarToggleBtn {
+  color: var(--text-light);
+}
+.sidebarNav {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+.menuLink, .bottomBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 0.75rem 0.5rem;
+  margin-bottom: 0.25rem;
+  text-decoration: none;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--color-neutral);
+  transition: background-color 0.2s, color 0.2s;
+}
+.menuLink:hover, .bottomBtn:hover {
+    background-color: var(--color-dark);
+    color: var(--color-accent);
+}
+.menuIcon {
+  flex-shrink: 0;
+}
+.menuLabel {
+  display: none;
+}
+.active {
+  background: var(--color-primary) !important;
+  color: white !important;
+}
+@media (min-width: 768px) {
+  .sidebar { width: 240px; }
+  .sidebarHeader { justify-content: space-between; padding: 0 1.5rem; }
+  .sidebarLogo { display: block; }
+  .menuLink, .bottomBtn { justify-content: flex-start; padding: 0.75rem 1rem; }
+  .menuIcon { margin-right: 0.875rem; }
+  .menuLabel { display: inline; }
+}
+.sidebarOpen { width: 240px; }
+.sidebarOpen .sidebarHeader { justify-content: space-between; padding: 0 1.5rem; }
+.sidebarOpen .sidebarLogo { display: block; }
+.sidebarOpen .menuLink, .sidebarOpen .bottomBtn { justify-content: flex-start; padding: 0.75rem 1rem; }
+.sidebarOpen .menuIcon { margin-right: 0.875rem; }
+.sidebarOpen .menuLabel { display: inline; }
+.sidebarCollapsed { width: 72px; }
+.sidebarCollapsed .sidebarHeader { justify-content: center; padding: 0; }
+.sidebarCollapsed .sidebarLogo { display: none; }
+.sidebarCollapsed .menuLink, .sidebarCollapsed .bottomBtn { justify-content: center; padding: 0.75rem 0.5rem; }
+.sidebarCollapsed .menuIcon { margin-right: 0; }
+.sidebarCollapsed .menuLabel { display: none; }

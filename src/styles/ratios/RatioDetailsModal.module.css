@@ -1,0 +1,52 @@
+/* src/styles/shared/RatioDetailsModal.module.css */
+
+.detailsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.detailsList li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 1rem;
+}
+
+.detailsList li:last-child {
+  border-bottom: none;
+}
+
+.detailsList strong {
+  color: var(--color-dark);
+  margin-right: 1.5rem;
+}
+
+.detailsList span {
+  font-weight: 500;
+  color: var(--color-darkest);
+  text-align: right;
+}
+
+.valueNotCalculated {
+  color: #888;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.interpretationItem {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.interpretationItem p {
+  margin: 0;
+  text-align: left;
+  width: 100%;
+  color: var(--color-darkest);
+  line-height: 1.6;
+  font-size: 0.95rem;
+}

@@ -1,0 +1,69 @@
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap; 
+  gap: 1.5rem;
+  align-items: flex-end; 
+  margin-bottom: 2rem;
+}
+
+.formControl {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1; /* Permite que crezcan */
+  min-width: 150px;
+}
+
+.formControl label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-secondary-text, #6c757d);
+}
+
+.formControl select {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e9ecef);
+  font-size: 1rem;
+  background-color: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* --- Estilos NUEVOS para los gráficos --- */
+
+/* Contenedor principal para todos los gráficos */
+.graphArea {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem; /* Espacio entre los gráficos */
+  margin-top: 2rem;
+}
+
+/* Cada gráfico individual */
+.graphItem {
+  /* En pantallas grandes (md={6}): 2 columnas */
+  flex: 1 1 calc(50% - 1rem); 
+  min-width: 300px;
+  
+  /* Asegura que el contenedor del gráfico tenga altura */
+  height: 350px; 
+
+  /* Centra el título */
+  text-align: center;
+}
+
+/* Título de cada gráfico */
+.graphTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 1rem;
+}
+
+/* En pantallas pequeñas (xs={12}): 1 columna */
+@media (max-width: 768px) {
+  .graphItem {
+    flex-basis: 100%; /* Ocupa todo el ancho */
+  }
+}
