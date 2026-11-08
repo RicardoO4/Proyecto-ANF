@@ -13,6 +13,7 @@ import { ventaHistoricaService } from '@/services/ventaHistoricaService'
 import { Notifier } from '@/utils/Notifier'
 import type { ProyeccionDTO } from '@/types'
 import type { EmpresaResponseDTO } from '@/types'
+import Link from 'next/link'
 
 export const Proyecciones = () => {
   const [empresas, setEmpresas] = useState<EmpresaResponseDTO[]>([])
@@ -136,6 +137,24 @@ export const Proyecciones = () => {
         >
           Generar Proyección
         </button>
+
+        {/* --- Herramientas Analíticas (Módulos Integrante D) --- */}
+        <div style={{ marginTop: '20px', display: 'flex', gap: '15px', alignItems: 'center' }}>
+          <span style={{ fontWeight: 'bold', color: 'var(--color-darkest)' }}>
+            Herramientas Analíticas:
+          </span>
+          <Link href="/proyecciones/pronostico">
+            <button className={buttonStyles.btnSecondary} style={{ padding: '8px 16px', fontSize: '14px' }}>
+              Simulador de Pronósticos
+            </button>
+          </Link>
+          <Link href="/proyecciones/proforma">
+            <button className={buttonStyles.btnPrimary} style={{ padding: '8px 16px', fontSize: '14px', backgroundColor: 'var(--color-dark)' }}>
+              Estados Proforma y FER
+            </button>
+          </Link>
+        </div>
+
         {proyecciones.length > 0 && (
           <div className="mt-4 table-responsive">
             <h5>Resultados de la Proyección</h5>

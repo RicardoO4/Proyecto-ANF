@@ -1,8 +1,15 @@
 'use client'
 
 import DashboardCards from '@/components/shared/DashboardCards'
-
-import { BarChartLine, ArrowRepeat, ClipboardData, GraphUp, BarChartSteps } from 'react-bootstrap-icons'
+import { 
+  BarChartLine, 
+  ArrowRepeat, 
+  ClipboardData, 
+  GraphUp, 
+  BarChartSteps,
+  Calculator,
+  Diagram3
+} from 'react-bootstrap-icons'
 
 const DashboardAnalisis = () => {
   const items = [
@@ -35,6 +42,19 @@ const DashboardAnalisis = () => {
       icon: BarChartSteps,
       to: '/analisis/evolucion-cuentas',
       descripcion: 'Gráfico de la variación de una cuenta específica.',
+    },
+    // --- Módulos Integrante D ---
+    {
+      label: 'Punto de Equilibrio',
+      icon: Calculator,
+      to: '/analisis/equilibrio',
+      descripcion: 'Cálculo y gráfico de unidades e ingresos requeridos para no generar pérdidas.',
+    },
+    {
+      label: 'Sistema DuPont',
+      icon: Diagram3,
+      to: '/analisis/dupont',
+      descripcion: 'Análisis interactivo de rentabilidad y desglose de los componentes del ROE.',
     },
   ]
 
