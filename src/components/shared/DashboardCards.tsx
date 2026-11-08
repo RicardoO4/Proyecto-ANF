@@ -23,6 +23,7 @@ const DashboardCards = ({ title, items }: DashboardCardsProps) => (
   <section className={styles.cardsSection}>
     <header>
       <h2 className={styles.title}>{title}</h2>
+      <p className={styles.subtitle}>Selecciona un módulo para comenzar.</p>
     </header>
     <div className="row justify-content-center">
       {/* Aquí extraemos la 'descripcion' del item en el map */}
@@ -30,7 +31,7 @@ const DashboardCards = ({ title, items }: DashboardCardsProps) => (
         <article key={i} className="col-12 col-md-6 col-lg-4 mb-4 d-flex justify-content-center">
           <Link href={to} className={styles.dashboardCard}>
             <div className={styles.cardIconWrapper}>
-              {Icon && <Icon size={48} className={styles.cardIcon} />}
+              {Icon && <Icon size={24} className={styles.cardIcon} />}
             </div>
 
             <div className={styles.cardLabel}>{label}</div>

@@ -45,50 +45,97 @@ export default function Login() {
   }
 
   return (
-    <div className={styles.formWrapper}>
-      <section className={styles.formContainer}>
-        <h1 className="text-center mb-4">Análisis Financiero</h1>
-        <form onSubmit={handleSubmit(handleLoginSubmit)}>
-          <article>
-            <p>
-              <FaInfoCircle className="me-2" /> Ingresa tus credenciales para acceder.
+    <div className={styles.page}>
+      <div className={styles.ambient} aria-hidden="true" />
+
+      <main className={styles.shell}>
+        <section className={styles.hero} aria-labelledby="login-headline">
+          <div className={styles.brandRow}>
+            <span className={styles.brandMark}>ANF</span>
+            <span className={styles.brandName}>Análisis Financiero</span>
+          </div>
+
+          <h1 id="login-headline" className={styles.headline}>
+            Analiza mejor.
+            <br />
+            Decide con <span className={styles.highlight}>datos</span>.
+          </h1>
+
+          <p className={styles.lede}>
+            Estados financieros, ratios y proyecciones en un solo terminal. Todo el pulso de tus
+            empresas, en una vista.
+          </p>
+
+          <ul className={styles.featureList}>
+            <li className={styles.featureItem}>
+              <span className={styles.featureDot} aria-hidden="true" />
+              Ratios y benchmarks por sector
+            </li>
+            <li className={styles.featureItem}>
+              <span className={styles.featureDot} aria-hidden="true" />
+              Proyecciones de ventas a 12 meses
+            </li>
+            <li className={styles.featureItem}>
+              <span className={styles.featureDot} aria-hidden="true" />
+              Reportes comparativos por empresa
+            </li>
+          </ul>
+        </section>
+
+        <section className={styles.formCard} aria-labelledby="login-form-title">
+          <header className={styles.formHeader}>
+            <p className={styles.formEyebrow}>Acceso al sistema</p>
+            <h2 id="login-form-title" className={styles.formTitle}>
+              Inicia sesión
+            </h2>
+            <p className={styles.formSubtitle}>
+              <FaInfoCircle aria-hidden="true" /> Ingresa tus credenciales para continuar.
             </p>
-          </article>
-          <article className="mb-3">
-            <label htmlFor="userName">Usuario</label>
-            <input
-              type="text"
-              id="userName"
-              suppressHydrationWarning
-              {...register('userName', { required: 'El usuario es obligatorio' })}
-              className={`w-100 ${errors.userName ? styles.inputError : ''}`}
-            />
-            {errors.userName && <p className={styles.errorMessage}>{errors.userName.message}</p>}
-          </article>
-          <article className="mb-3">
-            <label htmlFor="password">Contraseña</label>
-            <input
-              type="password"
-              id="contrasena"
-              suppressHydrationWarning
-              {...register('password', { required: 'La contraseña es obligatoria' })}
-              className={`w-100 ${errors.password ? styles.inputError : ''}`}
-            />
-            {errors.password && <p className={styles.errorMessage}>{errors.password.message}</p>}
-          </article>
-          <article className="d-flex justify-content-start">
+          </header>
+
+          <form onSubmit={handleSubmit(handleLoginSubmit)} noValidate>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="userName">
+                Usuario
+              </label>
+              <input
+                type="text"
+                id="userName"
+                autoComplete="username"
+                suppressHydrationWarning
+                {...register('userName', { required: 'El usuario es obligatorio' })}
+                className={`${styles.input} ${errors.userName ? styles.inputError : ''}`}
+              />
+              {errors.userName && <p className={styles.errorMessage}>{errors.userName.message}</p>}
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="password">
+                Contraseña
+              </label>
+              <input
+                type="password"
+                id="password"
+                autoComplete="current-password"
+                suppressHydrationWarning
+                {...register('password', { required: 'La contraseña es obligatoria' })}
+                className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
+              />
+              {errors.password && <p className={styles.errorMessage}>{errors.password.message}</p>}
+            </div>
+
             <button
               type="submit"
-              className={`${styles.customBtn} w-100`}
+              className={styles.submitBtn}
               disabled={isSubmitting}
               suppressHydrationWarning
             >
-              <FaArrowRightToBracket className="me-2" />
+              <FaArrowRightToBracket aria-hidden="true" />
               {isSubmitting ? 'Verificando...' : 'Iniciar sesión'}
             </button>
-          </article>
-        </form>
-      </section>
+          </form>
+        </section>
+      </main>
     </div>
   )
 }

@@ -1,51 +1,99 @@
-/* Botón Primario (Acción principal: Guardar, Crear) */
+/* Botón primario — ghost pill con halo blanco (sin relleno cromático) */
 .btnPrimary {
-  /* Usa la variable del color fuerte de la paleta */
-  background-color: var(--color-darkest); 
-  border: 2px solid var(--color-darkest);
-  color: white;
-  padding: 0.6rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 0.2s ease-in-out;
-}
-.btnPrimary:hover {
-  background-color: transparent;
-  color: var(--color-primary);
-}
-
-/* Botón Secundario (Acción de cancelación o secundaria) */
-.btnSecondary {
-  /* Usa la variable del color suave de la paleta */
-  background-color: transparent; 
-  border: 2px solid var(--color-darkest);
-  color: var(--color-darkest);
-  padding: 0.6rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 0.2s ease-in-out;
-}
-.btnSecondary:hover {
-  background-color: var(--color-darkest);
-  color: white;
-}
-
-/* Botones de Ícono para Tablas (Editar, Eliminar) */
-.btnIcon {
-  background: transparent;
-  border: none;
-  padding: 0.5rem;
-  border-radius: 8px;
-  width: 38px;
-  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s, color 0.2s;
-  color: #6c757d;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--fey-white);
+  font-family: var(--font-calibre);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: var(--shadow-line), var(--shadow-glow);
+  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease,
+    box-shadow 0.18s ease;
 }
+
+.btnPrimary:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: var(--fey-white);
+  color: var(--fey-white);
+}
+
+.btnPrimary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btnPrimary:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+/* Botón secundario — ghost outline */
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--fey-mist);
+  font-family: var(--font-calibre);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.btnSecondary:hover:not(:disabled) {
+  background-color: var(--surface-elevated);
+  border-color: var(--border-emphasis);
+  color: var(--fey-white);
+}
+
+.btnSecondary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btnSecondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* Botones de ícono para tablas */
+.btnIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--fey-graphite);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
 .btnIcon:hover {
-  background-color: #e9ecef;
+  background-color: var(--surface-elevated);
+  border-color: var(--border-default);
+  color: var(--fey-white);
 }
-.btnIconEdit:hover { color: var(--color-primary); }
-.btnIconDelete:hover { color: #dc3545; }
+
+.btnIconEdit:hover { color: var(--fey-white); }
+.btnIconDelete:hover { color: var(--fey-loss); }
+.btnIconView:hover { color: var(--fey-signal); }
+.btnIconCalculate:hover { color: var(--fey-ember); }

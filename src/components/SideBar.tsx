@@ -29,37 +29,44 @@ const SideBar = ({ sidebarOpen, toggleSidebar }: { sidebarOpen: boolean; toggleS
     >
       <header className={styles.sidebarHeader}>
         <Link href="/dashboard" className={styles.sidebarLogoLink}>
-          <span className={styles.sidebarLogo}>FINANZAS</span>
+          <span className={styles.sidebarLogo}>Finanzas</span>
         </Link>
         <button
-          className={`btn btn-link btn-sm text-white ${styles.sidebarToggleBtn}`}
+          type="button"
+          className={styles.sidebarToggleBtn}
           onClick={toggleSidebar}
           aria-label="Mostrar/ocultar menú lateral"
+          aria-expanded={sidebarOpen}
         >
-          <List size={28} />
+          <List size={22} />
         </button>
       </header>
 
       <nav className={styles.sidebarNav}>
-        <ul className="nav nav-pills flex-column mb-auto">
-          {visibleLinks.map(({ to, label, icon: Icon }, i) => (
-            <li key={i} className="nav-item">
-              <Link
-                href={to}
-                className={`nav-link ${styles.menuLink} ${pathname.startsWith(to) ? styles.active : 'text-white'}`}
-                title={label}
-              >
-                <Icon className={styles.menuIcon} size={20} />
-                <span className={styles.menuLabel}>{label}</span>
-              </Link>
-            </li>
-          ))}
+        <ul className={styles.navList}>
+          {visibleLinks.map(({ to, label, icon: Icon }, i) => {
+            const isActive = pathname.startsWith(to)
+            return (
+              <li key={i} className={styles.navItem}>
+                <Link
+                  href={to}
+                  className={`${styles.menuLink} ${isActive ? styles.active : ''}`}
+                  title={label}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <Icon className={styles.menuIcon} size={20} />
+                  <span className={styles.menuLabel}>{label}</span>
+                </Link>
+              </li>
+            )
+          })}
         </ul>
       </nav>
 
-      <div className="mt-auto w-100 p-2">
+      <div className={styles.sidebarFooter}>
         <button
-          className={`btn btn-outline-light w-100 d-flex align-items-center justify-content-center mt-2 ${styles.bottomBtn}`}
+          type="button"
+          className={styles.bottomBtn}
           onClick={handleLogout}
           title="Cerrar sesión"
         >

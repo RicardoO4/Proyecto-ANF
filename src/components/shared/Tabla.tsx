@@ -75,7 +75,7 @@ const Tabla = ({
 
                   {/* Renderizamos la columna de acciones solo si hay alguna */}
                   {tieneAcciones && (
-                    <td className="text-right">
+                    <td className="text-end">
                       <div className="actions-cell">
                         {enVer && (
                           <button

@@ -1,37 +1,42 @@
 .reportContainer {
-  padding: 2.5rem;
-  background-color: #fff;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
+  padding: 8px 0 0;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .reportHeader h2 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--color-darkest);
+  margin: 0;
+  font-size: var(--text-heading-lg);
+  font-weight: 600;
+  line-height: var(--leading-heading-lg);
+  letter-spacing: var(--tracking-heading-lg);
+  color: var(--fey-white);
 }
 
 .reportHeader h3 {
-  font-size: 1.4rem;
-  color: var(--color-dark);
-  margin-top: 0.5rem;
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--border-color);
+  margin: 6px 0 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--fey-graphite);
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .section {
-  margin-bottom: 3rem;
+  margin-bottom: 36px;
 }
 
 .sectionTitle {
-  font-size: 1.2rem;
-  font-weight: 600;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-default);
+  color: var(--fey-graphite);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-primary);
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid var(--color-primary);
 }
 
 .detailTable {
@@ -40,32 +45,43 @@
 }
 
 .tableRow {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .tableRow td {
-  padding: 0.9rem 0.5rem;
+  padding: 10px 8px;
+  color: var(--fey-mist);
+  font-size: 13px;
 }
 
 .numberCell {
   text-align: right;
-  font-family: 'Courier New', Courier, monospace;
+  color: var(--fey-white);
+  font-variant-numeric: tabular-nums;
   font-weight: 500;
 }
 
 .subtotalRow {
-  border-top: 2px solid var(--color-dark);
-  font-weight: 700;
+  border-top: 1px solid var(--border-strong);
+  font-weight: 600;
 }
 
 .subtotalRow td {
-  padding-top: 1rem;
+  padding-top: 12px;
+  color: var(--fey-white);
 }
 
 .grandTotalRow {
-  border-top: 2px solid var(--color-darkest);
-  border-bottom: 4px double var(--color-darkest);
+  border-top: 2px solid var(--fey-white);
+  border-bottom: 3px double var(--fey-white);
+  color: var(--fey-white);
+  font-size: 14px;
   font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--color-darkest);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767.98px) {
+  .reportContainer {
+    padding: 20px;
+  }
 }

@@ -1,35 +1,33 @@
 .formBox {
   max-width: 700px;
-  margin: 2.5rem auto;
-  padding: 2.5rem; /* Le devolvemos el padding para que se vea bien */
-  border-radius: 16px; /* Añadimos el borde redondeado de nuevo */
-
-  /* --- CAMBIO REALIZADO AQUÍ --- */
-  background-color: #e3f5db; /* Un verde suave y profesional */
-  
-  border: 1px solid #cce5c9;  /* Un borde un poco más oscuro para definir la caja */
-  box-shadow: none;
+  margin: 32px auto;
+  padding: 32px;
+  border-radius: var(--radius-card);
+  background-color: var(--surface-elevated);
+  border: 1px dashed var(--border-strong);
+  box-shadow: var(--shadow-halo-soft);
 }
 
 .instructions {
   text-align: center;
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .instructions p {
-  font-size: 1rem;
-  color: #6c757d;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
+  color: var(--fey-graphite);
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .fileInputContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  margin-top: 2rem;
+  gap: 14px;
+  margin-top: 24px;
 }
 
 .hiddenFileInput {
@@ -40,32 +38,41 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   cursor: pointer;
-  background-color: transparent; 
-  border: 2px solid var(--color-darkest);
-  color: var(--color-darkest);
-  padding: 0.6rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 0.2s ease-in-out;
+  padding: 10px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--fey-white);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-line), var(--shadow-glow);
+  transition: background-color 0.18s ease, border-color 0.18s ease;
 }
 
 .fileInputLabel:hover {
-  background-color: var(--color-darkest);
-  color: white;
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: var(--fey-white);
 }
 
 .fileName {
-  font-style: italic;
-  color: var(--color-primary);
+  margin-top: 4px;
+  color: var(--fey-growth);
+  font-size: 12px;
   font-weight: 500;
-  margin-top: 0.5rem;
 }
 
 .submitContainer {
   display: flex;
   justify-content: flex-end;
-  margin-top: 2.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 767.98px) {
+  .formBox {
+    padding: 22px;
+  }
 }

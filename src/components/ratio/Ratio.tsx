@@ -229,22 +229,16 @@ export const Ratio = () => {
 
       <div style={{ marginTop: '2rem' }}>
         <div style={{ marginBottom: '1.5rem', maxWidth: '400px' }}>
-          <label htmlFor="filtro-empresa" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+          <label htmlFor="filtro-empresa" className="form-label">
             Filtrar por Nombre de Empresa
           </label>
           <input
             id="filtro-empresa"
             type="text"
+            className="form-control"
             placeholder="Ej: DIANA"
             value={filtroEmpresa}
             onChange={(e) => setFiltroEmpresa(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              fontSize: '1rem',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
-            }}
           />
         </div>
 

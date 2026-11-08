@@ -1,62 +1,97 @@
 .viewContainer {
-  padding: 1.5rem;
-  background-color: var(--background-card);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  border: 1px solid var(--border-color);
+  padding: 24px;
+  background-color: var(--surface-card);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-halo);
+  color: var(--text-primary);
 }
 
 .viewHeader {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .viewTitle {
-  font-size: 1.75rem;
+  margin: 0;
+  font-size: var(--text-heading-lg);
   font-weight: 600;
-  color: var(--color-darkest);
+  line-height: var(--leading-heading-lg);
+  letter-spacing: var(--tracking-heading-lg);
+  color: var(--fey-white);
 }
 
 .table {
-  border-collapse: collapse; /* Cambiamos a collapse para el estilo de encabezado clásico */
   width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  color: var(--fey-mist);
 }
 
-/* --- SECCIÓN MODIFICADA: ENCABEZADO DE LA TABLA --- */
 .table thead th {
-  background-color: var(--color-darkest); /* El color oscuro que te gustó */
-  color: white;
-  border-bottom: 2px solid var(--color-primary); /* Un acento de color sutil */
-  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px 16px;
+  background-color: var(--surface-elevated);
+  color: var(--fey-graphite);
+  border-bottom: 1px solid var(--border-default);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: 0.8rem;
-  padding: 1rem 1.5rem;
-  text-align: left; /* Alineación estándar */
+  text-align: left;
+  white-space: nowrap;
 }
 
 .table thead th:last-child {
-  text-align: right; /* La columna de acciones se alinea a la derecha */
+  text-align: right;
 }
-/* --- FIN DE LA SECCIÓN MODIFICADA --- */
-
 
 .table tbody tr {
-  border-bottom: 1px solid var(--border-color);
-  transition: background-color 0.2s;
+  transition: background-color 0.15s ease;
 }
 
 .table tbody tr:hover {
-  background-color: #f1f3f5;
+  background-color: var(--surface-hover);
 }
 
 .table tbody td {
-  padding: 1.25rem 1.5rem;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
   vertical-align: middle;
+  color: var(--fey-mist);
 }
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
 .table tbody td:last-child {
   text-align: right;
+}
+
+.actionsCell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+@media (max-width: 767.98px) {
+  .viewContainer {
+    padding: 18px;
+  }
+
+  .table thead th,
+  .table tbody td {
+    padding: 11px 12px;
+  }
 }

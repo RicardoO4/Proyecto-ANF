@@ -72,10 +72,20 @@ npm run dev
 
 Abre <http://localhost:3000>.
 
-**Credenciales de prueba** (seed): usuario `admin` / contraseña `admin123`.
+### 4. Credenciales de prueba
+
+El seed de la base de datos crea un usuario administrador para probar la
+aplicación:
+
+| Campo      | Valor      |
+| ---------- | ---------- |
+| Usuario    | `admin`    |
+| Contraseña | `admin123` |
 
 Este usuario tiene todos los accesos del menú; los demás usuarios solo verán
 las opciones seleccionadas en la pantalla de Usuarios (permisos `accesos[]`).
+
+> Cambia esta contraseña antes de desplegar a producción.
 
 ## Estructura del proyecto
 

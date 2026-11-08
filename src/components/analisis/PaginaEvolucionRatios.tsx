@@ -23,11 +23,11 @@ import {
 import type { SelectChangeEvent } from '@mui/material'
 
 const lineColors = [
-  '#207B25',
-  '#0088FE',
-  '#FF8042',
-  '#FFBB28',
-  '#8884d8',
+  '#479ffa',
+  '#4ebe96',
+  '#ffa16c',
+  '#b6d6ff',
+  '#d6fe51',
 ]
 
 const ratiosDisponibles = [
@@ -168,11 +168,33 @@ const PaginaEvolucionRatios = () => {
                     que define su tamaño, solucionando el problema de "angosto" */}
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={datosGraficos}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="anio" />
-                    <YAxis domain={['auto', 'auto']} />
-                    <Tooltip />
-                    <Legend />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
+                    <XAxis
+                      dataKey="anio"
+                      stroke="#525252"
+                      tick={{ fill: '#868f97', fontSize: 11 }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      domain={['auto', 'auto']}
+                      stroke="#525252"
+                      tick={{ fill: '#868f97', fontSize: 11 }}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: '#191919',
+                        border: '1px solid #262626',
+                        borderRadius: 10,
+                        color: '#ffffff',
+                        fontSize: 12,
+                        boxShadow: 'rgba(0, 0, 0, 0.8) 0 0 44px 0',
+                      }}
+                      labelStyle={{ color: '#868f97', fontSize: 11 }}
+                      itemStyle={{ color: '#cccccc', fontSize: 12 }}
+                      cursor={{ stroke: '#525252', strokeDasharray: '3 3' }}
+                    />
+                    <Legend wrapperStyle={{ color: '#cccccc', fontSize: 11 }} />
                     <Line
                       type="monotone"
                       dataKey={ratioValue}
