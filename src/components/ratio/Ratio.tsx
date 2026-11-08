@@ -140,7 +140,9 @@ export const Ratio = () => {
       'Razón de capital de trabajo': (id) => ratioService.calculateCapitalTrabajoRatio(id),
       'Razón de efectivo': (id) => ratioService.calculateEfectivoRatio(id),
       'Razón de rotación de cuentas por cobrar': (id) => ratioService.calculateRotacionCuentasPorCobrarRatio(id),
-      'Período Medio de Cobranza': (id) => ratioService.calculatePeriodoCobranzaRatio(id),
+      // NOTE: el nombre debe coincidir EXACTAMENTE con expectedCategory en
+      // ratios.ts ('Período medio de cobranza') o el endpoint rechaza el cálculo.
+      'Período medio de cobranza': (id) => ratioService.calculatePeriodoCobranzaRatio(id),
       'Índice de rotación de activos totales': (id) => ratioService.calculateRotacionActivosTotalesRatio(id),
       'Índice de rotación de activos fijos': (id) => ratioService.calculateRotacionActivosFijosRatio(id),
       'Índice de margen bruto': (id) => ratioService.calculateMargenBrutoRatio(id),

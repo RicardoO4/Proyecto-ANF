@@ -303,6 +303,8 @@ export interface LineaAnalisisDTO {
   variacionRelativa: number;
   porcentajeVerticalAnio1: number;
   porcentajeVerticalAnio2: number;
+  /** Módulo B (B3): which report this line belongs to. */
+  tipoReporte?: 'BALANCE_GENERAL' | 'ESTADO_RESULTADOS';
 }
 
 export interface ReporteInternoDTO {
@@ -311,7 +313,6 @@ export interface ReporteInternoDTO {
   anio2: number;
   analisisHorizontal: LineaAnalisisDTO[];
   analisisVertical: LineaAnalisisDTO[];
-  ratios: { nombre: string; valorAnio1: number; valorAnio2: number }[];
 }
 
 // ---------------------------------------------------------

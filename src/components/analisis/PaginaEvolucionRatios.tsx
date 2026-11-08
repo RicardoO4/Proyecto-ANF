@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { apiClient } from '@/services/api'
 import { Notifier } from '@/utils/Notifier'
@@ -13,7 +13,6 @@ import styles from '@/styles/analisis/EvolucionRatios.module.css'
 
 import {
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   OutlinedInput,
@@ -42,39 +41,80 @@ const PaginaEvolucionRatios = () => {
   const [empresas, setEmpresas] = useState<EmpresaResponseDTO[]>([])
   const [empresaSel, setEmpresaSel] = useState('')
   const [ratiosSel, setRatiosSel] = useState<string[]>([])
-  const [datosGraficos, setDatosGraficos] = useState<Record<string, string | number>[]>([])
+  const [datosGraficos, setDatosGraficos] = useState<Record<string, string | number | null>[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Carga las empresas reales para el selector
+  // Carga las empresas reales para el selector y deja valores por defecto
+  // (monoempresa A4: primera empresa + los 5 ratios) para que las gráficas
+  // se generen solas al entrar, sin requerir el clic en "Generar".
   useEffect(() => {
     apiClient
       .get('/empresas')
-      .then((res) => setEmpresas(res.data))
+      .then((res) => {
+        setEmpresas(res.data)
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          setEmpresaSel(String(res.data[0].empresaId))
+          setRatiosSel(ratiosDisponibles.map((r) => r.value))
+        }
+      })
       .catch(() => Notifier.error('No se pudieron cargar las empresas.'))
   }, [])
 
-  const handleGenerarGraficos = async () => {
-    if (!empresaSel || ratiosSel.length === 0) {
-      alert('Por favor, seleccione una empresa y al menos un ratio.')
-      return
-    }
-    setLoading(true)
-    setDatosGraficos([])
+  // Secuencia de peticiones: evita que una respuesta vieja pise a la nueva
+  // cuando el usuario cambia rápido de empresa o actualiza los datos.
+  const requestSeq = useRef(0)
 
+  const generarGraficos = useCallback(async (empresa: string) => {
+    if (!empresa) return
+    const seq = ++requestSeq.current
+    setLoading(true)
     try {
-      // Conectado a la API real de evolución de ratios
+      // Conservar todos los indicadores permite cambiar la selección sin
+      // consultas adicionales ni desmontar las gráficas que siguen visibles.
       const resp = await apiClient.get('/analisis/evolucion-ratios', {
-        params: { empresaId: empresaSel, ratios: ratiosSel },
+        params: {
+          empresaId: empresa,
+          ratios: ratiosDisponibles.map((ratio) => ratio.value).join(','),
+        },
       })
-      // La API devuelve una lista de mapas Recharts: [{ anio: '2021', LIQUIDEZ_CORRIENTE: 1.5, ... }]
+      if (seq !== requestSeq.current) return // respuesta obsoleta
+      // La API devuelve una lista de mapas Recharts: [{ anio: '2024', LIQUIDEZ_CORRIENTE: 0.36, ... }]
       setDatosGraficos(resp.data)
     } catch (error: unknown) {
+      if (seq !== requestSeq.current) return
       const err = error as { response?: { data?: { message?: string } } }
       Notifier.error(err.response?.data?.message || 'Error al calcular la evolución de ratios.')
       setDatosGraficos([])
     } finally {
-      setLoading(false)
+      if (seq === requestSeq.current) setLoading(false)
     }
+  }, [])
+
+  const handleGenerarGraficos = () => {
+    if (!empresaSel || ratiosSel.length === 0) {
+      alert('Por favor, seleccione una empresa y al menos un ratio.')
+      return
+    }
+    void generarGraficos(empresaSel)
+  }
+
+  // Consultar al cambiar la empresa. La selección solo filtra en memoria.
+  useEffect(() => {
+    if (!empresaSel) return
+    const timer = setTimeout(() => {
+      void generarGraficos(empresaSel)
+    }, 400)
+    return () => {
+      clearTimeout(timer)
+      requestSeq.current += 1
+    }
+  }, [empresaSel, generarGraficos])
+
+  const handleEmpresaChange = (empresa: string) => {
+    requestSeq.current += 1
+    setEmpresaSel(empresa)
+    setDatosGraficos([])
+    setLoading(false)
   }
 
   const handleRatioChange = (event: SelectChangeEvent<string[]>) => {
@@ -82,6 +122,10 @@ const PaginaEvolucionRatios = () => {
       target: { value },
     } = event
     setRatiosSel(typeof value === 'string' ? value.split(',') : value)
+  }
+
+  const handleRemoveRatio = (ratio: string) => {
+    setRatiosSel((seleccionados) => seleccionados.filter((item) => item !== ratio))
   }
 
   return (
@@ -99,7 +143,7 @@ const PaginaEvolucionRatios = () => {
           <select
             id="empresa-select"
             value={empresaSel}
-            onChange={(e) => setEmpresaSel(e.target.value)}
+            onChange={(e) => handleEmpresaChange(e.target.value)}
           >
             <option value="">Seleccione una empresa</option>
             {empresas.map((emp) => (
@@ -112,17 +156,14 @@ const PaginaEvolucionRatios = () => {
 
         {/* Selector de Ratios (Mantenemos MUI por complejidad) */}
         <div className={styles.formControl} style={{ flexGrow: 2 }}>
-          <label>Ratios a Graficar</label>
+          <label htmlFor="ratio-select">Ratios a Graficar</label>
           <FormControl fullWidth variant="outlined" size="small">
-            <InputLabel id="ratio-label-id" sx={{ fontSize: '0.9rem', top: '-2px' }}>
-              Ratios a Graficar
-            </InputLabel>
             <Select
-              labelId="ratio-label-id"
+              id="ratio-select"
               multiple
               value={ratiosSel}
               onChange={handleRatioChange}
-              input={<OutlinedInput label="Ratios a Graficar" />}
+              input={<OutlinedInput aria-label="Ratios a Graficar" />}
               renderValue={(selected) => (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, paddingTop: '5px' }}>
                   {selected.map((value) => (
@@ -130,6 +171,27 @@ const PaginaEvolucionRatios = () => {
                       key={value}
                       label={ratiosDisponibles.find((r) => r.value === value)?.label}
                       size="small"
+                      onDelete={(event) => {
+                        event.stopPropagation()
+                        handleRemoveRatio(value)
+                      }}
+                      deleteIcon={
+                        <span
+                          aria-label={`Quitar ${ratiosDisponibles.find((r) => r.value === value)?.label}`}
+                          title="Quitar ratio"
+                          onMouseDown={(event) => {
+                            // Select abre en mousedown, antes del onDelete del Chip.
+                            event.preventDefault()
+                            event.stopPropagation()
+                          }}
+                        >
+                          ×
+                        </span>
+                      }
+                      sx={{
+                        '& .MuiChip-deleteIcon': { color: '#b9c2cc' },
+                        '& .MuiChip-deleteIcon:hover': { color: '#fff' },
+                      }}
                     />
                   ))}
                 </Box>
@@ -146,6 +208,7 @@ const PaginaEvolucionRatios = () => {
 
         {/* Botón */}
         <button
+          type="button"
           className={buttonStyles.btnPrimary}
           onClick={handleGenerarGraficos}
           disabled={loading}
@@ -156,10 +219,11 @@ const PaginaEvolucionRatios = () => {
 
       {/* --- 6. Área de Gráficos --- */}
       {loading && <p>Calculando datos...</p>}
+      {ratiosSel.length === 0 && <p>Selecciona al menos un ratio para mostrar su gráfica.</p>}
 
       {datosGraficos.length > 0 && (
         <div className={styles.graphArea}>
-          {ratiosSel.map((ratioValue, index) => {
+          {ratiosSel.map((ratioValue) => {
             const ratioLabel = ratiosDisponibles.find((r) => r.value === ratioValue)?.label
             return (
               <div className={styles.graphItem} key={ratioValue}>
@@ -182,6 +246,9 @@ const PaginaEvolucionRatios = () => {
                       tickLine={false}
                     />
                     <Tooltip
+                      // null = ratio no significativo (N/M), p.ej. ROE con
+                      // patrimonio negativo → se muestra "N/M" en vez de número
+                      formatter={(v: unknown) => (v == null ? 'N/M' : (v as number))}
                       contentStyle={{
                         background: '#191919',
                         border: '1px solid #262626',
@@ -199,9 +266,11 @@ const PaginaEvolucionRatios = () => {
                       type="monotone"
                       dataKey={ratioValue}
                       // --- 7. Asigna colores de la paleta ---
-                      stroke={lineColors[index % lineColors.length]}
+                      stroke={lineColors[ratiosDisponibles.findIndex((ratio) => ratio.value === ratioValue)]}
                       strokeWidth={2}
                       name={ratioLabel}
+                      connectNulls={false}
+                      isAnimationActive={false}
                     />
                   </LineChart>
                 </ResponsiveContainer>
