@@ -15,22 +15,22 @@ export default function SistemaDupontPage() {
 
   const styles = {
     container: { padding: '2rem', maxWidth: '1200px', margin: '0 auto' },
-    title: { color: 'var(--color-darkest)', fontSize: '28px', fontWeight: 'bold', marginBottom: '10px' },
-    subtitle: { color: 'var(--color-neutral)', marginBottom: '30px' },
-    inputGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', backgroundColor: 'var(--background-card)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '40px' },
-    label: { display: 'block', fontSize: '14px', fontWeight: 'bold', color: 'var(--color-darkest)', marginBottom: '8px' },
-    input: { width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid var(--border-color)', outlineColor: 'var(--color-primary)' },
+    title: { color: 'var(--text-primary)', fontSize: '28px', fontWeight: 'bold', marginBottom: '10px' },
+    subtitle: { color: 'var(--text-secondary)', marginBottom: '30px' },
+    inputGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', backgroundColor: 'var(--surface-card)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-default)', marginBottom: '40px' },
+    label: { display: 'block', fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '8px' },
+    input: { width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid var(--border-default)', outlineColor: 'var(--fey-signal)' },
     treeContainer: { display: 'flex', flexDirection: 'column' as const, gap: '20px', alignItems: 'center' },
     nodesRow: { display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' as const, width: '100%' },
-    node: { flex: 1, minWidth: '250px', backgroundColor: 'var(--background-card)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-color)', borderTop: '4px solid var(--color-primary)', textAlign: 'center' as const, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
-    nodeTitle: { fontSize: '16px', color: 'var(--color-darkest)', fontWeight: 'bold', marginBottom: '10px' },
-    nodeValue: { fontSize: '32px', fontWeight: 'bold', color: 'var(--color-primary)' },
-    nodeFormula: { fontSize: '12px', color: 'var(--color-neutral)', marginTop: '10px' },
-    operator: { display: 'flex', alignItems: 'center', fontSize: '24px', color: 'var(--color-neutral)', fontWeight: 'bold' },
-    resultNode: { width: '100%', maxWidth: '500px', backgroundColor: 'var(--color-darkest)', padding: '30px', borderRadius: '12px', textAlign: 'center' as const, color: 'var(--text-light)', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' },
-    resultTitle: { fontSize: '20px', color: 'var(--color-neutral)', marginBottom: '10px' },
-    resultValue: { fontSize: '48px', fontWeight: '900', color: 'var(--color-accent)' },
-    resultDesc: { fontSize: '14px', color: 'var(--text-light)', marginTop: '15px', opacity: 0.9 }
+    node: { flex: 1, minWidth: '250px', backgroundColor: 'var(--surface-card)', padding: '24px', borderRadius: '8px', border: '1px solid var(--border-default)', borderTop: '4px solid var(--fey-signal)', textAlign: 'center' as const, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+    nodeTitle: { fontSize: '16px', color: 'var(--text-primary)', fontWeight: 'bold', marginBottom: '10px' },
+    nodeValue: { fontSize: '32px', fontWeight: 'bold', color: 'var(--fey-signal)' },
+    nodeFormula: { fontSize: '12px', color: 'var(--text-secondary)', marginTop: '10px' },
+    operator: { display: 'flex', alignItems: 'center', fontSize: '24px', color: 'var(--text-secondary)', fontWeight: 'bold' },
+    resultNode: { width: '100%', maxWidth: '500px', backgroundColor: 'var(--surface-elevated)', padding: '30px', borderRadius: '12px', textAlign: 'center' as const, color: 'var(--fey-white)', border: '1px solid var(--border-default)', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' },
+    resultTitle: { fontSize: '20px', color: 'var(--text-secondary)', marginBottom: '10px' },
+    resultValue: { fontSize: '48px', fontWeight: '900', color: 'var(--accent-positive)' },
+    resultDesc: { fontSize: '14px', color: 'var(--fey-white)', marginTop: '15px', opacity: 0.9 }
   };
 
   return (
@@ -65,15 +65,15 @@ export default function SistemaDupontPage() {
             <p style={styles.nodeFormula}>Utilidad Neta / Ventas</p>
           </div>
           <div style={styles.operator}>✖</div>
-          <div style={{ ...styles.node, borderTopColor: 'var(--color-neutral)' }}>
+          <div style={{ ...styles.node, borderTopColor: 'var(--text-secondary)' }}>
             <h3 style={styles.nodeTitle}>Rotación de Activos</h3>
-            <p style={{ ...styles.nodeValue, color: 'var(--color-neutral)' }}>{rotacionActivos.toFixed(2)}x</p>
+            <p style={{ ...styles.nodeValue, color: 'var(--text-secondary)' }}>{rotacionActivos.toFixed(2)}x</p>
             <p style={styles.nodeFormula}>Ventas / Activo Total</p>
           </div>
           <div style={styles.operator}>✖</div>
-          <div style={{ ...styles.node, borderTopColor: 'var(--color-dark)' }}>
+          <div style={{ ...styles.node, borderTopColor: 'var(--text-tertiary)' }}>
             <h3 style={styles.nodeTitle}>Multiplicador de Capital</h3>
-            <p style={{ ...styles.nodeValue, color: 'var(--color-dark)' }}>{multiplicadorCapital.toFixed(2)}x</p>
+            <p style={{ ...styles.nodeValue, color: 'var(--text-tertiary)' }}>{multiplicadorCapital.toFixed(2)}x</p>
             <p style={styles.nodeFormula}>Activo Total / Patrimonio</p>
           </div>
         </div>

@@ -29,8 +29,8 @@ export default function PronosticosPage() {
 
   const styles = {
     container: { padding: '2rem', maxWidth: '1200px', margin: '0 auto' },
-    title: { color: 'var(--color-darkest)', fontSize: '28px', fontWeight: 'bold', marginBottom: '20px' },
-    chartContainer: { backgroundColor: 'var(--background-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '24px', height: '500px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }
+    title: { color: 'var(--text-primary)', fontSize: '28px', fontWeight: 'bold', marginBottom: '20px' },
+    chartContainer: { backgroundColor: 'var(--surface-card)', border: '1px solid var(--border-default)', borderRadius: '8px', padding: '24px', height: '500px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }
   };
 
   return (
@@ -40,14 +40,14 @@ export default function PronosticosPage() {
       <div style={styles.chartContainer}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={datosGrafico} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-            <XAxis dataKey="mes" stroke="var(--color-neutral)" />
-            <YAxis stroke="var(--color-neutral)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
+            <XAxis dataKey="mes" stroke="var(--text-secondary)" />
+            <YAxis stroke="var(--text-secondary)" />
             <Tooltip />
             <Legend />
-            <Line type="monotone" dataKey="historico" name="Ventas Históricas" stroke="var(--color-darkest)" strokeWidth={3} />
-            <Line type="monotone" dataKey="movil" name="Promedio Móvil (n=3)" stroke="var(--color-primary)" strokeDasharray="5 5" strokeWidth={2} />
-            <Line type="monotone" dataKey="logaritmico" name="Regresión Logarítmica" stroke="var(--color-accent)" strokeDasharray="5 5" strokeWidth={2} />
+            <Line type="monotone" dataKey="historico" name="Ventas Históricas" stroke="var(--text-tertiary)" strokeWidth={3} />
+            <Line type="monotone" dataKey="movil" name="Promedio Móvil (n=3)" stroke="var(--fey-signal)" strokeDasharray="5 5" strokeWidth={2} />
+            <Line type="monotone" dataKey="logaritmico" name="Regresión Logarítmica" stroke="var(--accent-positive)" strokeDasharray="5 5" strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
       </div>

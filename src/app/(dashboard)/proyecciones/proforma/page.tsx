@@ -19,20 +19,20 @@ export default function EstadosProformaPage() {
 
   const styles = {
     container: { padding: '2rem', maxWidth: '1000px', margin: '0 auto' },
-    title: { color: 'var(--color-darkest)', fontSize: '28px', fontWeight: 'bold', marginBottom: '8px' },
-    subtitle: { color: 'var(--color-neutral)', marginBottom: '30px' },
+    title: { color: 'var(--text-primary)', fontSize: '28px', fontWeight: 'bold', marginBottom: '8px' },
+    subtitle: { color: 'var(--text-secondary)', marginBottom: '30px' },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '30px' },
-    card: { backgroundColor: 'var(--background-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '24px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
-    sectionTitle: { color: 'var(--color-darkest)', fontSize: '18px', fontWeight: 'bold', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' },
+    card: { backgroundColor: 'var(--surface-card)', border: '1px solid var(--border-default)', borderRadius: '8px', padding: '24px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+    sectionTitle: { color: 'var(--text-primary)', fontSize: '18px', fontWeight: 'bold', marginBottom: '20px', borderBottom: '1px solid var(--border-default)', paddingBottom: '10px' },
     inputGroup: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' },
-    label: { display: 'block', fontSize: '14px', fontWeight: 'bold', color: 'var(--color-darkest)', marginBottom: '8px' },
-    input: { width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid var(--border-color)', outlineColor: 'var(--color-primary)' },
-    inputHighlight: { width: '100%', padding: '10px', borderRadius: '4px', border: '2px solid var(--color-primary)', backgroundColor: '#f4fbf4', outlineColor: 'var(--color-primary)' },
-    listItem: { display: 'flex', justifyContent: 'space-between', paddingBottom: '10px', marginBottom: '10px', borderBottom: '1px solid var(--border-color)', fontSize: '14px', color: 'var(--color-darkest)' },
-    ferContainer: { marginTop: '20px', padding: '24px', borderRadius: '8px', textAlign: 'center' as const, border: `1px solid ${fer > 0 ? '#fecaca' : '#bbf7d0'}`, backgroundColor: fer > 0 ? '#fef2f2' : '#f0fdf4' },
-    ferTitle: { fontSize: '20px', fontWeight: 'bold', color: 'var(--color-darkest)', marginBottom: '10px' },
-    ferValue: { fontSize: '48px', fontWeight: '900', color: fer > 0 ? '#dc2626' : '#16a34a' },
-    ferDesc: { fontSize: '14px', color: 'var(--color-dark)', marginTop: '10px' }
+    label: { display: 'block', fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '8px' },
+    input: { width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid var(--border-default)', outlineColor: 'var(--fey-signal)' },
+    inputHighlight: { width: '100%', padding: '10px', borderRadius: '4px', border: '2px solid var(--fey-signal)', backgroundColor: 'var(--surface-elevated)', outlineColor: 'var(--fey-signal)' },
+    listItem: { display: 'flex', justifyContent: 'space-between', paddingBottom: '10px', marginBottom: '10px', borderBottom: '1px solid var(--border-default)', fontSize: '14px', color: 'var(--text-primary)' },
+    ferContainer: { marginTop: '20px', padding: '24px', borderRadius: '8px', textAlign: 'center' as const, border: `1px solid ${fer > 0 ? 'rgba(224, 108, 90, 0.5)' : 'rgba(78, 190, 150, 0.5)'}`, backgroundColor: fer > 0 ? 'rgba(224, 108, 90, 0.12)' : 'rgba(78, 190, 150, 0.12)' },
+    ferTitle: { fontSize: '20px', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: '10px' },
+    ferValue: { fontSize: '48px', fontWeight: '900', color: fer > 0 ? 'var(--accent-negative)' : 'var(--accent-positive)' },
+    ferDesc: { fontSize: '14px', color: 'var(--text-secondary)', marginTop: '10px' }
   };
 
   return (
@@ -91,15 +91,15 @@ export default function EstadosProformaPage() {
             </div>
             <div style={styles.listItem}>
               <span>Nuevos Activos Requeridos:</span>
-              <span style={{ fontWeight: 'bold', color: '#dc2626' }}>+${incrementoActivos.toLocaleString()}</span>
+              <span style={{ fontWeight: 'bold', color: 'var(--accent-negative)' }}>+${incrementoActivos.toLocaleString()}</span>
             </div>
             <div style={styles.listItem}>
               <span>Financiamiento Espontáneo:</span>
-              <span style={{ fontWeight: 'bold', color: '#16a34a' }}>-${incrementoPasivos.toLocaleString()}</span>
+              <span style={{ fontWeight: 'bold', color: 'var(--accent-positive)' }}>-${incrementoPasivos.toLocaleString()}</span>
             </div>
             <div style={{ ...styles.listItem, borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }}>
               <span>Utilidad Retenida (Fondos Propios):</span>
-              <span style={{ fontWeight: 'bold', color: '#16a34a' }}>-${utilidadRetenidaAdicional.toLocaleString()}</span>
+              <span style={{ fontWeight: 'bold', color: 'var(--accent-positive)' }}>-${utilidadRetenidaAdicional.toLocaleString()}</span>
             </div>
           </div>
 

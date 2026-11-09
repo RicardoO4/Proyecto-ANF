@@ -37,16 +37,16 @@ export default function PuntoEquilibrioPage() {
 
   const styles = {
     container: { padding: '2rem', maxWidth: '1200px', margin: '0 auto' },
-    title: { color: 'var(--color-darkest)', fontSize: '28px', fontWeight: 'bold', marginBottom: '20px' },
+    title: { color: 'var(--text-primary)', fontSize: '28px', fontWeight: 'bold', marginBottom: '20px' },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' },
-    card: { backgroundColor: 'var(--background-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '24px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
-    label: { display: 'block', color: 'var(--text-dark)', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' },
-    input: { width: '100%', padding: '10px', border: '1px solid var(--border-color)', borderRadius: '4px', marginBottom: '15px', outlineColor: 'var(--color-primary)' },
-    button: { backgroundColor: 'var(--color-primary)', color: 'var(--text-light)', border: 'none', padding: '12px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', width: '100%', marginTop: '10px', transition: 'background-color 0.3s' },
-    resultLabel: { color: 'var(--color-neutral)', fontSize: '12px', textTransform: 'uppercase' as const, fontWeight: 'bold' },
-    resultValue: { color: 'var(--color-dark)', fontSize: '32px', fontWeight: 'bold', margin: '5px 0 20px 0' },
-    resultValueHighlight: { color: 'var(--color-primary)', fontSize: '32px', fontWeight: 'bold', margin: '5px 0 0 0' },
-    chartContainer: { backgroundColor: 'var(--background-card)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '24px', marginTop: '20px', height: '400px' }
+    card: { backgroundColor: 'var(--surface-card)', border: '1px solid var(--border-default)', borderRadius: '8px', padding: '24px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+    label: { display: 'block', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' },
+    input: { width: '100%', padding: '10px', border: '1px solid var(--border-default)', borderRadius: '4px', marginBottom: '15px', outlineColor: 'var(--fey-signal)' },
+    button: { backgroundColor: 'var(--fey-signal)', color: 'var(--fey-white)', border: 'none', padding: '12px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', width: '100%', marginTop: '10px', transition: 'background-color 0.3s' },
+    resultLabel: { color: 'var(--text-secondary)', fontSize: '12px', textTransform: 'uppercase' as const, fontWeight: 'bold' },
+    resultValue: { color: 'var(--text-primary)', fontSize: '32px', fontWeight: 'bold', margin: '5px 0 20px 0' },
+    resultValueHighlight: { color: 'var(--fey-signal)', fontSize: '32px', fontWeight: 'bold', margin: '5px 0 0 0' },
+    chartContainer: { backgroundColor: 'var(--surface-card)', border: '1px solid var(--border-default)', borderRadius: '8px', padding: '24px', marginTop: '20px', height: '400px' }
   };
 
   return (
@@ -83,14 +83,14 @@ export default function PuntoEquilibrioPage() {
         <div style={styles.chartContainer}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={datosGrafico} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-              <XAxis dataKey="unidades" name="Unidades" stroke="var(--color-neutral)" />
-              <YAxis stroke="var(--color-neutral)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
+              <XAxis dataKey="unidades" name="Unidades" stroke="var(--text-secondary)" />
+              <YAxis stroke="var(--text-secondary)" />
               <Tooltip formatter={(value) => `$${value}`} />
               <Legend />
-              <Line type="monotone" dataKey="costosFijos" name="Costos Fijos" stroke="var(--color-neutral)" strokeDasharray="5 5" strokeWidth={2} />
-              <Line type="monotone" dataKey="costosTotales" name="Costos Totales" stroke="var(--color-darkest)" strokeWidth={2} />
-              <Line type="monotone" dataKey="ventasTotales" name="Ventas Totales" stroke="var(--color-accent)" strokeWidth={2} />
+              <Line type="monotone" dataKey="costosFijos" name="Costos Fijos" stroke="var(--text-secondary)" strokeDasharray="5 5" strokeWidth={2} />
+              <Line type="monotone" dataKey="costosTotales" name="Costos Totales" stroke="var(--text-tertiary)" strokeWidth={2} />
+              <Line type="monotone" dataKey="ventasTotales" name="Ventas Totales" stroke="var(--accent-positive)" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </div>

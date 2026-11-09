@@ -140,7 +140,7 @@ export const Proyecciones = () => {
 
         {/* --- Herramientas Analíticas (Módulos Integrante D) --- */}
         <div style={{ marginTop: '20px', display: 'flex', gap: '15px', alignItems: 'center' }}>
-          <span style={{ fontWeight: 'bold', color: 'var(--color-darkest)' }}>
+          <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
             Herramientas Analíticas:
           </span>
           <Link href="/proyecciones/pronostico">
@@ -149,7 +149,7 @@ export const Proyecciones = () => {
             </button>
           </Link>
           <Link href="/proyecciones/proforma">
-            <button className={buttonStyles.btnPrimary} style={{ padding: '8px 16px', fontSize: '14px', backgroundColor: 'var(--color-dark)' }}>
+            <button className={buttonStyles.btnPrimary} style={{ padding: '8px 16px', fontSize: '14px' }}>
               Estados Proforma y FER
             </button>
           </Link>
