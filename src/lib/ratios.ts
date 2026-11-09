@@ -7,38 +7,64 @@ import { InternalException, NotFoundException } from '@/lib/errors'
 import type { RatioResponseDTO } from '@/types'
 
 // ---------------------------------------------------------------
-// constants — account codes exactly as in the Java service
+// constants — account codes imported from the single source of truth
+// (Módulo B, tarea B1). Each value is a PREFIX of the real chart of
+// accounts (FINAN II 2025); sumSaldos matches by prefix, not equality.
 // ---------------------------------------------------------------
-const ACTIVO_CORRIENTE = ['1401', '1402', '1403', '1404', '1405', '1406']
-const PASIVO_CORRIENTE = ['2401', '2402', '2403', '240401', '240402', '240403']
-const ACTIVOS_TOTALES = ['1401', '1402', '1403', '1404', '1405', '1406', '120401', '1407', '120106']
-const EFECTIVO = ['1401', '1403']
-const VENTAS_NETAS = ['510201']
-const VENTAS_BRUTAS = ['510201', '510202', '510203', '510204', '510205']
-const COSTO_VENTAS = ['410201', '410202', '410203', '410204', '410303']
-const GASTOS_OPERATIVOS = ['430101', '420212']
-const ACTIVOS_FIJOS = ['120106']
+import {
+  ACTIVO_CORRIENTE,
+  PASIVO_CORRIENTE,
+  ACTIVO_TOTAL as ACTIVOS_TOTALES,
+  EFECTIVO,
+  TIPO_REPORTE,
+  VENTAS_NETAS,
+  VENTAS_BRUTAS,
+  COSTO_VENTAS,
+  GASTOS_OPERATIVOS,
+  ACTIVOS_FIJOS,
+  CUENTAS_POR_COBRAR,
+} from '@/lib/accountCodes'
+import type { TipoReporte } from '@/lib/accountCodes'
+
+type PrefixCodes = string | string[]
 
 type MetricInput = {
   empresaId: number
   anio: number
-  tipoReporte: string
-  codigos: string[]
+  tipoReporte: TipoReporte
+  codigos: PrefixCodes
 }
 
-/** SUM(saldo) filtered by empresa, year, report type and account codes. */
+/**
+ * SUM(saldo) filtered by empresa, year, report type and account codes.
+ * Each code is a PREFIX: every line whose cue_cuenta_id starts with it is
+ * summed. A code starting with '-' is subtracted (e.g. Ventas Netas =
+ * 5101.01 − 5101.02). No is_postable filter: uploaded rows are parent
+ * codes with rolled-up balances.
+ */
 export async function sumSaldos(input: MetricInput): Promise<number> {
-  const { data, error } = await supabaseAdmin
-    .from('linea_estado_financiero')
-    .select(
-      'saldo, estado_financiero!inner(empresa_id, anio, tipo_reporte), cuenta!inner(cue_cuenta_id)',
+  const codigos = Array.isArray(input.codigos) ? input.codigos : [input.codigos]
+  let total = 0
+  for (const entry of codigos) {
+    const resta = entry.startsWith('-')
+    const prefijo = resta ? entry.slice(1) : entry
+    const { data, error } = await supabaseAdmin
+      .from('linea_estado_financiero')
+      .select(
+        'saldo, estado_financiero!inner(empresa_id, anio, tipo_reporte), cuenta!inner(cue_cuenta_id)',
+      )
+      .eq('estado_financiero.empresa_id', input.empresaId)
+      .eq('estado_financiero.anio', input.anio)
+      .eq('estado_financiero.tipo_reporte', input.tipoReporte)
+      .like('cuenta.cue_cuenta_id', `${prefijo}%`)
+    if (error) throw error
+    const suma = (data ?? []).reduce(
+      (sum, row) => sum + Number((row as { saldo: number }).saldo),
+      0,
     )
-    .eq('estado_financiero.empresa_id', input.empresaId)
-    .eq('estado_financiero.anio', input.anio)
-    .eq('estado_financiero.tipo_reporte', input.tipoReporte)
-    .in('cuenta.cue_cuenta_id', input.codigos)
-  if (error) throw error
-  return (data ?? []).reduce((sum, row) => sum + Number((row as { saldo: number }).saldo), 0)
+    total += resta ? -suma : suma
+  }
+  return total
 }
 
 function round(value: number, scale: number): number {
@@ -65,16 +91,41 @@ export async function loadRatio(id: number): Promise<RatioEntity> {
   const { data, error } = await supabaseAdmin
     .from('ratio')
     .select(
-      'id_ratio, anio_ratio, periodo_ratio, empresa_id, interpretacion, categoriaRatio(id_categoria_ratio, nombre_tipo), parametroSector(id_parametro_sector, valor_referencia, anio_referencia, nombre_ratio)',
+      // PostgREST resuelve embeds por NOMBRE DE TABLA (los FK apuntan a
+      // categoria_ratio / parametro_sector); alias tipo "categoriaRatio(...)"
+      // lanzan PGRST200 y rompían los 9 endpoints de cálculo.
+      'id_ratio, anio_ratio, periodo_ratio, empresa_id, interpretacion, categoria_ratio(id_categoria_ratio, nombre_tipo), parametro_sector(id_parametro_sector, valor_referencia, anio_referencia, nombre_ratio)',
     )
     .eq('id_ratio', id)
     .maybeSingle()
   if (error) throw error
-  const ratio = data as unknown as RatioEntity | null
-  if (!ratio) {
+  const row = data as unknown as
+    | {
+        id_ratio: number
+        anio_ratio: number | null
+        periodo_ratio: string | null
+        empresa_id: number
+        interpretacion: string | null
+        categoria_ratio: { id_categoria_ratio: number; nombre_tipo: string } | null
+        parametro_sector: {
+          id_parametro_sector: number
+          valor_referencia: number
+          anio_referencia: number | null
+          nombre_ratio: string
+        } | null
+      }
+    | null
+  if (!row) {
     throw new NotFoundException('Ratio no encontrado')
   }
-  return ratio
+  // El embed llega con el nombre de la tabla; se expone con las llaves
+  // camelCase que usan calculateRatio y los 9 calculadores.
+  const { categoria_ratio, parametro_sector, ...scalars } = row
+  return {
+    ...scalars,
+    categoriaRatio: categoria_ratio ?? null,
+    parametroSector: parametro_sector ?? null,
+  }
 }
 
 /**
@@ -84,7 +135,7 @@ export async function loadRatio(id: number): Promise<RatioEntity> {
 export async function calculateRatio(
   id: number,
   expectedCategory: string,
-  compute: (get: (codes: string[], tipoReporte: string, anio?: number) => Promise<number>) => Promise<{
+  compute: (get: (codes: string | string[], tipoReporte: TipoReporte, anio?: number) => Promise<number>) => Promise<{
     valor: number
     cumple: boolean
     interpretacion: string
@@ -204,8 +255,8 @@ export function calcularLiquidez(id: number) {
     id,
     'Razón de circulante o liquidez corriente',
     async (get) => {
-      const activoCorriente = await get(ACTIVO_CORRIENTE, 'BALANCE_GENERAL')
-      const pasivoCorriente = await get(PASIVO_CORRIENTE, 'BALANCE_GENERAL')
+      const activoCorriente = await get(ACTIVO_CORRIENTE, TIPO_REPORTE.BALANCE)
+      const pasivoCorriente = await get(PASIVO_CORRIENTE, TIPO_REPORTE.BALANCE)
       const valor = pasivoCorriente !== 0 ? round(activoCorriente / pasivoCorriente, 4) : 0
       const ratio = await loadRatio(id)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
@@ -225,9 +276,9 @@ export function calcularCapitalTrabajo(id: number) {
     id,
     'Razón de capital de trabajo',
     async (get) => {
-      const activoCorriente = await get(ACTIVO_CORRIENTE, 'BALANCE_GENERAL')
-      const pasivoCorriente = await get(PASIVO_CORRIENTE, 'BALANCE_GENERAL')
-      const activosTotales = await get(ACTIVOS_TOTALES, 'BALANCE_GENERAL')
+      const activoCorriente = await get(ACTIVO_CORRIENTE, TIPO_REPORTE.BALANCE)
+      const pasivoCorriente = await get(PASIVO_CORRIENTE, TIPO_REPORTE.BALANCE)
+      const activosTotales = await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE)
       const capitalTrabajo = activoCorriente - pasivoCorriente
       const valor = activosTotales !== 0 ? round(capitalTrabajo / activosTotales, 4) : 0
       const ratio = await loadRatio(id)
@@ -248,8 +299,8 @@ export function calcularEfectivo(id: number) {
     id,
     'Razón de efectivo',
     async (get) => {
-      const efectivo = await get(EFECTIVO, 'BALANCE_GENERAL')
-      const pasivoCorriente = await get(PASIVO_CORRIENTE, 'BALANCE_GENERAL')
+      const efectivo = await get(EFECTIVO, TIPO_REPORTE.BALANCE)
+      const pasivoCorriente = await get(PASIVO_CORRIENTE, TIPO_REPORTE.BALANCE)
       const valor = pasivoCorriente !== 0 ? round(efectivo / pasivoCorriente, 4) : 0
       const ratio = await loadRatio(id)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
@@ -271,9 +322,9 @@ export function calcularRotacionCuentasPorCobrar(id: number) {
     async (get) => {
       const ratio = await loadRatio(id)
       const anio = ratio.anio_ratio!
-      const ventasNetas = await get(VENTAS_NETAS, 'ESTADO_RESULTADOS')
-      const cxcActual = await get(['1405'], 'BALANCE_GENERAL')
-      const cxcAnterior = await get(['1405'], 'BALANCE_GENERAL', anio - 1)
+      const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
+      const cxcActual = await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE)
+      const cxcAnterior = await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE, anio - 1)
       const promedioCxc = (cxcActual + cxcAnterior) / 2
       const valor = promedioCxc !== 0 ? round(ventasNetas / promedioCxc, 4) : 0
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
@@ -295,9 +346,9 @@ export function calcularPeriodoCobranza(id: number) {
     async (get) => {
       const ratio = await loadRatio(id)
       const anio = ratio.anio_ratio!
-      const ventasNetas = await get(VENTAS_NETAS, 'ESTADO_RESULTADOS')
-      const cxcActual = await get(['1405'], 'BALANCE_GENERAL')
-      const cxcAnterior = await get(['1405'], 'BALANCE_GENERAL', anio - 1)
+      const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
+      const cxcActual = await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE)
+      const cxcAnterior = await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE, anio - 1)
       const promedioCxc = (cxcActual + cxcAnterior) / 2
       // NOTE: scale 2 (not 4) for this ratio, as in the Java implementation
       const valor = ventasNetas !== 0 ? round((promedioCxc * 365) / ventasNetas, 2) : 0
@@ -319,9 +370,9 @@ export function calcularRotacionActivosTotales(id: number) {
     async (get) => {
       const ratio = await loadRatio(id)
       const anio = ratio.anio_ratio!
-      const ventasNetas = await get(VENTAS_NETAS, 'ESTADO_RESULTADOS')
-      const activosActual = await get(ACTIVOS_TOTALES, 'BALANCE_GENERAL')
-      const activosAnterior = await get(ACTIVOS_TOTALES, 'BALANCE_GENERAL', anio - 1)
+      const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
+      const activosActual = await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE)
+      const activosAnterior = await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE, anio - 1)
       const promedioActivos = (activosActual + activosAnterior) / 2
       const valor = promedioActivos !== 0 ? round(ventasNetas / promedioActivos, 4) : 0
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
@@ -341,8 +392,8 @@ export function calcularRotacionActivosFijos(id: number) {
     id,
     'Índice de rotación de activos fijos',
     async (get) => {
-      const ventasNetas = await get(VENTAS_NETAS, 'ESTADO_RESULTADOS')
-      const activosFijos = await get(ACTIVOS_FIJOS, 'BALANCE_GENERAL')
+      const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
+      const activosFijos = await get(ACTIVOS_FIJOS, TIPO_REPORTE.BALANCE)
       const valor = activosFijos !== 0 ? round(ventasNetas / activosFijos, 4) : 0
       const ratio = await loadRatio(id)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
@@ -362,9 +413,9 @@ export function calcularMargenBruto(id: number) {
     id,
     'Índice de margen bruto',
     async (get) => {
-      const ventasBrutas = await get(VENTAS_BRUTAS, 'ESTADO_RESULTADOS')
-      const costoVentas = await get(COSTO_VENTAS, 'ESTADO_RESULTADOS')
-      const ventasNetas = await get(VENTAS_NETAS, 'ESTADO_RESULTADOS')
+      const ventasBrutas = await get(VENTAS_BRUTAS, TIPO_REPORTE.RESULTADOS)
+      const costoVentas = await get(COSTO_VENTAS, TIPO_REPORTE.RESULTADOS)
+      const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
       const valor = ventasNetas !== 0 ? round((ventasBrutas - costoVentas) / ventasNetas, 4) : 0
       const ratio = await loadRatio(id)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
@@ -384,10 +435,10 @@ export function calcularMargenOperativo(id: number) {
     id,
     'Índice de margen operativo',
     async (get) => {
-      const ventasBrutas = await get(VENTAS_BRUTAS, 'ESTADO_RESULTADOS')
-      const costoVentas = await get(COSTO_VENTAS, 'ESTADO_RESULTADOS')
-      const gastosOperativos = await get(GASTOS_OPERATIVOS, 'ESTADO_RESULTADOS')
-      const ventasNetas = await get(VENTAS_NETAS, 'ESTADO_RESULTADOS')
+      const ventasBrutas = await get(VENTAS_BRUTAS, TIPO_REPORTE.RESULTADOS)
+      const costoVentas = await get(COSTO_VENTAS, TIPO_REPORTE.RESULTADOS)
+      const gastosOperativos = await get(GASTOS_OPERATIVOS, TIPO_REPORTE.RESULTADOS)
+      const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
       const valor =
         ventasNetas !== 0 ? round((ventasBrutas - costoVentas - gastosOperativos) / ventasNetas, 4) : 0
       const ratio = await loadRatio(id)

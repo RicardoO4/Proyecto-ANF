@@ -8,14 +8,17 @@ export async function GET(req: Request) {
   return handle(req, async () => {
     const url = new URL(req.url)
     const empresaId = Number(url.searchParams.get('empresaId'))
-    const ratios = (url.searchParams.get('ratios') ?? '')
-      .split(',')
+    // Accepts both "ratios=A,B" and axios-style "ratios[]=A&ratios[]=B"
+    const ratios = [...url.searchParams.entries()]
+      .filter(([key]) => key === 'ratios' || key === 'ratios[]')
+      .flatMap(([, value]) => value.split(','))
       .map((r) => r.trim())
       .filter(Boolean)
     if (!Number.isFinite(empresaId) || ratios.length === 0) {
       return NextResponse.json([])
     }
     const data = await calcularEvolucionRatios(empresaId, ratios)
-    return NextResponse.json(data)
+    // Maps must be converted to plain objects: JSON.stringify(Map) = {}
+    return NextResponse.json(data.map((entry) => Object.fromEntries(entry)))
   })
 }
