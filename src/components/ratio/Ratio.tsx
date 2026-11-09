@@ -147,6 +147,13 @@ export const Ratio = () => {
       'Índice de rotación de activos fijos': (id) => ratioService.calculateRotacionActivosFijosRatio(id),
       'Índice de margen bruto': (id) => ratioService.calculateMargenBrutoRatio(id),
       'Índice de margen operativo': (id) => ratioService.calculateMargenOperativoRatio(id),
+      // Módulo C (C1). El nombre debe coincidir EXACTAMENTE con el
+      // expectedCategory del calculador en lib/ratios.ts.
+      'Prueba ácida': (id) => ratioService.calculatePruebaAcidaRatio(id),
+      'Grado de endeudamiento': (id) => ratioService.calculateEndeudamientoRatio(id),
+      'Grado de propiedad': (id) => ratioService.calculatePropiedadRatio(id),
+      'Razón de endeudamiento patrimonial': (id) =>
+        ratioService.calculateEndeudamientoPatrimonialRatio(id),
     }
 
     const funcionDeCalculo = calculoPorCategoria[categoriaNombre]

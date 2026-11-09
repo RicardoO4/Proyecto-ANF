@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { BadRequestException, handle, NotFoundException } from '@/lib/errors'
 import { archiveUpload, parseEstadoFinanciero } from '@/lib/excel'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { recalcularRatios } from '@/lib/ratios'
 
 export async function POST(req: Request) {
   return handle(req, async () => {
@@ -67,6 +68,18 @@ export async function POST(req: Request) {
       .from('linea_estado_financiero')
       .insert(rows as unknown as Record<string, unknown>[])
     if (leError) throw leError
+
+    // AU1 — recálculo silencioso de los ratios ya registrados para esta
+    // empresa y año. La carga no debe fallar porque un ratio no tenga datos
+    // suficientes (p. ej. rentabilidad sin Estado de Resultados cargado).
+    try {
+      await recalcularRatios(parsed.empresaId, parsed.anio)
+    } catch (err) {
+      // Silencioso para el cliente: la carga ya se completó y el ratio queda
+      // pendiente para el próximo recálculo. El log evita que el fallo
+      // desaparezca sin rastro.
+      console.error('[AU1] no se pudieron recalcular los ratios:', err)
+    }
 
     return new NextResponse(null, { status: 201 })
   })

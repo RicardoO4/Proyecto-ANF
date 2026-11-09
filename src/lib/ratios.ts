@@ -23,8 +23,19 @@ import {
   GASTOS_OPERATIVOS,
   ACTIVOS_FIJOS,
   CUENTAS_POR_COBRAR,
+  INVENTARIOS,
+  PASIVO_TOTAL,
+  PATRIMONIO_TOTAL,
 } from '@/lib/accountCodes'
 import type { TipoReporte } from '@/lib/accountCodes'
+// Fórmulas puras (Módulo C): compartidas con scripts/verify-ratios.mts.
+import {
+  endeudamientoPatrimonial,
+  gradoEndeudamiento,
+  gradoPropiedad,
+  promedioSaldo,
+  pruebaAcida,
+} from '@/lib/ratioFormulas'
 
 type PrefixCodes = string | string[]
 
@@ -131,11 +142,18 @@ export async function loadRatio(id: number): Promise<RatioEntity> {
 /**
  * Runs one calculator: loads the ratio, validates the category, computes the
  * value with the provided formulas, updates the DB and returns the response.
+ *
+ * `tieneEstado(anio, tipo)` distingue "el año no está cargado" de "el saldo
+ * es cero". Sin esa distinción, promediar contra un año ausente reduce el
+ * denominador a la mitad y duplica la rotación en silencio.
  */
 export async function calculateRatio(
   id: number,
   expectedCategory: string,
-  compute: (get: (codes: string | string[], tipoReporte: TipoReporte, anio?: number) => Promise<number>) => Promise<{
+  compute: (
+    get: (codes: string | string[], tipoReporte: TipoReporte, anio?: number) => Promise<number>,
+    tieneEstado: (anio: number, tipoReporte: TipoReporte) => Promise<boolean>,
+  ) => Promise<{
     valor: number
     cumple: boolean
     interpretacion: string
@@ -152,13 +170,24 @@ export async function calculateRatio(
     throw new InternalException('El ratio no tiene un año de análisis definido.')
   }
 
-  const { valor, cumple, interpretacion } = await compute((codigos, tipoReporte, anio) =>
-    sumSaldos({
-      empresaId: ratio.empresa_id,
-      anio: anio ?? ratio.anio_ratio!,
-      tipoReporte,
-      codigos,
-    }),
+  const { valor, cumple, interpretacion } = await compute(
+    (codigos, tipoReporte, anio) =>
+      sumSaldos({
+        empresaId: ratio.empresa_id,
+        anio: anio ?? ratio.anio_ratio!,
+        tipoReporte,
+        codigos,
+      }),
+    async (anio, tipoReporte) => {
+      const { count, error } = await supabaseAdmin
+        .from('estado_financiero')
+        .select('id_estado_financiero', { count: 'exact', head: true })
+        .eq('empresa_id', ratio.empresa_id)
+        .eq('anio', anio)
+        .eq('tipo_reporte', tipoReporte)
+      if (error) throw error
+      return (count ?? 0) > 0
+    },
   )
 
   const valorSector = ratio.parametroSector?.valor_referencia
@@ -319,13 +348,15 @@ export function calcularRotacionCuentasPorCobrar(id: number) {
   return calculateRatio(
     id,
     'Razón de rotación de cuentas por cobrar',
-    async (get) => {
+    async (get, tieneEstado) => {
       const ratio = await loadRatio(id)
       const anio = ratio.anio_ratio!
       const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
       const cxcActual = await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE)
-      const cxcAnterior = await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE, anio - 1)
-      const promedioCxc = (cxcActual + cxcAnterior) / 2
+      const cxcAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioCxc = promedioSaldo(cxcActual, cxcAnterior)
       const valor = promedioCxc !== 0 ? round(ventasNetas / promedioCxc, 4) : 0
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
       const cumple = valor >= ref
@@ -343,13 +374,15 @@ export function calcularPeriodoCobranza(id: number) {
   return calculateRatio(
     id,
     'Período medio de cobranza',
-    async (get) => {
+    async (get, tieneEstado) => {
       const ratio = await loadRatio(id)
       const anio = ratio.anio_ratio!
       const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
       const cxcActual = await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE)
-      const cxcAnterior = await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE, anio - 1)
-      const promedioCxc = (cxcActual + cxcAnterior) / 2
+      const cxcAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioCxc = promedioSaldo(cxcActual, cxcAnterior)
       // NOTE: scale 2 (not 4) for this ratio, as in the Java implementation
       const valor = ventasNetas !== 0 ? round((promedioCxc * 365) / ventasNetas, 2) : 0
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
@@ -367,13 +400,15 @@ export function calcularRotacionActivosTotales(id: number) {
   return calculateRatio(
     id,
     'Índice de rotación de activos totales',
-    async (get) => {
+    async (get, tieneEstado) => {
       const ratio = await loadRatio(id)
       const anio = ratio.anio_ratio!
       const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
       const activosActual = await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE)
-      const activosAnterior = await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE, anio - 1)
-      const promedioActivos = (activosActual + activosAnterior) / 2
+      const activosAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioActivos = promedioSaldo(activosActual, activosAnterior)
       const valor = promedioActivos !== 0 ? round(ventasNetas / promedioActivos, 4) : 0
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
       const cumple = valor >= ref
@@ -452,4 +487,169 @@ export function calcularMargenOperativo(id: number) {
       }
     },
   )
+}
+
+// ---------------------------------------------------------------
+// Módulo C — C1: liquidez complementaria y apalancamiento.
+// Las fórmulas viven en lib/ratioFormulas.ts; acá solo se leen los
+// saldos, se compara contra el benchmark y se redacta la
+// interpretación (la columna `interpretacion` es VARCHAR(256)).
+// ---------------------------------------------------------------
+
+export function calcularPruebaAcida(id: number) {
+  return calculateRatio(
+    id,
+    'Prueba ácida',
+    async (get) => {
+      const ratio = await loadRatio(id)
+      const activoCorriente = await get(ACTIVO_CORRIENTE, TIPO_REPORTE.BALANCE)
+      const inventario = await get(INVENTARIOS, TIPO_REPORTE.BALANCE)
+      const pasivoCorriente = await get(PASIVO_CORRIENTE, TIPO_REPORTE.BALANCE)
+      if (pasivoCorriente === 0) {
+        throw new InternalException(
+          'El Pasivo Corriente es cero: no se puede calcular la prueba ácida. Verifique el Balance General del año.',
+        )
+      }
+      const valor = pruebaAcida(activoCorriente, inventario, pasivoCorriente)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      const cumple = valor >= ref
+      const posicion = cumple ? 'por encima' : 'por debajo'
+      return {
+        valor,
+        cumple,
+        interpretacion: `Sin contar el inventario, la empresa dispone de ${f2(valor)} dólares de activos líquidos por cada dólar de pasivo corriente; se ubica ${posicion} del benchmark del sector (${f2(ref)}).`,
+      }
+    },
+  )
+}
+
+export function calcularGradoEndeudamiento(id: number) {
+  return calculateRatio(
+    id,
+    'Grado de endeudamiento',
+    async (get) => {
+      const ratio = await loadRatio(id)
+      const activoTotal = await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE)
+      const pasivoTotal = await get(PASIVO_TOTAL, TIPO_REPORTE.BALANCE)
+      if (activoTotal === 0) {
+        throw new InternalException(
+          'El Activo Total es cero: no se puede calcular el grado de endeudamiento. Verifique el Balance General del año.',
+        )
+      }
+      const valor = gradoEndeudamiento(pasivoTotal, activoTotal)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      const cumple = valor <= ref // menor es mejor
+      const posicion = cumple ? 'por debajo' : 'por encima'
+      return {
+        valor,
+        cumple,
+        interpretacion: `El ${f2(valor * 100)}% del activo total está financiado con pasivos; la empresa se ubica ${posicion} del benchmark del sector (${f2(ref * 100)}%), donde un valor menor indica menor dependencia de terceros.`,
+      }
+    },
+  )
+}
+
+export function calcularGradoPropiedad(id: number) {
+  return calculateRatio(
+    id,
+    'Grado de propiedad',
+    async (get) => {
+      const ratio = await loadRatio(id)
+      const activoTotal = await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE)
+      const patrimonio = await get(PATRIMONIO_TOTAL, TIPO_REPORTE.BALANCE)
+      if (activoTotal === 0) {
+        throw new InternalException(
+          'El Activo Total es cero: no se puede calcular el grado de propiedad. Verifique el Balance General del año.',
+        )
+      }
+      const valor = gradoPropiedad(patrimonio, activoTotal)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      // Con patrimonio negativo el ratio pierde sentido: se marca incumplido
+      // aunque la comparación numérica pudiera dar positivo.
+      const cumple = patrimonio > 0 && valor >= ref
+      const interpretacion =
+        patrimonio < 0
+          ? `El patrimonio es negativo (${f2(patrimonio)} USD): el capital propio no cubre las obligaciones y el indicador no admite una lectura normal de solvencia.`
+          : `El ${f2(valor * 100)}% del activo total pertenece a los dueños; la empresa se ubica ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
+      return { valor, cumple, interpretacion }
+    },
+  )
+}
+
+export function calcularEndeudamientoPatrimonial(id: number) {
+  return calculateRatio(
+    id,
+    'Razón de endeudamiento patrimonial',
+    async (get) => {
+      const ratio = await loadRatio(id)
+      const pasivoTotal = await get(PASIVO_TOTAL, TIPO_REPORTE.BALANCE)
+      const patrimonio = await get(PATRIMONIO_TOTAL, TIPO_REPORTE.BALANCE)
+      if (patrimonio === 0) {
+        throw new InternalException(
+          'El Patrimonio es cero: la razón pasivo/patrimonio no está definida. Verifique el Balance General del año.',
+        )
+      }
+      const valor = endeudamientoPatrimonial(pasivoTotal, patrimonio)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      const cumple = patrimonio > 0 && valor <= ref // menor es mejor
+      const interpretacion =
+        patrimonio < 0
+          ? `El patrimonio es negativo (${f2(patrimonio)} USD), por lo que la razón pasivo/patrimonio no es interpretable: la empresa está técnicamente insolvente.`
+          : `Por cada dólar de patrimonio la empresa debe ${f2(valor)} dólares a terceros; se ubica ${cumple ? 'por debajo' : 'por encima'} del benchmark del sector (${f2(ref)}).`
+      return { valor, cumple, interpretacion }
+    },
+  )
+}
+
+// ---------------------------------------------------------------
+// AU1 — recálculo automático tras una carga de estados financieros.
+//
+// Firma acordada con el Módulo A: `recalcularRatios(empresaId, anio)`.
+// Solo recalcula las filas de `ratio` que YA existen para esa empresa y
+// año (el catálogo se crea con el seed 003 o desde la UI). Es silencioso
+// por diseño: un ratio que no se puede calcular —por ejemplo uno de
+// rentabilidad sin Estado de Resultados cargado— no debe hacer fallar la
+// carga que lo disparó.
+// ---------------------------------------------------------------
+
+const CALCULADORES: Record<string, (id: number) => Promise<Response>> = {
+  'Razón de circulante o liquidez corriente': calcularLiquidez,
+  'Razón de capital de trabajo': calcularCapitalTrabajo,
+  'Razón de efectivo': calcularEfectivo,
+  'Razón de rotación de cuentas por cobrar': calcularRotacionCuentasPorCobrar,
+  'Período medio de cobranza': calcularPeriodoCobranza,
+  'Índice de rotación de activos totales': calcularRotacionActivosTotales,
+  'Índice de rotación de activos fijos': calcularRotacionActivosFijos,
+  'Índice de margen bruto': calcularMargenBruto,
+  'Índice de margen operativo': calcularMargenOperativo,
+  'Prueba ácida': calcularPruebaAcida,
+  'Grado de endeudamiento': calcularGradoEndeudamiento,
+  'Grado de propiedad': calcularGradoPropiedad,
+  'Razón de endeudamiento patrimonial': calcularEndeudamientoPatrimonial,
+}
+
+export async function recalcularRatios(empresaId: number, anio: number): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .from('ratio')
+    .select('id_ratio, categoria_ratio(nombre_tipo)')
+    .eq('empresa_id', empresaId)
+    .eq('anio_ratio', anio)
+  if (error) throw error
+
+  const filas = (data ?? []) as unknown as {
+    id_ratio: number
+    categoria_ratio: { nombre_tipo: string } | null
+  }[]
+
+  for (const fila of filas) {
+    const nombre = fila.categoria_ratio?.nombre_tipo
+    const calcular = nombre ? CALCULADORES[nombre] : undefined
+    if (!calcular) continue
+    try {
+      await calcular(fila.id_ratio)
+    } catch {
+      // Silencioso a propósito: la carga ya se completó y el ratio queda
+      // pendiente para el próximo recálculo, sin revertir el estado financiero.
+    }
+  }
 }

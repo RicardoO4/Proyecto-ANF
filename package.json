@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "verify:ratios": "node --no-warnings scripts/verify-ratios.mts",
+    "seed:ratios": "node scripts/seed-ratios.mjs",
+    "e2e:au1": "node scripts/e2e-au1.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

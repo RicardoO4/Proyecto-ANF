@@ -1,4 +1,4 @@
-// ratioService — CRUD + the 9 calculator endpoints + select datasets
+// ratioService — CRUD + the 13 calculator endpoints + select datasets
 import { apiClient } from './api'
 import type { RatioResponseDTO, CategoriaRatioResponseDTO, ParametroSectorResponseDTO } from '@/types'
 
@@ -87,6 +87,25 @@ export const ratioService = {
   },
   async calculateMargenOperativoRatio(id: number): Promise<RatioResponseDTO> {
     const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-margen-operativo`)
+    return resp.data
+  },
+  // --- Módulo C (C1): liquidez complementaria y apalancamiento ---
+  async calculatePruebaAcidaRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-prueba-acida`)
+    return resp.data
+  },
+  async calculateEndeudamientoRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-endeudamiento`)
+    return resp.data
+  },
+  async calculatePropiedadRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-propiedad`)
+    return resp.data
+  },
+  async calculateEndeudamientoPatrimonialRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(
+      `/ratios/${id}/calcular-endeudamiento-patrimonial`,
+    )
     return resp.data
   },
 }
