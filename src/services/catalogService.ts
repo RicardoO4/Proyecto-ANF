@@ -1,4 +1,4 @@
-// catalogService — master tree + per-company activation
+// catalogService — master catalog grouped by cumulative accounts + per-company activation
 // Base: /api/v1 (paths replicate the combined controller prefixes).
 import { apiClient } from './api'
 
@@ -10,13 +10,11 @@ export interface CuentaNode {
   children?: CuentaNode[]
 }
 
-export interface RCTreeNode {
-  key: number
-  title: string
-  children?: RCTreeNode[]
-  isLeaf?: boolean
-  disableCheckbox?: boolean
-  originalData?: unknown
+export interface CuentaCatalogo {
+  cuentaId: number
+  codigoCuenta: string
+  nombreCuenta: string
+  esMovimiento: boolean
 }
 
 export interface CatalogoActivo {
@@ -26,23 +24,43 @@ export interface CatalogoActivo {
   nombreCuenta: string
 }
 
-/** Maps the backend tree to the format rc-tree expects (key=cuentaId). */
-function mapApiTreeToRcTree(nodes?: CuentaNode[]): RCTreeNode[] {
-  if (!nodes) return []
-  return nodes.map((node) => ({
-    key: node.cuentaId,
-    title: `${node.codigoCuenta} - ${node.nombreCuenta}`,
-    children: mapApiTreeToRcTree(node.children),
-    isLeaf: !node.children || node.children.length === 0,
-    // NOTE: intentionally NOT disabling non-movement nodes — every checkbox works
-  }))
+export interface CuentaFila extends CuentaCatalogo {
+  activa: boolean
+  idCatalogo: number | null
+}
+
+export interface ElementoGrupo {
+  tipo: 'grupo'
+  fila: CuentaFila
+  cuentaIds: number[]
+}
+
+export interface ElementoCuenta {
+  tipo: 'cuenta'
+  fila: CuentaFila
+}
+
+export type ElementoCatalogo = ElementoGrupo | ElementoCuenta
+
+export interface CuentaSecciones {
+  elementos: ElementoCatalogo[]
+  filas: CuentaFila[]
+}
+
+/** Numeric-aware code comparison so 1101 < 110101 and 2 < 10. */
+function compareCodigo(a: string, b: string): number {
+  return a.localeCompare(b, 'es', { numeric: true, sensitivity: 'base' })
+}
+
+/** A node renders as a row when it is a movement account or a leaf. */
+function esFila(node: CuentaNode): boolean {
+  return Boolean(node.esMovimiento) || !node.children || node.children.length === 0
 }
 
 export const catalogService = {
-  async getMasterTree(): Promise<RCTreeNode[]> {
+  async getMasterNodes(): Promise<CuentaNode[]> {
     const resp = await apiClient.get<CuentaNode[]>('/cuentas-maestro/tree')
-    // rename cuentaId -> key / nombreCuenta -> title for rc-tree
-    return mapApiTreeToRcTree(resp.data)
+    return resp.data
   },
   async activarCuentas(payload: { empresaId: number; cuentaIds: number[] }): Promise<void> {
     await apiClient.post('/catalogo-empresa/activar', payload)
@@ -56,48 +74,97 @@ export const catalogService = {
   },
 }
 
-/** Converts the flat list of active accounts into an rc-tree (key=idCatalogo). */
-export function mapCompanyCatalogToTree(flatCatalog: CatalogoActivo[]): RCTreeNode[] {
-  const nodesById = new Map<number, RCTreeNode>()
-  const tree: RCTreeNode[] = []
+/**
+ * Walks the master tree and produces a flat render list where every cumulative
+ * account that directly groups movement accounts becomes a section title,
+ * followed by those rows. Active accounts missing from the master tree are
+ * appended as standalone rows.
+ */
+export function buildCuentaSecciones(
+  master: CuentaNode[],
+  activos: CatalogoActivo[],
+): CuentaSecciones {
+  const activosPorCuenta = new Map(activos.map((item) => [item.cuentaId, item]))
+  const elementos: ElementoCatalogo[] = []
+  const filas: CuentaFila[] = []
+  const vistos = new Set<number>()
 
-  // first pass: one node per account, keyed by cuentaId
-  for (const item of flatCatalog) {
-    nodesById.set(item.cuentaId, {
-      key: item.idCatalogo, // the KEY for deactivation is idCatalogo
-      title: `${item.codigoCuenta} - ${item.nombreCuenta}`,
-      children: [],
-      originalData: item,
-    })
-  }
-
-  // second pass: build the hierarchy
-  for (const item of flatCatalog) {
-    // parent code = code minus its last 2 chars (e.g. parent of "110101" is "1101")
-    const parentCode = item.codigoCuenta.substring(0, item.codigoCuenta.length - 2)
-
-    // look for a catalog item whose code matches the parent code
-    const parentItem = flatCatalog.find((p) => p.codigoCuenta === parentCode)
-
-    if (parentItem && nodesById.has(parentItem.cuentaId)) {
-      nodesById.get(parentItem.cuentaId)!.children!.push(nodesById.get(item.cuentaId)!)
-    } else {
-      // no parent in this selection → root node
-      tree.push(nodesById.get(item.cuentaId)!)
+  const filaDe = (cuenta: CuentaCatalogo): CuentaFila => {
+    const activo = activosPorCuenta.get(cuenta.cuentaId)
+    return {
+      ...cuenta,
+      activa: Boolean(activo),
+      idCatalogo: activo?.idCatalogo ?? null,
     }
   }
 
-  // remove empty children arrays so rc-tree shows no expander
-  const cleanEmptyChildren = (nodesToClean: RCTreeNode[]) => {
-    for (const node of nodesToClean) {
-      if (node.children && node.children.length > 0) {
-        cleanEmptyChildren(node.children)
-      } else {
-        delete node.children
+  const emitirCuenta = (node: CuentaNode) => {
+    const fila = filaDe({
+      cuentaId: node.cuentaId,
+      codigoCuenta: node.codigoCuenta,
+      nombreCuenta: node.nombreCuenta,
+      esMovimiento: Boolean(node.esMovimiento),
+    })
+    elementos.push({ tipo: 'cuenta', fila })
+    filas.push(fila)
+  }
+
+  const recorrer = (nodes: CuentaNode[]) => {
+    for (const node of nodes) {
+      if (vistos.has(node.cuentaId)) continue
+      vistos.add(node.cuentaId)
+
+      if (esFila(node)) {
+        emitirCuenta(node)
+        continue
+      }
+
+      const children = node.children ?? []
+      const filasHijas = children.filter(esFila)
+
+      if (filasHijas.length > 0) {
+        elementos.push({
+          tipo: 'grupo',
+          fila: filaDe({
+            cuentaId: node.cuentaId,
+            codigoCuenta: node.codigoCuenta,
+            nombreCuenta: node.nombreCuenta,
+            esMovimiento: false,
+          }),
+          cuentaIds: filasHijas.map((child) => child.cuentaId),
+        })
+      }
+
+      for (const child of children) {
+        if (esFila(child)) {
+          if (vistos.has(child.cuentaId)) continue
+          vistos.add(child.cuentaId)
+          emitirCuenta(child)
+        } else {
+          recorrer([child])
+        }
       }
     }
   }
-  cleanEmptyChildren(tree)
 
-  return tree
+  recorrer(master)
+
+  const huerfanas = activos
+    .filter((item) => !vistos.has(item.cuentaId))
+    .sort((a, b) => compareCodigo(a.codigoCuenta, b.codigoCuenta))
+
+  for (const activo of huerfanas) {
+    const fila: CuentaFila = {
+      cuentaId: activo.cuentaId,
+      codigoCuenta: activo.codigoCuenta,
+      nombreCuenta: activo.nombreCuenta,
+      esMovimiento: false,
+      activa: true,
+      idCatalogo: activo.idCatalogo,
+    }
+    elementos.push({ tipo: 'cuenta', fila })
+    filas.push(fila)
+  }
+
+  return { elementos, filas }
 }

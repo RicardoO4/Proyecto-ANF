@@ -1,62 +1,67 @@
-/* --- ESTILO BASE (Móvil Primero) --- */
+/* Dock de sub-navegación — pill flotante */
 .subnav {
-  /* Usamos el color más oscuro de tu nueva paleta, como en el original */
-  background-color: var(--color-darkest); 
   width: 100%;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  margin-bottom: 2.5rem;
-  padding: 0.75rem; /* Padding para el contenedor en móvil */
+  margin-bottom: 28px;
+  padding: 6px;
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-halo-soft);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.subnav::-webkit-scrollbar {
+  display: none;
 }
 
 .subnavContainer {
   display: flex;
-  gap: 0.5rem;
-  /* En móvil, los botones se apilan verticalmente */
-  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: max-content;
+  min-width: 100%;
 }
 
 .subnavBtn {
+  padding: 9px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
   background: none;
-  /* Usamos el color neutro para los enlaces inactivos */
-  color: var(--color-neutral);
-  padding: 0.7rem 1.2rem; 
-  text-decoration: none;
+  color: var(--fey-graphite);
+  font-size: 13px;
   font-weight: 500;
-  border-radius: 8px;
-  transition: background-color 0.2s ease, color 0.2s ease;
-  font-size: 0.95rem;
+  line-height: 1.2;
   text-align: center;
-  white-space: nowrap; 
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
 
-/* Efecto hover sutil para todos los botones */
 .subnavBtn:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: var(--text-light);
+  background-color: var(--surface-elevated);
+  color: var(--fey-white);
 }
 
-/* Estilo para el botón ACTIVO */
 .subnavBtn.active {
-  background-color: var(--color-primary); /* El verde primario para destacar */
-  color: white;
-  font-weight: 600;
+  background-color: var(--surface-elevated);
+  border-color: var(--border-default);
+  color: var(--fey-white);
+  box-shadow: inset 0 -1px 0 var(--fey-signal);
 }
 
-
-/* --- BREAKPOINT PARA TABLETS Y ESCRITORIO (>= 768px) --- */
-@media (min-width: 768px) {
-  .subnavContainer {
-    /* Cambia a la distribución horizontal */
-    flex-direction: row; 
-    align-items: center;
-    
-    /* ESTA ES LA CLAVE: los enlaces se ajustan automáticamente */
-    /* Distribuye el espacio disponible entre los elementos */
-    justify-content: space-between; 
+@media (max-width: 767.98px) {
+  .subnav {
+    border-radius: var(--radius-card);
+    margin-bottom: 20px;
   }
 
-  .subnav {
-    padding: 0.5rem 1rem; /* Ajustamos el padding para la vista horizontal */
+  .subnavContainer {
+    min-width: max-content;
+  }
+
+  .subnavBtn {
+    padding: 8px 14px;
+    font-size: 12px;
   }
 }

@@ -1,41 +1,66 @@
-:root {
-  /* Re-declaramos las variables para que este archivo sea autónomo */
-  --color-darkest: #031C06;
-  --color-dark: #043B05;
-  --color-primary: #207B25;
-  --color-accent: #71CC49;
-  --color-neutral: #90B081;
+/* SweetAlert2 — Fey dark dialog */
+.swal-popup-custom {
+  background: var(--surface-elevated) !important;
+  color: var(--fey-white) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-halo) !important;
+  font-family: var(--font-calibre) !important;
 }
 
-.swal-popup-custom {
-  background: #fdfdfd !important;
-  border-radius: 1rem !important;
-}
 .swal-title-custom {
-  color: var(--color-darkest) !important;
+  color: var(--fey-white) !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
 }
+
 .swal-html-container-custom {
-  color: var(--color-dark) !important;
+  color: var(--fey-graphite) !important;
+  font-size: 13px !important;
 }
+
 .swal-icon-custom.swal2-warning {
-  color: var(--color-primary) !important;
-  border-color: var(--color-primary) !important;
+  color: var(--fey-ember) !important;
+  border-color: var(--fey-ember) !important;
 }
+
+.swal-icon-custom.swal2-error {
+  color: var(--fey-loss) !important;
+  border-color: var(--fey-loss) !important;
+}
+
 .swal-button-confirm-custom {
-  background-color: var(--color-primary) !important;
-  border-radius: 8px !important;
-  box-shadow: none !important;
+  background-color: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  border-radius: var(--radius-pill) !important;
+  color: var(--fey-white) !important;
+  font-family: var(--font-calibre) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 10px 20px !important;
+  box-shadow: var(--shadow-line), var(--shadow-glow) !important;
 }
+
 .swal-button-confirm-custom:hover {
-  background-color: var(--color-dark) !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  border-color: var(--fey-white) !important;
 }
+
 .swal-button-cancel-custom {
   background-color: transparent !important;
-  border: 2px solid #aaa !important;
-  color: #555 !important;
-  border-radius: 8px !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-pill) !important;
+  color: var(--fey-mist) !important;
+  font-family: var(--font-calibre) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 10px 20px !important;
   box-shadow: none !important;
 }
+
 .swal-button-cancel-custom:hover {
-  background-color: #f0f0f0 !important;
+  background-color: var(--surface-card) !important;
+  border-color: var(--border-emphasis) !important;
+  color: var(--fey-white) !important;
 }

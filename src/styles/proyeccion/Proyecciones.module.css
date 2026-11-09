@@ -1,33 +1,35 @@
-/* Contenedor para la barra de pestañas */
 .tabContainer {
-  border-bottom: 2px solid var(--border-color);
-  margin-bottom: 2rem;
+  display: inline-flex;
+  gap: 4px;
+  padding: 5px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-elevated);
 }
 
-/* Estilo para cada botón de pestaña */
 .tabButton {
+  padding: 8px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
   background-color: transparent;
-  border: none;
-  padding: 0.8rem 1.5rem;
+  color: var(--fey-graphite);
+  font-family: var(--font-calibre);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
   cursor: pointer;
-  font-weight: 600;
-  font-size: 1rem;
-  margin-bottom: -2px; /* Truco para que el borde inferior se solape */
-  border-bottom: 2px solid transparent; /* Borde inferior inactivo */
-  
-  /* --- ESTE ES EL CAMBIO CLAVE --- */
-  color: var(--color-neutral); /* Usamos el color neutro de tu paleta para el texto inactivo */
-  
-  transition: all 0.2s ease-in-out;
+  transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
 
-/* Efecto al pasar el cursor sobre una pestaña inactiva */
 .tabButton:not(.active):hover {
-  color: var(--color-dark);
+  color: var(--fey-white);
+  background-color: var(--surface-card);
 }
 
-/* Estilo para la pestaña que está ACTIVA */
 .active {
-  color: var(--color-primary); /* El color primario para destacar */
-  border-bottom: 2px solid var(--color-primary); /* Borde inferior que indica la selección */
+  background-color: var(--surface-card);
+  border-color: var(--border-default);
+  color: var(--fey-white);
+  box-shadow: inset 0 -1px 0 var(--fey-signal);
 }

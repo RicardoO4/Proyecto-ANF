@@ -1,32 +1,6 @@
-/* Definición de la paleta de colores y estilos globales */
-:root {
-  /* Tu nueva paleta de colores */
-  --color-darkest: #031C06;
-  --color-dark: #043B05;
-  --color-primary: #207B25;
-  --color-accent: #71CC49;
-  --color-neutral: #90B081;
-
-  /* Colores de UI derivados */
-  --text-light: #f0f0f0;
-  --text-dark: var(--color-darkest);
-  --background-main: #f4f6f8; /* Un fondo muy claro para contraste */
-  --background-sidebar: var(--color-darkest);
-  --background-card: #FFFFFF;
-  --border-color: #e0e0e0;
-}
-
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: var(--background-main);
-  color: var(--text-dark);
-}
-
-* {
-  box-sizing: border-box;
-}
+/*
+  Global style entry — Fey design system.
+  Bootstrap is imported before this file in `src/app/layout.tsx`.
+*/
+@import './styles/fey/tokens.css';
+@import './styles/fey/base.css';

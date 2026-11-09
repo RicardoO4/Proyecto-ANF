@@ -1,76 +1,81 @@
-/*
-  Archivo: AnalisisHV.module.css
-  (Guárdalo junto a tu componente AnalisisHV.js)
-*/
-
-/* Contenedor para los selectores y el botón */
 .filterBar {
   display: flex;
-  flex-wrap: wrap; /* Para que sea responsive en pantallas pequeñas */
-  gap: 1.5rem;
-  align-items: flex-end; /* Alinea los elementos por la parte de abajo */
-  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: flex-end;
+  margin-bottom: 24px;
 }
 
-/* Estilo para cada grupo de label + select */
 .formControl {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  flex: 1; /* Permite que crezcan */
-  min-width: 150px;
+  gap: 7px;
+  flex: 1;
+  min-width: 160px;
 }
 
 .formControl label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--color-secondary-text, #6c757d);
+  color: var(--fey-graphite);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .formControl select {
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-color, #e9ecef);
-  font-size: 1rem;
-  background-color: #fff;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-small);
+  background-color: var(--surface-input);
+  color: var(--fey-white);
+  font-family: var(--font-calibre);
+  font-size: 13px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.formControl select:hover {
+  border-color: var(--border-strong);
 }
 
 .formControl select:focus {
   outline: none;
-  border-color: var(--color-darkest, #182c3f);
-  box-shadow: 0 0 0 3px rgba(24, 44, 63, 0.1);
+  border-color: var(--fey-signal);
+  box-shadow: var(--shadow-focus);
 }
 
 .formControl select:disabled {
-  background-color: #f8f9fa;
+  background-color: var(--surface-sunken);
+  color: var(--fey-smoke);
   cursor: not-allowed;
 }
 
-/* Contenedor para los botones Horizontal/Vertical */
 .toggleBar {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
 }
 
 .toggleButton {
-  padding: 0.6rem 1.2rem;
-  font-weight: 600;
-  font-size: 0.95rem;
-  border-radius: 8px;
+  padding: 8px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--fey-mist);
+  font-family: var(--font-calibre);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  
-  /* Estilo "Outlined" por defecto */
-  background-color: transparent;
-  color: var(--color-darkest, #182c3f);
-  border: 2px solid var(--color-darkest, #182c3f);
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
 
-/* Estilo "Contained" o Activo */
+.toggleButton:hover {
+  border-color: var(--border-emphasis);
+  color: var(--fey-white);
+}
+
 .toggleButtonActive {
-  background-color: var(--color-darkest, #182c3f);
-  color: white;
-  border-color: var(--color-darkest, #182c3f);
+  background-color: var(--surface-elevated);
+  border-color: var(--fey-signal);
+  color: var(--fey-white);
 }

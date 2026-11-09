@@ -56,7 +56,7 @@ const CargarEstadoFinanciero = () => {
 
         <div className={localStyles.formBox}>
           <div className={localStyles.instructions}>
-            <InfoCircleFill size={24} className="mb-3" style={{ color: 'var(--color-primary)' }} />
+            <InfoCircleFill size={24} className="mb-3" style={{ color: 'var(--fey-graphite)' }} />
             <p>
               Sube el estado financiero en formato Excel (.xlsx).<br />
               Asegúrate de que el archivo cumpla con la estructura requerida.

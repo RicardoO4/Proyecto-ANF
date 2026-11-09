@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, type ReactNode } from 'react'
+import { List } from 'react-bootstrap-icons'
 import SideBar from '@/components/SideBar'
 import styles from '@/styles/MainLayout.module.css'
 
@@ -19,6 +20,16 @@ const MainLayout = ({ children }: { children: ReactNode }) => {
   return (
     <div className={styles.layoutRoot}>
       <SideBar sidebarOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen((prev) => !prev)} />
+      {!sidebarOpen && (
+        <button
+          type="button"
+          className={styles.mobileToggle}
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Abrir menú lateral"
+        >
+          <List size={22} />
+        </button>
+      )}
       <main className={styles.mainContent} aria-label="Contenido principal">
         <div className={styles.viewWrapper}>{children}</div>
       </main>
