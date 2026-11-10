@@ -1,9 +1,8 @@
-# Plan de pruebas — Módulo C (ratios avanzados, apalancamiento y AU1)
+# Plan de pruebas — Módulo C (ratios avanzados, apalancamiento, rentabilidad, ciclos y AU1)
 
 Rama: `Modulo-C`
-Alcance de esta entrega: **C1–C2 (parcial)**, **C3** y **AU1**.
-Fuera de alcance por falta de datos/modelo: rentabilidad (ROE, ROA, márgenes),
-DuPont automático y C4 (ABC/EOQ/punto de reorden).
+Alcance de esta entrega: **C1–C2 (Completo)**, **C3 (Completo)** y **AU1 (Completo y calibrado)**.
+Fuera de alcance: C4 (ABC/EOQ/punto de reorden - pendiente de modelo de datos).
 
 ---
 
@@ -11,18 +10,18 @@ DuPont automático y C4 (ABC/EOQ/punto de reorden).
 
 | Pieza | Archivo | Qué hace |
 |---|---|---|
-| Fórmulas puras | `src/lib/ratioFormulas.ts` | 5 fórmulas sin I/O, compartidas por la app y el script de aceptación |
-| Calculadores | `src/lib/ratios.ts` | 4 nuevos + `recalcularRatios()` + `tieneEstado()` |
-| Endpoints | `src/app/api/v1/ratios/[id]/calcular-*` | 4 rutas PUT nuevas |
-| Cliente | `src/services/ratioService.ts` | 4 métodos nuevos |
-| UI | `src/components/ratio/Ratio.tsx` | 4 entradas en el mapa categoría → endpoint |
-| AU1 | `src/app/api/v1/estados-financieros/upload/route.ts` | recálculo tras la carga, sin bloquear la respuesta 201 |
-| Esquema/seed | `supabase/migrations/003_seed_ratios.sql` | precisión `NUMERIC(15,4)`, 2 tipos, 4 categorías, 12 benchmarks, 12 filas de `ratio` |
-| Seed por REST | `scripts/seed-ratios.mjs` | mismo seed sin editor SQL (salvo el `ALTER`) |
-| Aceptación | `scripts/verify-ratios.mts` | 23 comprobaciones contra la cátedra y la BD |
-| E2E AU1 | `scripts/e2e-au1.mjs` | carga sintética real + limpieza automática |
+| Fórmulas puras | `src/lib/ratioFormulas.ts` | 15 fórmulas sin I/O (liquidez, apalancamiento, rentabilidad, ciclos y DuPont) |
+| Calculadores | `src/lib/ratios.ts` | 14 calculadores completos integrados en `CALCULADORES` + `recalcularRatios()` |
+| Endpoints | `src/app/api/v1/ratios/[id]/calcular-*` | 14 rutas PUT dedicadas |
+| Cliente | `src/services/ratioService.ts` | Métodos para los 14 calculadores |
+| UI | `src/components/ratio/Ratio.tsx` | Mapeo completo categoría → endpoint en el botón Calcular |
+| AU1 | `src/app/api/v1/estados-financieros/upload/route.ts` | Recálculo automático y silencioso tras subir balances/resultados |
+| Esquema/seed | `supabase/migrations/003_seed_ratios.sql` y `004_seed_ratios_c1_c3.sql` | Tipos, categorías, benchmarks y filas para 2023, 2024 y 2025 |
+| Seed por REST | `scripts/seed-ratios.mjs` | Aplica y calibra los benchmarks con estándares de la Cátedra ANF115 |
+| Aceptación | `scripts/verify-ratios.mts` | 35 comprobaciones automáticas contra la cátedra (Empresa ABC) y la BD |
+| E2E AU1 | `scripts/e2e-au1.mjs` | Carga sintética real + verificación de recálculo y limpieza automática |
 
-Ratios agregados:
+Ratios incorporados:
 
 | Ratio | Categoría (`nombre_tipo`) | Fórmula | Dirección |
 |---|---|---|---|
@@ -30,6 +29,16 @@ Ratios agregados:
 | Grado de endeudamiento | `Grado de endeudamiento` | Pasivo total / Activo total | menor es mejor |
 | Grado de propiedad | `Grado de propiedad` | Patrimonio / Activo total | mayor es mejor |
 | Razón de endeudamiento patrimonial | `Razón de endeudamiento patrimonial` | Pasivo total / Patrimonio | menor es mejor |
+| Cobertura de intereses | `Razón de cobertura de intereses` | EBIT / Gastos financieros | mayor es mejor |
+| Margen neto | `Índice de margen neto` | Utilidad neta / Ventas netas | mayor es mejor |
+| ROA | `Rendimiento sobre activos (ROA)` | Utilidad neta / Activo total promedio | mayor es mejor |
+| ROE | `Rendimiento sobre capital contable (ROE)` | Utilidad neta / Patrimonio promedio | mayor es mejor |
+| DuPont | `Análisis DuPont` | Margen Neto × Rotación Activos × Multiplicador Capital | mayor es mejor |
+| Rotación de inventario | `Razón de rotación de inventarios` | Costo de ventas / Inventario promedio | mayor es mejor |
+| Edad promedio inventario | `Edad promedio del inventario` | (Inventario promedio × 365) / Costo de ventas | menor es mejor |
+| Período medio de pago | `Período medio de pago` | (Cuentas por pagar promedio × 365) / Costo de ventas | mayor es mejor |
+| Ciclo operativo | `Ciclo operativo` | EPI + PPC | menor es mejor |
+| Ciclo conversión efectivo | `Ciclo de conversión de efectivo` | Ciclo Operativo − PPP | menor es mejor |
 
 ---
 

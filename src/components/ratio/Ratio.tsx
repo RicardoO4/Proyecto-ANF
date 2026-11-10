@@ -154,6 +154,19 @@ export const Ratio = () => {
       'Grado de propiedad': (id) => ratioService.calculatePropiedadRatio(id),
       'Razón de endeudamiento patrimonial': (id) =>
         ratioService.calculateEndeudamientoPatrimonialRatio(id),
+      // C1: Apalancamiento faltante
+      'Razón de cobertura de intereses': (id) => ratioService.calculateCoberturaInteresesRatio(id),
+      // C2: Rentabilidad
+      'Índice de margen neto': (id) => ratioService.calculateMargenNetoRatio(id),
+      'Rendimiento sobre activos (ROA)': (id) => ratioService.calculateROARatio(id),
+      'Rendimiento sobre capital contable (ROE)': (id) => ratioService.calculateROERatio(id),
+      'Análisis DuPont': (id) => ratioService.calculateDuPontRatio(id),
+      // C3: Ciclos Operativos
+      'Razón de rotación de inventarios': (id) => ratioService.calculateRotacionInventariosRatio(id),
+      'Edad promedio del inventario': (id) => ratioService.calculateEdadPromedioInventarioRatio(id),
+      'Período medio de pago': (id) => ratioService.calculatePeriodoPagoRatio(id),
+      'Ciclo operativo': (id) => ratioService.calculateCicloOperativoRatio(id),
+      'Ciclo de conversión de efectivo': (id) => ratioService.calculateCCERatio(id),
     }
 
     const funcionDeCalculo = calculoPorCategoria[categoriaNombre]

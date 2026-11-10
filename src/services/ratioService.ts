@@ -108,6 +108,48 @@ export const ratioService = {
     )
     return resp.data
   },
+  // --- Módulo C (C1-C2): Apalancamiento faltante y Rentabilidad ---
+  async calculateCoberturaInteresesRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-cobertura-intereses`)
+    return resp.data
+  },
+  async calculateMargenNetoRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-margen-neto`)
+    return resp.data
+  },
+  async calculateROARatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-roa`)
+    return resp.data
+  },
+  async calculateROERatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-roe`)
+    return resp.data
+  },
+  async calculateDuPontRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-dupont`)
+    return resp.data
+  },
+  // --- Módulo C (C3): Eficiencia y Ciclos Operativos ---
+  async calculateRotacionInventariosRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-rotacion-inventarios`)
+    return resp.data
+  },
+  async calculateEdadPromedioInventarioRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-edad-promedio-inventario`)
+    return resp.data
+  },
+  async calculatePeriodoPagoRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-periodo-pago`)
+    return resp.data
+  },
+  async calculateCicloOperativoRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-ciclo-operativo`)
+    return resp.data
+  },
+  async calculateCCERatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-cce`)
+    return resp.data
+  },
 }
 
 export const tiposRatio = {

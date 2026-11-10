@@ -69,3 +69,65 @@ export function gradoPropiedad(patrimonio: number, activoTotal: number): number 
 export function endeudamientoPatrimonial(pasivoTotal: number, patrimonio: number): number {
   return patrimonio === 0 ? 0 : redondear(pasivoTotal / patrimonio)
 }
+
+/** Cobertura de intereses = EBIT / Gastos Financieros. Mayor es mejor. */
+export function coberturaIntereses(ebit: number, gastosFinancieros: number): number {
+  return gastosFinancieros === 0 ? 0 : redondear(ebit / gastosFinancieros)
+}
+
+/** Margen neto = Utilidad Neta / Ventas Netas. Mayor es mejor. */
+export function margenNeto(utilidadNeta: number, ventasNetas: number): number {
+  return ventasNetas === 0 ? 0 : redondear(utilidadNeta / ventasNetas)
+}
+
+/** Rendimiento sobre Activos (ROA) = Utilidad Neta / Activo Total. Mayor es mejor. */
+export function roa(utilidadNeta: number, activoTotal: number): number {
+  return activoTotal === 0 ? 0 : redondear(utilidadNeta / activoTotal)
+}
+
+/** Rendimiento sobre Patrimonio (ROE) = Utilidad Neta / Patrimonio. Mayor es mejor. */
+export function roe(utilidadNeta: number, patrimonio: number): number {
+  return patrimonio === 0 ? 0 : redondear(utilidadNeta / patrimonio)
+}
+
+/** Rotación de Inventarios = Costo de Ventas / Inventario. Mayor es mejor. */
+export function rotacionInventario(costoVentas: number, inventario: number): number {
+  return inventario === 0 ? 0 : redondear(costoVentas / inventario)
+}
+
+/** Edad Promedio del Inventario (EPI) en días = (Inventario * 365) / Costo de Ventas. Menor es mejor. */
+export function edadPromedioInventario(
+  inventario: number,
+  costoVentas: number,
+  dias: number = DIAS_EJERCICIO,
+): number {
+  return costoVentas === 0 ? 0 : redondear((inventario * dias) / costoVentas, 2)
+}
+
+/** Período Medio de Pago (PPP) en días = (Cuentas por Pagar * 365) / Costo de Ventas. */
+export function periodoMedioPago(
+  cuentasPorPagar: number,
+  costoVentas: number,
+  dias: number = DIAS_EJERCICIO,
+): number {
+  return costoVentas === 0 ? 0 : redondear((cuentasPorPagar * dias) / costoVentas, 2)
+}
+
+/** Ciclo Operativo (CO) = EPI + PPC. Menor es mejor. */
+export function cicloOperativo(epi: number, ppc: number): number {
+  return redondear(epi + ppc, 2)
+}
+
+/** Ciclo de Conversión de Efectivo (CCE) = Ciclo Operativo − PPP. Menor es mejor. */
+export function cicloConversionEfectivo(cicloOperativoVal: number, ppp: number): number {
+  return redondear(cicloOperativoVal - ppp, 2)
+}
+
+/** Análisis DuPont: ROE desglosado = Margen Neto * Rotación Activos * Multiplicador Capital. */
+export function analisisDuPont(
+  margenNetoVal: number,
+  rotacionActivos: number,
+  multiplicadorCapital: number,
+): number {
+  return redondear(margenNetoVal * rotacionActivos * multiplicadorCapital)
+}

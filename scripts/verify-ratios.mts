@@ -13,11 +13,21 @@
 // Sale con código 1 si alguna comprobación falla.
 // ================================================================
 import {
+  analisisDuPont,
+  cicloConversionEfectivo,
+  cicloOperativo,
+  coberturaIntereses,
+  edadPromedioInventario,
   endeudamientoPatrimonial,
   gradoEndeudamiento,
   gradoPropiedad,
+  margenNeto,
+  periodoMedioPago,
   promedioSaldo,
   pruebaAcida,
+  roa,
+  roe,
+  rotacionInventario,
 } from '../src/lib/ratioFormulas.ts'
 
 let fallos = 0
@@ -105,6 +115,55 @@ check('prueba ácida con pasivo corriente 0', pruebaAcida(100, 40, 0), 0)
 check('endeudamiento con activo 0', gradoEndeudamiento(100, 0), 0)
 check('propiedad con activo 0', gradoPropiedad(100, 0), 0)
 check('endeudamiento patrimonial con patrimonio 0', endeudamientoPatrimonial(100, 0), 0)
+
+// ---------------------------------------------------------------
+// 4. Módulo C (C1, C2, C3): Cobertura, Rentabilidad y Ciclos Operativos
+// ---------------------------------------------------------------
+console.log('\n== 4. Módulo C: Rentabilidad, Cobertura y Ciclos (Empresa ABC) ==')
+// Datos ER Empresa ABC: Ventas 39M, Costo 29M, EBIT 3.72M, Intereses 1.2M, Utilidad Neta 2.275M
+const ebit2020 = 3_720_000
+const intereses2020 = 1_200_000
+const ventas2020 = 39_000_000
+const costo2020 = 29_000_000
+const uNeta2020 = 2_275_000
+const activo2020 = 30_700_000
+const patrimonio2020 = 11_920_000
+const invPromedio2020 = (8_700_000 + 9_400_000) / 2 // 9,050,000
+const cxcPromedio2020 = (11_000_000 + 9_000_000) / 2 // 10,000,000
+const cxpPromedio2020 = (4_900_000 + 3_600_000) / 2 // 4,250,000
+
+check('cobertura de intereses 2020 (EBIT/Int)', coberturaIntereses(ebit2020, intereses2020), 3.1)
+check('cobertura con intereses 0', coberturaIntereses(ebit2020, 0), 0)
+check('margen neto 2020 (UN/Ventas)', margenNeto(uNeta2020, ventas2020), 0.0583)
+check('ROA 2020 (UN/Activo)', roa(uNeta2020, activo2020), 0.0741)
+check('ROE 2020 (UN/Patrimonio)', roe(uNeta2020, patrimonio2020), 0.1909)
+
+// Eficiencia y Ciclos Operativos (C3)
+// Rotación Inv = 29M / 9.05M = 3.2044 veces
+check('rotación de inventario 2020', rotacionInventario(costo2020, invPromedio2020), 3.2044)
+// EPI = (9.05M * 365) / 29M = 113.91 días (idéntico al Excel de cátedra)
+const epi = edadPromedioInventario(invPromedio2020, costo2020)
+check('edad promedio inventario (EPI) 2020', epi, 113.91, 0.01)
+
+// PPC = (10M * 365) / 39M = 93.59 días (idéntico al Excel de cátedra)
+const ppc = Math.round(((cxcPromedio2020 * 365) / ventas2020) * 100) / 100
+check('período medio de cobranza (PPC) 2020', ppc, 93.59, 0.01)
+
+// Ciclo Operativo = EPI + PPC = 113.91 + 93.59 = 207.50 días
+const co = cicloOperativo(epi, ppc)
+check('ciclo operativo (EPI + PPC) 2020', co, 207.5, 0.01)
+
+// PPP = (4.25M * 365) / 29M = 53.49 días
+const ppp = periodoMedioPago(cxpPromedio2020, costo2020)
+check('período medio de pago (PPP) 2020', ppp, 53.49, 0.01)
+
+// CCE = Ciclo Operativo - PPP = 207.50 - 53.49 = 154.01 días
+check('ciclo de conversión de efectivo (CCE) 2020', cicloConversionEfectivo(co, ppp), 154.01, 0.01)
+
+// Desglose DuPont: Margen Neto * Rotación Activos * Multiplicador Capital = ROE
+const rotActivos = ventas2020 / activo2020
+const multCap = activo2020 / patrimonio2020
+check('DuPont ROE = MN * RotAct * MultCap', analisisDuPont(uNeta2020 / ventas2020, rotActivos, multCap), 0.1909)
 
 console.log(`\n${fallos === 0 ? 'OK' : 'FALLÓ'}: ${total - fallos}/${total} comprobaciones`)
 process.exit(fallos === 0 ? 0 : 1)

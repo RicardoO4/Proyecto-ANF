@@ -26,15 +26,30 @@ import {
   INVENTARIOS,
   PASIVO_TOTAL,
   PATRIMONIO_TOTAL,
+  CUENTAS_POR_PAGAR,
+  GASTOS_FINANCIEROS,
+  RESULTADO_EJERCICIO,
+  TOTAL_INGRESOS,
+  TOTAL_COSTOS_GASTOS,
 } from '@/lib/accountCodes'
 import type { TipoReporte } from '@/lib/accountCodes'
 // Fórmulas puras (Módulo C): compartidas con scripts/verify-ratios.mts.
 import {
+  analisisDuPont,
+  cicloConversionEfectivo,
+  cicloOperativo,
+  coberturaIntereses,
+  edadPromedioInventario,
   endeudamientoPatrimonial,
   gradoEndeudamiento,
   gradoPropiedad,
+  margenNeto,
+  periodoMedioPago,
   promedioSaldo,
   pruebaAcida,
+  roa,
+  roe,
+  rotacionInventario,
 } from '@/lib/ratioFormulas'
 
 type PrefixCodes = string | string[]
@@ -602,6 +617,298 @@ export function calcularEndeudamientoPatrimonial(id: number) {
 }
 
 // ---------------------------------------------------------------
+// Módulo C — C1: Apalancamiento faltante (Cobertura de Intereses)
+// ---------------------------------------------------------------
+
+export function calcularCoberturaIntereses(id: number) {
+  return calculateRatio(
+    id,
+    'Razón de cobertura de intereses',
+    async (get) => {
+      const ratio = await loadRatio(id)
+      const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
+      const costoVentas = await get(COSTO_VENTAS, TIPO_REPORTE.RESULTADOS)
+      const gastosOperativos = await get(GASTOS_OPERATIVOS, TIPO_REPORTE.RESULTADOS)
+      const gastosFinancieros = await get(GASTOS_FINANCIEROS, TIPO_REPORTE.RESULTADOS)
+      const ebit = ventasNetas - costoVentas - gastosOperativos
+      if (gastosFinancieros === 0) {
+        return {
+          valor: 0,
+          cumple: true,
+          interpretacion:
+            'La empresa no reporta gastos financieros en el ejercicio, por lo que no incurre en costos fijos de deuda.',
+        }
+      }
+      const valor = coberturaIntereses(ebit, gastosFinancieros)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      const cumple = valor >= ref
+      const interpretacion = `La empresa genera ${f2(valor)} veces su gasto financiero mediante su utilidad operativa; se ubica ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref)} veces).`
+      return { valor, cumple, interpretacion }
+    },
+  )
+}
+
+// ---------------------------------------------------------------
+// Módulo C — C2: Rentabilidad (Margen Neto, ROA, ROE, DuPont)
+// ---------------------------------------------------------------
+
+export function calcularMargenNeto(id: number) {
+  return calculateRatio(
+    id,
+    'Índice de margen neto',
+    async (get) => {
+      const ratio = await loadRatio(id)
+      const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
+      const totalIngresos = await get(TOTAL_INGRESOS, TIPO_REPORTE.RESULTADOS)
+      const totalCostosGastos = await get(TOTAL_COSTOS_GASTOS, TIPO_REPORTE.RESULTADOS)
+      const utilidadNeta =
+        totalIngresos > 0 ? totalIngresos - totalCostosGastos : await get(RESULTADO_EJERCICIO, TIPO_REPORTE.BALANCE)
+      if (ventasNetas === 0) {
+        throw new InternalException('Las Ventas Netas son cero o no se encuentran registradas en el Estado de Resultados.')
+      }
+      const valor = margenNeto(utilidadNeta, ventasNetas)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      const cumple = valor >= ref
+      const interpretacion = `Por cada dólar de ventas, la empresa retiene ${f2(valor * 100)} centavos como utilidad neta (${f2(valor * 100)}%); un margen ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
+      return { valor, cumple, interpretacion }
+    },
+  )
+}
+
+export function calcularROA(id: number) {
+  return calculateRatio(
+    id,
+    'Rendimiento sobre activos (ROA)',
+    async (get, tieneEstado) => {
+      const ratio = await loadRatio(id)
+      const anio = ratio.anio_ratio!
+      const totalIngresos = await get(TOTAL_INGRESOS, TIPO_REPORTE.RESULTADOS)
+      const totalCostosGastos = await get(TOTAL_COSTOS_GASTOS, TIPO_REPORTE.RESULTADOS)
+      const utilidadNeta =
+        totalIngresos > 0 ? totalIngresos - totalCostosGastos : await get(RESULTADO_EJERCICIO, TIPO_REPORTE.BALANCE)
+      const activosActual = await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE)
+      const activosAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioActivos = promedioSaldo(activosActual, activosAnterior)
+      if (promedioActivos === 0) {
+        throw new InternalException('El Activo Total es cero: no se puede calcular el ROA.')
+      }
+      const valor = roa(utilidadNeta, promedioActivos)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      const cumple = valor >= ref
+      const interpretacion = `Cada dólar invertido en activos generó ${f2(valor * 100)} centavos de utilidad neta (${f2(valor * 100)}% de ROA), situándose ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
+      return { valor, cumple, interpretacion }
+    },
+  )
+}
+
+export function calcularROE(id: number) {
+  return calculateRatio(
+    id,
+    'Rendimiento sobre capital contable (ROE)',
+    async (get, tieneEstado) => {
+      const ratio = await loadRatio(id)
+      const anio = ratio.anio_ratio!
+      const totalIngresos = await get(TOTAL_INGRESOS, TIPO_REPORTE.RESULTADOS)
+      const totalCostosGastos = await get(TOTAL_COSTOS_GASTOS, TIPO_REPORTE.RESULTADOS)
+      const utilidadNeta =
+        totalIngresos > 0 ? totalIngresos - totalCostosGastos : await get(RESULTADO_EJERCICIO, TIPO_REPORTE.BALANCE)
+      const patrimonioActual = await get(PATRIMONIO_TOTAL, TIPO_REPORTE.BALANCE)
+      const patrimonioAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(PATRIMONIO_TOTAL, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioPatrimonio = promedioSaldo(patrimonioActual, patrimonioAnterior)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      if (patrimonioActual <= 0) {
+        const valor = patrimonioActual !== 0 ? roe(utilidadNeta, patrimonioActual) : 0
+        return {
+          valor,
+          cumple: false,
+          interpretacion: `El patrimonio es negativo (${f2(patrimonioActual)} USD): la empresa se encuentra en quiebra técnica y el ROE no es interpretable normalmente.`,
+        }
+      }
+      const valor = roe(utilidadNeta, promedioPatrimonio)
+      const cumple = valor >= ref
+      const interpretacion = `Por cada dólar de patrimonio aportado por los accionistas se genera ${f2(valor * 100)}% de retorno neto; situándose ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
+      return { valor, cumple, interpretacion }
+    },
+  )
+}
+
+export function calcularAnalisisDuPont(id: number) {
+  return calculateRatio(
+    id,
+    'Análisis DuPont',
+    async (get, tieneEstado) => {
+      const ratio = await loadRatio(id)
+      const anio = ratio.anio_ratio!
+      const totalIngresos = await get(TOTAL_INGRESOS, TIPO_REPORTE.RESULTADOS)
+      const totalCostosGastos = await get(TOTAL_COSTOS_GASTOS, TIPO_REPORTE.RESULTADOS)
+      const utilidadNeta =
+        totalIngresos > 0 ? totalIngresos - totalCostosGastos : await get(RESULTADO_EJERCICIO, TIPO_REPORTE.BALANCE)
+      const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
+      const activosActual = await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE)
+      const activosAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioActivos = promedioSaldo(activosActual, activosAnterior)
+      const patrimonioActual = await get(PATRIMONIO_TOTAL, TIPO_REPORTE.BALANCE)
+      const patrimonioAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(PATRIMONIO_TOTAL, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioPatrimonio = promedioSaldo(patrimonioActual, patrimonioAnterior)
+
+      const mNeto = ventasNetas !== 0 ? utilidadNeta / ventasNetas : 0
+      const rotAct = promedioActivos !== 0 ? ventasNetas / promedioActivos : 0
+      const multCap = promedioPatrimonio > 0 ? promedioActivos / promedioPatrimonio : 0
+      const valor = analisisDuPont(mNeto, rotAct, multCap)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      const cumple = valor >= ref
+      const interpretacion = `DuPont: Margen Neto ${f2(mNeto * 100)}% × Rotación ${f2(rotAct)}x × Multiplicador Capital ${f2(multCap)}x = ROE ${f2(valor * 100)}%; frente al benchmark de ${f2(ref * 100)}%.`
+      return { valor, cumple, interpretacion }
+    },
+  )
+}
+
+// ---------------------------------------------------------------
+// Módulo C — C3: Ciclos Operativos (Inventario, Pago, CO, CCE)
+// ---------------------------------------------------------------
+
+export function calcularRotacionInventarios(id: number) {
+  return calculateRatio(
+    id,
+    'Razón de rotación de inventarios',
+    async (get, tieneEstado) => {
+      const ratio = await loadRatio(id)
+      const anio = ratio.anio_ratio!
+      const costoVentas = await get(COSTO_VENTAS, TIPO_REPORTE.RESULTADOS)
+      const invActual = await get(INVENTARIOS, TIPO_REPORTE.BALANCE)
+      const invAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(INVENTARIOS, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioInv = promedioSaldo(invActual, invAnterior)
+      const valor = rotacionInventario(costoVentas, promedioInv)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      const cumple = valor >= ref
+      const interpretacion = `El inventario rotó ${f2(valor)} veces en el año, un desempeño ${cumple ? 'eficiente' : 'lento'} frente al benchmark del sector (${f2(ref)} veces).`
+      return { valor, cumple, interpretacion }
+    },
+  )
+}
+
+export function calcularEdadPromedioInventario(id: number) {
+  return calculateRatio(
+    id,
+    'Edad promedio del inventario',
+    async (get, tieneEstado) => {
+      const ratio = await loadRatio(id)
+      const anio = ratio.anio_ratio!
+      const costoVentas = await get(COSTO_VENTAS, TIPO_REPORTE.RESULTADOS)
+      const invActual = await get(INVENTARIOS, TIPO_REPORTE.BALANCE)
+      const invAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(INVENTARIOS, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioInv = promedioSaldo(invActual, invAnterior)
+      const valor = edadPromedioInventario(promedioInv, costoVentas)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      const cumple = valor <= ref // menor es mejor
+      const interpretacion = `La empresa tarda en promedio ${f2(valor)} días en vender sus existencias (EPI), un plazo ${cumple ? 'óptimo' : 'excesivo'} frente al benchmark del sector (${f2(ref)} días).`
+      return { valor, cumple, interpretacion }
+    },
+  )
+}
+
+export function calcularPeriodoMedioPago(id: number) {
+  return calculateRatio(
+    id,
+    'Período medio de pago',
+    async (get, tieneEstado) => {
+      const ratio = await loadRatio(id)
+      const anio = ratio.anio_ratio!
+      const costoVentas = await get(COSTO_VENTAS, TIPO_REPORTE.RESULTADOS)
+      const cxpActual = await get(CUENTAS_POR_PAGAR, TIPO_REPORTE.BALANCE)
+      const cxpAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(CUENTAS_POR_PAGAR, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioCxp = promedioSaldo(cxpActual, cxpAnterior)
+      const valor = periodoMedioPago(promedioCxp, costoVentas)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      const cumple = valor >= ref // mayor es mejor para financiamiento espontáneo
+      const interpretacion = `La empresa tarda en promedio ${f2(valor)} días en cancelar sus deudas a proveedores (PPP), frente al benchmark del sector de ${f2(ref)} días.`
+      return { valor, cumple, interpretacion }
+    },
+  )
+}
+
+export function calcularCicloOperativo(id: number) {
+  return calculateRatio(
+    id,
+    'Ciclo operativo',
+    async (get, tieneEstado) => {
+      const ratio = await loadRatio(id)
+      const anio = ratio.anio_ratio!
+      const costoVentas = await get(COSTO_VENTAS, TIPO_REPORTE.RESULTADOS)
+      const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
+      const invActual = await get(INVENTARIOS, TIPO_REPORTE.BALANCE)
+      const invAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(INVENTARIOS, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioInv = promedioSaldo(invActual, invAnterior)
+      const cxcActual = await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE)
+      const cxcAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioCxc = promedioSaldo(cxcActual, cxcAnterior)
+      const epi = edadPromedioInventario(promedioInv, costoVentas)
+      const ppc = ventasNetas !== 0 ? round((promedioCxc * 365) / ventasNetas, 2) : 0
+      const valor = cicloOperativo(epi, ppc)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      const cumple = valor <= ref // menor es mejor
+      const interpretacion = `El ciclo operativo es de ${f2(valor)} días (EPI: ${f2(epi)} d + PPC: ${f2(ppc)} d); se encuentra ${cumple ? 'por debajo' : 'por encima'} del benchmark del sector (${f2(ref)} días).`
+      return { valor, cumple, interpretacion }
+    },
+  )
+}
+
+export function calcularCicloConversionEfectivo(id: number) {
+  return calculateRatio(
+    id,
+    'Ciclo de conversión de efectivo',
+    async (get, tieneEstado) => {
+      const ratio = await loadRatio(id)
+      const anio = ratio.anio_ratio!
+      const costoVentas = await get(COSTO_VENTAS, TIPO_REPORTE.RESULTADOS)
+      const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
+      const invActual = await get(INVENTARIOS, TIPO_REPORTE.BALANCE)
+      const invAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(INVENTARIOS, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioInv = promedioSaldo(invActual, invAnterior)
+      const cxcActual = await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE)
+      const cxcAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(CUENTAS_POR_COBRAR, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioCxc = promedioSaldo(cxcActual, cxcAnterior)
+      const cxpActual = await get(CUENTAS_POR_PAGAR, TIPO_REPORTE.BALANCE)
+      const cxpAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
+        ? await get(CUENTAS_POR_PAGAR, TIPO_REPORTE.BALANCE, anio - 1)
+        : null
+      const promedioCxp = promedioSaldo(cxpActual, cxpAnterior)
+      const epi = edadPromedioInventario(promedioInv, costoVentas)
+      const ppc = ventasNetas !== 0 ? round((promedioCxc * 365) / ventasNetas, 2) : 0
+      const co = cicloOperativo(epi, ppc)
+      const ppp = periodoMedioPago(promedioCxp, costoVentas)
+      const valor = cicloConversionEfectivo(co, ppp)
+      const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
+      const cumple = valor <= ref // menor es mejor
+      const interpretacion = `El ciclo de conversión de efectivo (CCE) es de ${f2(valor)} días (Ciclo Operativo ${f2(co)} d − PPP ${f2(ppp)} d); se ubica ${cumple ? 'por debajo' : 'por encima'} del benchmark (${f2(ref)} días).`
+      return { valor, cumple, interpretacion }
+    },
+  )
+}
+
+// ---------------------------------------------------------------
 // AU1 — recálculo automático tras una carga de estados financieros.
 //
 // Firma acordada con el Módulo A: `recalcularRatios(empresaId, anio)`.
@@ -626,6 +933,19 @@ const CALCULADORES: Record<string, (id: number) => Promise<Response>> = {
   'Grado de endeudamiento': calcularGradoEndeudamiento,
   'Grado de propiedad': calcularGradoPropiedad,
   'Razón de endeudamiento patrimonial': calcularEndeudamientoPatrimonial,
+  // C1 - Apalancamiento faltante
+  'Razón de cobertura de intereses': calcularCoberturaIntereses,
+  // C2 - Rentabilidad
+  'Índice de margen neto': calcularMargenNeto,
+  'Rendimiento sobre activos (ROA)': calcularROA,
+  'Rendimiento sobre capital contable (ROE)': calcularROE,
+  'Análisis DuPont': calcularAnalisisDuPont,
+  // C3 - Ciclos Operativos
+  'Razón de rotación de inventarios': calcularRotacionInventarios,
+  'Edad promedio del inventario': calcularEdadPromedioInventario,
+  'Período medio de pago': calcularPeriodoMedioPago,
+  'Ciclo operativo': calcularCicloOperativo,
+  'Ciclo de conversión de efectivo': calcularCicloConversionEfectivo,
 }
 
 export async function recalcularRatios(empresaId: number, anio: number): Promise<void> {

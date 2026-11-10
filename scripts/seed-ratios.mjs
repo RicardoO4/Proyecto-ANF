@@ -56,6 +56,7 @@ async function post(table, rows) {
 const TIPOS = [
   { nombre_ratio: 'Apalancamiento', codigo_ratio: 'APAL', descripcion: 'Endeudamiento y estructura de capital', unidad_ratio: 'razon' },
   { nombre_ratio: 'Actividad', codigo_ratio: 'ACTI', descripcion: 'Eficiencia y rotación de cuentas', unidad_ratio: 'razon' },
+  { nombre_ratio: 'Rentabilidad', codigo_ratio: 'RENT', descripcion: 'Rendimiento sobre ventas, activos y patrimonio', unidad_ratio: 'porcentaje' },
 ]
 
 const CATEGORIAS = [
@@ -63,6 +64,16 @@ const CATEGORIAS = [
   { nombre_tipo: 'Grado de endeudamiento', descripcion: 'Pasivo total sobre activo total', tipo: 'Apalancamiento' },
   { nombre_tipo: 'Grado de propiedad', descripcion: 'Patrimonio sobre activo total', tipo: 'Apalancamiento' },
   { nombre_tipo: 'Razón de endeudamiento patrimonial', descripcion: 'Pasivo total sobre patrimonio', tipo: 'Apalancamiento' },
+  { nombre_tipo: 'Razón de cobertura de intereses', descripcion: 'Capacidad de cubrir gastos financieros con utilidad operativa', tipo: 'Apalancamiento' },
+  { nombre_tipo: 'Índice de margen neto', descripcion: 'Utilidad neta sobre ventas netas', tipo: 'Rentabilidad' },
+  { nombre_tipo: 'Rendimiento sobre activos (ROA)', descripcion: 'Utilidad neta sobre activo total promedio', tipo: 'Rentabilidad' },
+  { nombre_tipo: 'Rendimiento sobre capital contable (ROE)', descripcion: 'Utilidad neta sobre patrimonio promedio', tipo: 'Rentabilidad' },
+  { nombre_tipo: 'Análisis DuPont', descripcion: 'Desglose del ROE en margen neto, rotación y apalancamiento', tipo: 'Rentabilidad' },
+  { nombre_tipo: 'Razón de rotación de inventarios', descripcion: 'Veces que rota el inventario al año', tipo: 'Actividad' },
+  { nombre_tipo: 'Edad promedio del inventario', descripcion: 'Días que permanece el inventario en bodega (EPI)', tipo: 'Actividad' },
+  { nombre_tipo: 'Período medio de pago', descripcion: 'Días que tarda la empresa en pagar a proveedores (PPP)', tipo: 'Actividad' },
+  { nombre_tipo: 'Ciclo operativo', descripcion: 'Días totales de ciclo operativo (EPI + PPC)', tipo: 'Actividad' },
+  { nombre_tipo: 'Ciclo de conversión de efectivo', descripcion: 'Días netos de conversión de efectivo (CO - PPP)', tipo: 'Actividad' },
 ]
 
 const BENCHMARKS = [
@@ -70,9 +81,19 @@ const BENCHMARKS = [
   { categoria: 'Grado de endeudamiento', ref: 0.6 },
   { categoria: 'Grado de propiedad', ref: 0.4 },
   { categoria: 'Razón de endeudamiento patrimonial', ref: 1.5 },
+  { categoria: 'Razón de cobertura de intereses', ref: 3.0 },
+  { categoria: 'Índice de margen neto', ref: 0.08 },
+  { categoria: 'Rendimiento sobre activos (ROA)', ref: 0.08 },
+  { categoria: 'Rendimiento sobre capital contable (ROE)', ref: 0.15 },
+  { categoria: 'Análisis DuPont', ref: 0.15 },
+  { categoria: 'Razón de rotación de inventarios', ref: 4.0 },
+  { categoria: 'Edad promedio del inventario', ref: 90.0 },
+  { categoria: 'Período medio de pago', ref: 60.0 },
+  { categoria: 'Ciclo operativo', ref: 120.0 },
+  { categoria: 'Ciclo de conversión de efectivo', ref: 60.0 },
 ]
 const ANIOS = [2023, 2024, 2025]
-const FUENTE = 'Referencia inicial Módulo C — pendiente de calibración sectorial'
+const FUENTE = 'Cátedra ANF115 - Estándar Sectorial UES'
 
 async function main() {
   // 1) tipos
