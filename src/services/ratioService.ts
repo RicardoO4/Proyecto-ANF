@@ -1,4 +1,4 @@
-// ratioService — CRUD + the 9 calculator endpoints + select datasets
+// ratioService — CRUD + the 13 calculator endpoints + select datasets
 import { apiClient } from './api'
 import type { RatioResponseDTO, CategoriaRatioResponseDTO, ParametroSectorResponseDTO } from '@/types'
 
@@ -87,6 +87,67 @@ export const ratioService = {
   },
   async calculateMargenOperativoRatio(id: number): Promise<RatioResponseDTO> {
     const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-margen-operativo`)
+    return resp.data
+  },
+  // --- Módulo C (C1): liquidez complementaria y apalancamiento ---
+  async calculatePruebaAcidaRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-prueba-acida`)
+    return resp.data
+  },
+  async calculateEndeudamientoRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-endeudamiento`)
+    return resp.data
+  },
+  async calculatePropiedadRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-propiedad`)
+    return resp.data
+  },
+  async calculateEndeudamientoPatrimonialRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(
+      `/ratios/${id}/calcular-endeudamiento-patrimonial`,
+    )
+    return resp.data
+  },
+  // --- Módulo C (C1-C2): Apalancamiento faltante y Rentabilidad ---
+  async calculateCoberturaInteresesRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-cobertura-intereses`)
+    return resp.data
+  },
+  async calculateMargenNetoRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-margen-neto`)
+    return resp.data
+  },
+  async calculateROARatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-roa`)
+    return resp.data
+  },
+  async calculateROERatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-roe`)
+    return resp.data
+  },
+  async calculateDuPontRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-dupont`)
+    return resp.data
+  },
+  // --- Módulo C (C3): Eficiencia y Ciclos Operativos ---
+  async calculateRotacionInventariosRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-rotacion-inventarios`)
+    return resp.data
+  },
+  async calculateEdadPromedioInventarioRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-edad-promedio-inventario`)
+    return resp.data
+  },
+  async calculatePeriodoPagoRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-periodo-pago`)
+    return resp.data
+  },
+  async calculateCicloOperativoRatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-ciclo-operativo`)
+    return resp.data
+  },
+  async calculateCCERatio(id: number): Promise<RatioResponseDTO> {
+    const resp = await apiClient.put<RatioResponseDTO>(`/ratios/${id}/calcular-cce`)
     return resp.data
   },
 }

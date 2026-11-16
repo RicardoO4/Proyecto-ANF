@@ -11,7 +11,17 @@ export interface EmpresaData {
   idSector?: number | null
 }
 
+export interface EmpresaPrincipalDTO {
+  empresaId: number
+  nombreEmpresa: string
+  idSector: number | null
+}
+
 export const empresaService = {
+  async getEmpresaPrincipal(): Promise<EmpresaPrincipalDTO> {
+    const resp = await apiClient.get<EmpresaPrincipalDTO>('/empresas/principal')
+    return resp.data
+  },
   async getEmpresas(): Promise<EmpresaResponseDTO[]> {
     const resp = await apiClient.get<EmpresaResponseDTO[]>('/empresas')
     return resp.data

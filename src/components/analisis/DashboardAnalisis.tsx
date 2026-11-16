@@ -1,8 +1,13 @@
 'use client'
 
 import DashboardCards from '@/components/shared/DashboardCards'
-
-import { BarChartLine, ArrowRepeat, ClipboardData, GraphUp, BarChartSteps } from 'react-bootstrap-icons'
+import { 
+  BarChartLine, 
+  ArrowRepeat, 
+  GraphUp, 
+  Calculator,
+  Diagram3
+} from 'react-bootstrap-icons'
 
 const DashboardAnalisis = () => {
   const items = [
@@ -19,22 +24,23 @@ const DashboardAnalisis = () => {
       descripcion: 'Compara ratios contra el promedio interno del sector.',
     },
     {
-      label: 'Comparativa vs. Ratios Externos',
-      icon: ClipboardData,
-      to: '/analisis/externo',
-      descripcion: 'Compara ratios contra los parámetros externos del sistema.',
-    },
-    {
       label: 'Evolución de Ratios',
       icon: GraphUp,
       to: '/analisis/evolucion-ratios',
       descripcion: 'Gráficos de la evolución de ratios en 3 años.',
     },
+    // --- Módulos Integrante D ---
     {
-      label: 'Evolución de Cuentas',
-      icon: BarChartSteps,
-      to: '/analisis/evolucion-cuentas',
-      descripcion: 'Gráfico de la variación de una cuenta específica.',
+      label: 'Punto de Equilibrio',
+      icon: Calculator,
+      to: '/analisis/equilibrio',
+      descripcion: 'Cálculo y gráfico de unidades e ingresos requeridos para no generar pérdidas.',
+    },
+    {
+      label: 'Sistema DuPont',
+      icon: Diagram3,
+      to: '/analisis/dupont',
+      descripcion: 'Análisis interactivo de rentabilidad y desglose de los componentes del ROE.',
     },
   ]
 

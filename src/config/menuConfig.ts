@@ -27,10 +27,10 @@ export const mainLinks: { idOp: number; to: string; label: string; icon: IconTyp
  * Configuraciones centralizadas para los sub-menús de cada módulo.
  */
 
+// Registrar/editar se hace con el modal de cada vista; solo se enlazan
+// rutas que existen en src/app/(dashboard).
 export const empresasSubMenuLinks = [
   { to: '/empresas', label: 'Ver Empresas' },
-  { to: '/empresas/nuevo', label: 'Registrar Empresa' },
-  { to: '/empresas/inactivas', label: 'Ver Inactivas' },
 ]
 
 export const sectoresSubMenuLinks = [
@@ -43,7 +43,6 @@ export const sectoresSubMenuLinks = [
 
 export const usuariosSubMenuLinks = [
   { to: '/usuarios', label: 'Ver Usuarios' },
-  { to: '/usuarios/nuevo', label: 'Registrar Usuario' },
 ]
 
 /**
@@ -51,8 +50,7 @@ export const usuariosSubMenuLinks = [
  * Este flujo es más específico.
  */
 export const catalogoCuentasSubMenuLinks = [
-  { to: '/catalogo-cuentas', label: 'Gestión por Empresa' },
-  { to: '/catalogo-cuentas/maestro', label: 'Ver Catálogo Maestro' },
+  { to: '/catalogo-cuentas', label: 'Catálogo de la Empresa' },
 ]
 
 /**
@@ -62,6 +60,8 @@ export const catalogoCuentasSubMenuLinks = [
 export const proyeccionesSubMenuLinks = [
   { to: '/proyecciones/cargar', label: 'Cargar Ventas Históricas' },
   { to: '/proyecciones/historial', label: 'Ver Historial de Ventas' },
+  { to: '/proyecciones/pronostico', label: 'Pronóstico de Ventas' },
+  { to: '/proyecciones/proforma', label: 'Estados Proforma' },
 ]
 
 /**
@@ -69,6 +69,6 @@ export const proyeccionesSubMenuLinks = [
  * Enfocado en la carga de datos y la visualización de reportes.
  */
 export const estadosFinancierosSubMenuLinks = [
-  { to: '/estados-financieros/cargar', label: 'Cargar Nuevo Reporte' },
+  { to: '/estados-financieros/cargar', label: 'Cargar Estados Financieros' },
   { to: '/estados-financieros/historial', label: 'Historial de Reportes' },
 ]

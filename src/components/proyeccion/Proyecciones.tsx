@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import SubMenu from '@/components/shared/SubMenu'
 import { proyeccionesSubMenuLinks } from '@/config/menuConfig'
-import { empresaService } from '@/services/empresaService'
+import EmpresaFija from '@/components/shared/EmpresaFija'
+import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import viewStyles from '@/styles/shared/View.module.css'
 import tabStyles from '@/styles/proyeccion/Proyecciones.module.css'
 import buttonStyles from '@/styles/shared/Button.module.css'
@@ -12,27 +13,17 @@ import { CargaManualVentas } from '@/components/proyeccion/CargaManualVentas'
 import { ventaHistoricaService } from '@/services/ventaHistoricaService'
 import { Notifier } from '@/utils/Notifier'
 import type { ProyeccionDTO } from '@/types'
-import type { EmpresaResponseDTO } from '@/types'
+import Link from 'next/link'
 
 export const Proyecciones = () => {
-  const [empresas, setEmpresas] = useState<EmpresaResponseDTO[]>([])
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('')
   const [metodo, setMetodo] = useState('')
   const [ventas, setVentas] = useState<string[]>(Array(12).fill('')) // 12 meses vacíos
   const [activeTab, setActiveTab] = useState<'masiva' | 'manual'>('masiva')
 
-  // Cargar empresas desde backend
-  useEffect(() => {
-    const cargarEmpresas = async () => {
-      try {
-        const data = await empresaService.getEmpresas()
-        setEmpresas(data)
-      } catch (error) {
-        console.error('Error al cargar empresas:', error)
-      }
-    }
-    cargarEmpresas()
-  }, [])
+  const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) =>
+    setEmpresaSeleccionada(String(e.empresaId)),
+  )
 
   const [proyecciones, setProyecciones] = useState<ProyeccionDTO[]>([])
 
@@ -72,19 +63,8 @@ export const Proyecciones = () => {
 
       {/* --- Selector de Empresa --- */}
       <div className="mb-3">
-        <label className="form-label">Seleccione la Empresa</label>
-        <select
-          className="form-select"
-          value={empresaSeleccionada}
-          onChange={(e) => setEmpresaSeleccionada(e.target.value)}
-        >
-          <option value="">Seleccione una empresa...</option>
-          {empresas.map((e) => (
-            <option key={e.empresaId} value={e.empresaId}>
-              {e.nombreEmpresa}
-            </option>
-          ))}
-        </select>
+        <label htmlFor="empresa" className="form-label">Empresa</label>
+        <EmpresaFija className="form-select" empresa={empresa} error={errorEmpresa} />
       </div>
 
       {/* --- Selector de Método --- */}
@@ -136,6 +116,24 @@ export const Proyecciones = () => {
         >
           Generar Proyección
         </button>
+
+        {/* --- Herramientas Analíticas (Módulos Integrante D) --- */}
+        <div style={{ marginTop: '20px', display: 'flex', gap: '15px', alignItems: 'center' }}>
+          <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
+            Herramientas Analíticas:
+          </span>
+          <Link href="/proyecciones/pronostico">
+            <button className={buttonStyles.btnSecondary} style={{ padding: '8px 16px', fontSize: '14px' }}>
+              Simulador de Pronósticos
+            </button>
+          </Link>
+          <Link href="/proyecciones/proforma">
+            <button className={buttonStyles.btnPrimary} style={{ padding: '8px 16px', fontSize: '14px' }}>
+              Estados Proforma y FER
+            </button>
+          </Link>
+        </div>
+
         {proyecciones.length > 0 && (
           <div className="mt-4 table-responsive">
             <h5>Resultados de la Proyección</h5>

@@ -7,7 +7,9 @@ import viewStyles from '@/styles/shared/View.module.css'
 import buttonStyles from '@/styles/shared/Button.module.css'
 import styles from '@/styles/analisis/AnalisisHV.module.css'
 import { Notifier } from '@/utils/Notifier'
-import type { EmpresaResponseDTO } from '@/types'
+import EmpresaFija from '@/components/shared/EmpresaFija'
+import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
+import { ACTIVO_TOTAL, VENTAS_NETAS, sumByPrefix } from '@/lib/accountCodes'
 
 interface LineaAnalisisHorizontal {
   codigoCuenta: string
@@ -23,6 +25,9 @@ interface LineaAnalisisVertical {
   nombreCuenta: string
   porcentajeVerticalAnio1: number
   porcentajeVerticalAnio2: number
+  saldoAnio1: number
+  saldoAnio2: number
+  tipoReporte?: 'BALANCE_GENERAL' | 'ESTADO_RESULTADOS'
 }
 
 interface ReporteInterno {
@@ -46,46 +51,36 @@ const formatPercent = (num: number) => {
 }
 
 const AnalisisHV = () => {
-  const [empresas, setEmpresas] = useState<EmpresaResponseDTO[]>([])
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('')
+  const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) =>
+    setEmpresaSeleccionada(String(e.empresaId)),
+  )
   const [anio1, setAnio1] = useState('')
   const [anio2, setAnio2] = useState('')
   const [aniosDisponibles, setAniosDisponibles] = useState<number[]>([])
   const [reporte, setReporte] = useState<ReporteInterno | null>(null)
   const [tipoAnalisis, setTipoAnalisis] = useState<'horizontal' | 'vertical'>('horizontal')
 
-  // Cargar empresas
-  useEffect(() => {
-    apiClient
-      .get('/empresas')
-      .then((res) => setEmpresas(res.data))
-      .catch((err) => console.error('Error al cargar empresas:', err))
-  }, [])
-
   // Cargar años disponibles según empresa
   useEffect(() => {
-    // Resetea los años y el reporte si no hay empresa seleccionada
-    if (!empresaSeleccionada) {
-      setAniosDisponibles([])
-      setAnio1('')
-      setAnio2('')
-      setReporte(null)
-      return
-    }
+    if (!empresaSeleccionada) return
 
+    let cancelado = false
     apiClient
       .get(`/estados-financieros/anios/${empresaSeleccionada}`)
       .then((res) => {
+        if (cancelado) return
         setAniosDisponibles(res.data)
-        // Resetea los años y el reporte si la empresa cambia
-        setAnio1('')
-        setAnio2('')
-        setReporte(null)
       })
       .catch((err) => {
+        if (cancelado) return
         console.error('Error al cargar años:', err)
         setAniosDisponibles([])
       })
+
+    return () => {
+      cancelado = true
+    }
   }, [empresaSeleccionada])
 
   const handleGenerarReporte = () => {
@@ -106,12 +101,77 @@ const AnalisisHV = () => {
       })
   }
 
-  const datos: (LineaAnalisisHorizontal | LineaAnalisisVertical)[] =
-    tipoAnalisis === 'horizontal'
-      ? (reporte?.analisisHorizontal as LineaAnalisisHorizontal[] | undefined) || []
-      : (reporte?.analisisVertical as LineaAnalisisVertical[] | undefined) || []
-  const lineasHorizontales = datos as LineaAnalisisHorizontal[]
-  const lineasVerticales = datos as LineaAnalisisVertical[]
+  const lineasHorizontales: LineaAnalisisHorizontal[] =
+    (reporte?.analisisHorizontal as LineaAnalisisHorizontal[] | undefined) || []
+  const verticales: LineaAnalisisVertical[] =
+    (reporte?.analisisVertical as LineaAnalisisVertical[] | undefined) || []
+  // B3: la vista vertical se separa en dos tablas, cada una con su base
+  const verticalBalance = verticales.filter((l) => l.tipoReporte !== 'ESTADO_RESULTADOS')
+  const verticalResultados = verticales.filter((l) => l.tipoReporte === 'ESTADO_RESULTADOS')
+
+  // Base del vertical: Total Activo (balance) / Ventas Netas (resultados)
+  const baseDe = (lineas: LineaAnalisisVertical[], anio: 1 | 2, codes: string | string[]) => {
+    const map = new Map(
+      lineas.map((l) => [l.codigoCuenta, { saldo: anio === 1 ? l.saldoAnio1 : l.saldoAnio2 }]),
+    )
+    return sumByPrefix(map, codes)
+  }
+  const baseBal1 = baseDe(verticalBalance, 1, ACTIVO_TOTAL)
+  const baseBal2 = baseDe(verticalBalance, 2, ACTIVO_TOTAL)
+  const baseRes1 = baseDe(verticalResultados, 1, VENTAS_NETAS)
+  const baseRes2 = baseDe(verticalResultados, 2, VENTAS_NETAS)
+
+  // Tabla reutilizable para la vista vertical (B3): una por tipo de
+  // reporte, cada una con su base explícita en el encabezado.
+  const tablaVertical = (
+    titulo: string,
+    subtitulo: string,
+    lineas: LineaAnalisisVertical[],
+    base1: number,
+    base2: number,
+  ) => (
+    <div style={{ marginBottom: '1.5rem' }}>
+      <h3 style={{ marginBottom: '0.25rem' }}>{titulo}</h3>
+      <p style={{ margin: '0 0 0.5rem', color: '#666', fontSize: '0.9rem' }}>
+        {subtitulo} — Base {anio1}: {formatNumber(base1)} | Base {anio2}:{' '}
+        {formatNumber(base2)}
+      </p>
+      <div className="table-responsive">
+        <table className={viewStyles.table}>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Cuenta</th>
+              <th style={{ textAlign: 'right' }}>% Vertical {anio1}</th>
+              <th style={{ textAlign: 'right' }}>% Vertical {anio2}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lineas.length > 0 ? (
+              lineas.map((linea, i) => (
+                <tr key={i}>
+                  <td>{linea.codigoCuenta}</td>
+                  <td>{linea.nombreCuenta}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    {formatPercent(linea.porcentajeVerticalAnio1)}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    {formatPercent(linea.porcentajeVerticalAnio2)}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4} style={{ textAlign: 'center' }}>
+                  No hay datos para mostrar.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
 
   // 3. Usa la estructura y clases de tus otros componentes
   return (
@@ -125,18 +185,7 @@ const AnalisisHV = () => {
       <div className={styles.filterBar}>
         <div className={styles.formControl}>
           <label htmlFor="empresa">Empresa</label>
-          <select
-            id="empresa"
-            value={empresaSeleccionada}
-            onChange={(e) => setEmpresaSeleccionada(e.target.value)}
-          >
-            <option value="">Seleccione una empresa</option>
-            {empresas.map((e) => (
-              <option key={e.empresaId} value={e.empresaId}>
-                {e.nombreEmpresa}
-              </option>
-            ))}
-          </select>
+          <EmpresaFija empresa={empresa} error={errorEmpresa} />
         </div>
 
         <div className={styles.formControl}>
@@ -205,54 +254,34 @@ const AnalisisHV = () => {
       )}
 
       {/* Tabla de resultados */}
-      {reporte && (
+      {reporte && tipoAnalisis === 'horizontal' && (
         <div className="table-responsive">
           <table className={viewStyles.table}>
             <thead>
               <tr>
                 <th>Código</th>
                 <th>Cuenta</th>
-                {tipoAnalisis === 'horizontal' ? (
-                  <>
-                    <th style={{ textAlign: 'right' }}>Saldo {anio1}</th>
-                    <th style={{ textAlign: 'right' }}>Saldo {anio2}</th>
-                    <th style={{ textAlign: 'right' }}>Variación Absoluta</th>
-                    <th style={{ textAlign: 'right' }}>Variación Relativa (%)</th>
-                  </>
-                ) : (
-                  <>
-                    <th style={{ textAlign: 'right' }}>% Vertical {anio1}</th>
-                    <th style={{ textAlign: 'right' }}>% Vertical {anio2}</th>
-                  </>
-                )}
+                <th style={{ textAlign: 'right' }}>Saldo {anio1}</th>
+                <th style={{ textAlign: 'right' }}>Saldo {anio2}</th>
+                <th style={{ textAlign: 'right' }}>Variación Absoluta</th>
+                <th style={{ textAlign: 'right' }}>Variación Relativa (%)</th>
               </tr>
             </thead>
             <tbody>
-              {datos.length > 0 ? (
-                datos.map((linea, i) => (
+              {lineasHorizontales.length > 0 ? (
+                lineasHorizontales.map((linea, i) => (
                   <tr key={i}>
                     <td>{linea.codigoCuenta}</td>
                     <td>{linea.nombreCuenta}</td>
-
-                    {/* 5. Aplica el formato a TODOS los números */}
-                    {tipoAnalisis === 'horizontal' ? (
-                      <>
-                        <td style={{ textAlign: 'right' }}>{formatNumber(lineasHorizontales[i].saldoAnio1)}</td>
-                        <td style={{ textAlign: 'right' }}>{formatNumber(lineasHorizontales[i].saldoAnio2)}</td>
-                        <td style={{ textAlign: 'right' }}>{formatNumber(lineasHorizontales[i].variacionAbsoluta)}</td>
-                        <td style={{ textAlign: 'right' }}>{formatPercent(lineasHorizontales[i].variacionRelativa)}</td>
-                      </>
-                    ) : (
-                      <>
-                        <td style={{ textAlign: 'right' }}>{formatPercent(lineasVerticales[i].porcentajeVerticalAnio1)}</td>
-                        <td style={{ textAlign: 'right' }}>{formatPercent(lineasVerticales[i].porcentajeVerticalAnio2)}</td>
-                      </>
-                    )}
+                    <td style={{ textAlign: 'right' }}>{formatNumber(linea.saldoAnio1)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatNumber(linea.saldoAnio2)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatNumber(linea.variacionAbsoluta)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatPercent(linea.variacionRelativa)}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={tipoAnalisis === 'horizontal' ? 6 : 4} style={{ textAlign: 'center' }}>
+                  <td colSpan={6} style={{ textAlign: 'center' }}>
                     No hay datos para mostrar.
                   </td>
                 </tr>
@@ -260,6 +289,33 @@ const AnalisisHV = () => {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* B3: vertical en dos tablas, cada una con su base */}
+      {reporte && tipoAnalisis === 'vertical' && (
+        <>
+          {tablaVertical(
+            'Balance General',
+            '% sobre Total Activo',
+            verticalBalance,
+            baseBal1,
+            baseBal2,
+          )}
+          {verticalResultados.length > 0 ? (
+            tablaVertical(
+              'Estado de Resultados',
+              '% sobre Ventas Netas',
+              verticalResultados,
+              baseRes1,
+              baseRes2,
+            )
+          ) : (
+            <p style={{ textAlign: 'center', padding: '1rem', color: '#888' }}>
+              Sin Estado de Resultados cargado para este período. El vertical de
+              resultados se mostrará cuando se cargue.
+            </p>
+          )}
+        </>
       )}
     </div>
   )

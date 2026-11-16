@@ -3,18 +3,19 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import SubMenu from '@/components/shared/SubMenu'
 import { proyeccionesSubMenuLinks } from '@/config/menuConfig'
-import { empresaService } from '@/services/empresaService'
+import EmpresaFija from '@/components/shared/EmpresaFija'
+import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import { ventaHistoricaService, type VentaHistorica } from '@/services/ventaHistoricaService'
 import { Notifier } from '@/utils/Notifier'
 import { VentaFormModal, type VentaFormData } from '@/components/proyeccion/VentaFormModal'
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa'
 import viewStyles from '@/styles/shared/View.module.css'
 import buttonStyles from '@/styles/shared/Button.module.css'
-import type { EmpresaResponseDTO } from '@/types'
-
 export const HistorialVentas = () => {
-  const [empresas, setEmpresas] = useState<EmpresaResponseDTO[]>([])
   const [selectedEmpresaId, setSelectedEmpresaId] = useState('')
+  const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) =>
+    setSelectedEmpresaId(String(e.empresaId)),
+  )
   const [availableYears, setAvailableYears] = useState<number[]>([])
   const [selectedYear, setSelectedYear] = useState('')
   const [ventas, setVentas] = useState<VentaHistorica[]>([])
@@ -24,14 +25,6 @@ export const HistorialVentas = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   // Si editingVenta es null, estamos en modo CREACIÓN. Si tiene datos, estamos en modo EDICIÓN.
   const [editingVenta, setEditingVenta] = useState<VentaHistorica | null>(null)
-
-  // Cargar empresas al montar el componente
-  useEffect(() => {
-    empresaService
-      .getEmpresas()
-      .then(setEmpresas)
-      .catch(() => Notifier.error('Error al cargar empresas.'))
-  }, [])
 
   // Cuando el usuario selecciona una empresa, buscamos todos sus registros de ventas
   // para extraer los años únicos en los que hay datos.
@@ -163,19 +156,7 @@ export const HistorialVentas = () => {
         <div className="row mb-4 align-items-end p-3 bg-light rounded-3 border">
           <div className="col-md-5">
             <label htmlFor="empresa-select" className="form-label fw-bold">Empresa</label>
-            <select
-              id="empresa-select"
-              className="form-select"
-              value={selectedEmpresaId}
-              onChange={(e) => setSelectedEmpresaId(e.target.value)}
-            >
-              <option value="">-- Seleccione una Empresa --</option>
-              {empresas.map((e) => (
-                <option key={e.empresaId} value={e.empresaId}>
-                  {e.nombreEmpresa}
-                </option>
-              ))}
-            </select>
+            <EmpresaFija id="empresa-select" className="form-select" empresa={empresa} error={errorEmpresa} />
           </div>
           <div className="col-md-3">
             <label htmlFor="year-select" className="form-label fw-bold">Año</label>

@@ -11,7 +11,7 @@ import { RatioFormModal } from '@/components/ratio/RatioFormModal'
 import { RatioDetailsModal } from '@/components/ratio/RatioDetailsModal'
 import { categoriasRatio } from '@/services/ratioService'
 import { parametroSectorService } from '@/services/ratioService'
-import { empresaService } from '@/services/empresaService'
+import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import type { RatioResponseDTO, CategoriaRatioResponseDTO, ParametroSectorResponseDTO, EmpresaResponseDTO } from '@/types'
 
 export const Ratio = () => {
@@ -19,10 +19,8 @@ export const Ratio = () => {
   const [ratios, setRatios] = useState<RatioResponseDTO[]>([])
   const [categorias, setCategorias] = useState<CategoriaRatioResponseDTO[]>([])
   const [parametros, setParametros] = useState<ParametroSectorResponseDTO[]>([])
-  const [empresas, setEmpresas] = useState<EmpresaResponseDTO[]>([])
-
-  // --- Estados para el filtrado ---
-  const [filtroEmpresa, setFiltroEmpresa] = useState('')
+  // --- Monoempresa (A4): los ratios se filtran por la empresa principal ---
+  const [filtroEmpresa, setFiltroEmpresa] = useState<string | null>(null)
 
   // --- Estados para la UI ---
   const [loading, setLoading] = useState(true)
@@ -50,14 +48,12 @@ export const Ratio = () => {
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
-        const [categoriasData, parametrosData, empresasData] = await Promise.all([
+        const [categoriasData, parametrosData] = await Promise.all([
           categoriasRatio.getCategoriasRatio(),
           parametroSectorService.getParametros(),
-          empresaService.getEmpresas(),
         ])
         setCategorias(categoriasData as CategoriaRatioResponseDTO[])
         setParametros(parametrosData)
-        setEmpresas(empresasData)
       } catch (error) {
         Notifier.error('No se pudieron cargar los datos para los formularios.')
       }
@@ -65,16 +61,13 @@ export const Ratio = () => {
     fetchDropdownData()
   }, [])
 
-  // --- useEffect para aplicar el filtro con debounce ---
-  useEffect(() => {
-    const timerId = setTimeout(() => {
-      fetchData(filtroEmpresa)
-    }, 300)
-
-    return () => {
-      clearTimeout(timerId)
-    }
-  }, [filtroEmpresa, fetchData])
+  const { empresa } = useEmpresaPrincipal((e) => {
+    setFiltroEmpresa(e.nombreEmpresa)
+    void fetchData(e.nombreEmpresa)
+  })
+  const empresas: EmpresaResponseDTO[] = empresa
+    ? [{ empresaId: empresa.empresaId, nombreEmpresa: empresa.nombreEmpresa } as EmpresaResponseDTO]
+    : []
 
   // --- Definición de las columnas para la tabla (versión original) ---
   const columnas = [
@@ -140,11 +133,33 @@ export const Ratio = () => {
       'Razón de capital de trabajo': (id) => ratioService.calculateCapitalTrabajoRatio(id),
       'Razón de efectivo': (id) => ratioService.calculateEfectivoRatio(id),
       'Razón de rotación de cuentas por cobrar': (id) => ratioService.calculateRotacionCuentasPorCobrarRatio(id),
-      'Período Medio de Cobranza': (id) => ratioService.calculatePeriodoCobranzaRatio(id),
+      // NOTE: el nombre debe coincidir EXACTAMENTE con expectedCategory en
+      // ratios.ts ('Período medio de cobranza') o el endpoint rechaza el cálculo.
+      'Período medio de cobranza': (id) => ratioService.calculatePeriodoCobranzaRatio(id),
       'Índice de rotación de activos totales': (id) => ratioService.calculateRotacionActivosTotalesRatio(id),
       'Índice de rotación de activos fijos': (id) => ratioService.calculateRotacionActivosFijosRatio(id),
       'Índice de margen bruto': (id) => ratioService.calculateMargenBrutoRatio(id),
       'Índice de margen operativo': (id) => ratioService.calculateMargenOperativoRatio(id),
+      // Módulo C (C1). El nombre debe coincidir EXACTAMENTE con el
+      // expectedCategory del calculador en lib/ratios.ts.
+      'Prueba ácida': (id) => ratioService.calculatePruebaAcidaRatio(id),
+      'Grado de endeudamiento': (id) => ratioService.calculateEndeudamientoRatio(id),
+      'Grado de propiedad': (id) => ratioService.calculatePropiedadRatio(id),
+      'Razón de endeudamiento patrimonial': (id) =>
+        ratioService.calculateEndeudamientoPatrimonialRatio(id),
+      // C1: Apalancamiento faltante
+      'Razón de cobertura de intereses': (id) => ratioService.calculateCoberturaInteresesRatio(id),
+      // C2: Rentabilidad
+      'Índice de margen neto': (id) => ratioService.calculateMargenNetoRatio(id),
+      'Rendimiento sobre activos (ROA)': (id) => ratioService.calculateROARatio(id),
+      'Rendimiento sobre capital contable (ROE)': (id) => ratioService.calculateROERatio(id),
+      'Análisis DuPont': (id) => ratioService.calculateDuPontRatio(id),
+      // C3: Ciclos Operativos
+      'Razón de rotación de inventarios': (id) => ratioService.calculateRotacionInventariosRatio(id),
+      'Edad promedio del inventario': (id) => ratioService.calculateEdadPromedioInventarioRatio(id),
+      'Período medio de pago': (id) => ratioService.calculatePeriodoPagoRatio(id),
+      'Ciclo operativo': (id) => ratioService.calculateCicloOperativoRatio(id),
+      'Ciclo de conversión de efectivo': (id) => ratioService.calculateCCERatio(id),
     }
 
     const funcionDeCalculo = calculoPorCategoria[categoriaNombre]
@@ -160,7 +175,7 @@ export const Ratio = () => {
       await funcionDeCalculo(ratioId)
       Notifier.dismiss(String(loadingToastId))
       Notifier.success(`¡Ratio ID: ${ratioId} calculado exitosamente!`)
-      fetchData(filtroEmpresa)
+      fetchData(filtroEmpresa ?? '')
     } catch (error: unknown) {
       Notifier.dismiss(String(loadingToastId))
       const err = error as { response?: { data?: { message?: string } } }
@@ -193,7 +208,7 @@ export const Ratio = () => {
       Notifier.success(`¡Ratio ${isEditing ? 'actualizado' : 'creado'} exitosamente!`)
 
       handleCloseModal()
-      fetchData(filtroEmpresa)
+      fetchData(filtroEmpresa ?? '')
     } catch (error) {
       Notifier.dismiss(String(loadingToastId))
       Notifier.error(`Error al ${isEditing ? 'actualizar' : 'crear'} el ratio.`)
@@ -214,7 +229,7 @@ export const Ratio = () => {
         await ratioService.deleteRatio(ratio.id_ratio)
         Notifier.dismiss(String(loadingToastId))
         Notifier.success('Ratio eliminado correctamente.')
-        fetchData(filtroEmpresa)
+        fetchData(filtroEmpresa ?? '')
       } catch (error) {
         Notifier.dismiss(String(loadingToastId))
         Notifier.error('No se pudo eliminar el ratio. Inténtalo de nuevo.')
@@ -228,20 +243,6 @@ export const Ratio = () => {
       <SubMenu links={sectoresSubMenuLinks} />
 
       <div style={{ marginTop: '2rem' }}>
-        <div style={{ marginBottom: '1.5rem', maxWidth: '400px' }}>
-          <label htmlFor="filtro-empresa" className="form-label">
-            Filtrar por Nombre de Empresa
-          </label>
-          <input
-            id="filtro-empresa"
-            type="text"
-            className="form-control"
-            placeholder="Ej: DIANA"
-            value={filtroEmpresa}
-            onChange={(e) => setFiltroEmpresa(e.target.value)}
-          />
-        </div>
-
         {loading ? (
           <p>Cargando ratios...</p>
         ) : (

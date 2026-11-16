@@ -4,19 +4,17 @@
 //   token in sessionStorage('analisis_token')
 //   user: { userName, rol, id, accesos: number[] }
 //   login(userName, contrasena) / logout()
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { authService } from '@/services/auth'
 import type { LoginResponse } from '@/types'
-
-interface UserSession {
-  userName: string
-  rol: string
-  id: number
-  accesos: number[]
-}
+import {
+  clearSession, readSession, saveSession, touchSession, SESSION_EXPIRED_EVENT,
+  type UserSession,
+} from '@/services/session'
 
 interface AuthContextType {
   isAuthenticated: boolean
+  isRestoring: boolean
   user: UserSession | null
   login: (userName: string, contrasena: string) => Promise<LoginResponse>
   logout: () => void
@@ -24,50 +22,73 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const TOKEN_KEY = 'analisis_token'
-const USER_KEY = 'analisis_user'
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isRestoring, setIsRestoring] = useState(true)
   const [user, setUser] = useState<UserSession | null>(null)
+  const isAuthenticated = user !== null
 
-  // restore the session (the original app didn't persist the user object;
-  // we do persist it so the sidebar survives a page reload in Next.js,
-  // but the token contract stays identical)
-  useEffect(() => {
-    const token = sessionStorage.getItem(TOKEN_KEY)
-    const storedUser = sessionStorage.getItem(USER_KEY)
-    if (token) setIsAuthenticated(true)
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser) as UserSession)
-      } catch {
-        setUser(null)
-      }
-    }
+  const logout = useCallback(() => {
+    clearSession()
+    setUser(null)
   }, [])
+
+  // El guard espera esta restauración antes de decidir si redirige al login.
+  useEffect(() => {
+    let active = true
+    void Promise.resolve().then(() => {
+      if (!active) return
+      const session = readSession()
+      if (!session) clearSession()
+      setUser(session?.user ?? null)
+      setIsRestoring(false)
+    })
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener(SESSION_EXPIRED_EVENT, logout)
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, logout)
+  }, [logout])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    let lastWrite = 0
+    const checkSession = () => {
+      if (!readSession()) logout()
+    }
+    const onActivity = () => {
+      if (document.visibilityState === 'hidden') return
+      const now = Date.now()
+      if (now - lastWrite < 1000) return
+      lastWrite = now
+      // Comprobar antes de renovar: una pestaña abandonada no revive al volver.
+      if (!readSession()) {
+        logout()
+        return
+      }
+      touchSession()
+    }
+    const interval = window.setInterval(checkSession, 30_000)
+    const events = ['pointerdown', 'keydown', 'scroll'] as const
+    events.forEach((event) => window.addEventListener(event, onActivity, { passive: true }))
+    window.addEventListener('focus', checkSession)
+    document.addEventListener('visibilitychange', checkSession)
+    return () => {
+      window.clearInterval(interval)
+      events.forEach((event) => window.removeEventListener(event, onActivity))
+      window.removeEventListener('focus', checkSession)
+      document.removeEventListener('visibilitychange', checkSession)
+    }
+  }, [isAuthenticated, logout])
 
   const login = async (userName: string, contrasena: string): Promise<LoginResponse> => {
     const data = await authService.login(userName, contrasena)
-    sessionStorage.setItem(TOKEN_KEY, data.token)
-    sessionStorage.setItem(
-      USER_KEY,
-      JSON.stringify({ userName: data.userName, rol: data.rol, id: data.id, accesos: data.accesos }),
-    )
-    setUser({ userName: data.userName, rol: data.rol, id: data.id, accesos: data.accesos })
-    setIsAuthenticated(true)
+    setUser(saveSession(data))
     return data
   }
 
-  const logout = () => {
-    sessionStorage.removeItem(TOKEN_KEY)
-    sessionStorage.removeItem(USER_KEY)
-    setUser(null)
-    setIsAuthenticated(false)
-  }
-
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isRestoring, user, login, logout }}>
       {children}
     </AuthContext.Provider>
   )

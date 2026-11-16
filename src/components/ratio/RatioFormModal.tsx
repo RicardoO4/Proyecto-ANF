@@ -45,7 +45,8 @@ export const RatioFormModal = ({
     if (show) {
       reset(
         (initialData as unknown as Record<string, string>) || {
-          empresa_id: '',
+          // monoempresa (A4): con una sola empresa disponible queda preseleccionada
+          empresa_id: empresas.length === 1 ? String(empresas[0].empresaId) : '',
           id_categoria_ratio: '',
           id_parametro_sector: '',
           anio_ratio: '',
@@ -53,7 +54,7 @@ export const RatioFormModal = ({
         },
       )
     }
-  }, [show, initialData, reset])
+  }, [show, initialData, reset, empresas])
 
   const onSubmit = (data: Record<string, string>) => {
     onSave(data, (initialData as { id_ratio?: number } | null)?.id_ratio)

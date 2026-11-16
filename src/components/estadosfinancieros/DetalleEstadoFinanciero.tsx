@@ -12,6 +12,18 @@ import viewStyles from '@/styles/shared/View.module.css'
 import buttonStyles from '@/styles/shared/Button.module.css'
 import localStyles from '@/styles/estadosfinancieros/DetalleEstadoFinanciero.module.css'
 import type { LineaEstadoFinancieroResponseDTO } from '@/types'
+import {
+  ACTIVO_TOTAL,
+  COSTO_VENTAS,
+  GASTOS_OPERATIVOS,
+  PASIVO_TOTAL,
+  PATRIMONIO_TOTAL,
+  REBAJAS_DEVOLUCIONES,
+  TIPO_REPORTE,
+  TOTAL_COSTOS_GASTOS,
+  TOTAL_INGRESOS,
+  VENTAS_BRUTAS,
+} from '@/lib/accountCodes'
 
 // Función para formatear números como moneda
 const formatCurrency = (value: number) => {
@@ -80,33 +92,30 @@ const DetalleEstadoFinanciero = () => {
     const sumSaldos = (arr: LineaEstadoFinancieroResponseDTO[]) =>
       arr.reduce((sum, item) => sum + item.saldo, 0)
 
-    if (reporte.tipoReporte === 'ESTADO_RESULTADOS') {
-      // 1. FILTROS CORREGIDOS Y SIMPLIFICADOS
-      // Ingresos de Operación son todas las cuentas de Ingresos de Seguros
-      const ingresosOperacion = reporte.lineas.filter((l) => l.codigoCuenta.startsWith('5102'))
+    if (reporte.tipoReporte === TIPO_REPORTE.RESULTADOS) {
+      const con = (prefijos: string[]) =>
+        reporte.lineas.filter((l) => prefijos.some((p) => l.codigoCuenta.startsWith(p)))
+      const sin = (grupo: string, excluidos: string[]) =>
+        reporte.lineas.filter(
+          (l) => l.codigoCuenta.startsWith(grupo) && !excluidos.some((p) => l.codigoCuenta.startsWith(p)),
+        )
 
-      // Costos de Operación son todas las cuentas de Costos de Seguros
-      const costosOperacion = reporte.lineas.filter(
-        (l) => l.codigoCuenta.startsWith('4102') || l.codigoCuenta.startsWith('4103'),
+      // Prefijos de accountCodes.ts (Módulo B). Las rebajas (5101.02) se
+      // muestran con signo negativo porque restan de las ventas.
+      const ingresosOperacion = con([VENTAS_BRUTAS, REBAJAS_DEVOLUCIONES]).map((l) =>
+        l.codigoCuenta.startsWith(REBAJAS_DEVOLUCIONES) ? { ...l, saldo: -l.saldo } : l,
       )
+      const costosOperacion = con([COSTO_VENTAS])
+      const gastosOperacion = con(GASTOS_OPERATIVOS)
+      const otrosIngresos = sin(TOTAL_INGRESOS, [VENTAS_BRUTAS, REBAJAS_DEVOLUCIONES])
+      const impuestoRenta = sin(TOTAL_COSTOS_GASTOS, [COSTO_VENTAS, ...GASTOS_OPERATIVOS])
 
-      // Gastos de Operación son los de Admin (42...) y Financieros (4301...)
-      const gastosOperacion = reporte.lineas.filter(
-        (l) => l.codigoCuenta.startsWith('42') || l.codigoCuenta.startsWith('4301'),
-      )
-
-      // Otros Ingresos y el Impuesto se mantienen separados
-      const otrosIngresos = reporte.lineas.filter((l) => l.codigoCuenta.startsWith('5204'))
-      const impuestoRenta = reporte.lineas.filter((l) => l.codigoCuenta.startsWith('4302'))
-
-      // 2. Cálculo de totales (esta parte no cambia)
       const totalIngresosOp = sumSaldos(ingresosOperacion)
       const totalCostosOp = sumSaldos(costosOperacion)
       const totalGastosOp = sumSaldos(gastosOperacion)
       const totalOtrosIngresos = sumSaldos(otrosIngresos)
       const totalImpuesto = sumSaldos(impuestoRenta)
 
-      // 3. Replicamos la matemática del PDF (esta parte no cambia)
       const utilidadAntesGastos = totalIngresosOp - totalCostosOp
       const utilidadOperacion = utilidadAntesGastos - totalGastosOp
       const utilidadAntesImpuesto = utilidadOperacion + totalOtrosIngresos
@@ -132,10 +141,9 @@ const DetalleEstadoFinanciero = () => {
       }
     }
 
-    // La lógica del Balance General se mantiene igual...
-    const activos = reporte.lineas.filter((l) => l.codigoCuenta.startsWith('1'))
-    const pasivos = reporte.lineas.filter((l) => l.codigoCuenta.startsWith('2'))
-    const patrimonio = reporte.lineas.filter((l) => l.codigoCuenta.startsWith('3'))
+    const activos = reporte.lineas.filter((l) => l.codigoCuenta.startsWith(ACTIVO_TOTAL))
+    const pasivos = reporte.lineas.filter((l) => l.codigoCuenta.startsWith(PASIVO_TOTAL))
+    const patrimonio = reporte.lineas.filter((l) => l.codigoCuenta.startsWith(PATRIMONIO_TOTAL))
     const totalActivos = sumSaldos(activos)
     const totalPasivos = sumSaldos(pasivos)
     const totalPatrimonio = sumSaldos(patrimonio)
@@ -241,8 +249,8 @@ const DetalleEstadoFinanciero = () => {
                 </tbody>
               </table>
 
-              {renderSection('Otros Ingresos (neto)', processedData.otrosIngresos, processedData.totalOtrosIngresos)}
-              {renderSection('Impuesto sobre la Renta', processedData.impuestoRenta, processedData.totalImpuesto)}
+              {renderSection('Otros Ingresos', processedData.otrosIngresos, processedData.totalOtrosIngresos)}
+              {renderSection('Gastos financieros, otros gastos e impuestos', processedData.impuestoRenta, processedData.totalImpuesto)}
 
               <table className={localStyles.detailTable}>
                 <tbody>

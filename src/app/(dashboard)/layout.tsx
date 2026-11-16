@@ -12,18 +12,18 @@ import { useAuth } from '@/context/AuthContext'
 import MainLayout from '@/components/MainLayout'
 
 function DashboardInner({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isRestoring } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isRestoring && !isAuthenticated) {
       router.replace('/')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isRestoring, router])
 
   // mientras restaura la sesión (montaje), evita redirección inmediata / parpadeo
-  if (!isAuthenticated) return null
+  if (isRestoring || !isAuthenticated) return null
 
   return <MainLayout key={pathname}>{children}</MainLayout>
 }

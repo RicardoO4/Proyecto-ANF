@@ -141,3 +141,77 @@ export function calcularProyeccion(
 
   return resultados
 }
+/**
+ * Pronóstico por Promedios Móviles
+ * Calcula el promedio de los últimos 'n' periodos y proyecta hacia el futuro.
+ */
+export function proyeccionPromedioMovil(
+  ventasHistoricas: number[], 
+  periodosAmortiguacion: number = 3, 
+  periodosAProyectar: number = 12
+): number[] {
+  if (ventasHistoricas.length < periodosAmortiguacion) return [];
+  
+  const proyecciones: number[] = [];
+  // Copiamos el array para ir añadiendo las proyecciones y usarlas en los cálculos futuros
+  const serieTemporal = [...ventasHistoricas];
+
+  for (let i = 0; i < periodosAProyectar; i++) {
+    // Tomamos la ventana de los últimos "n" periodos
+    const ultimosDatos = serieTemporal.slice(-periodosAmortiguacion);
+    const promedio = ultimosDatos.reduce((sum, val) => sum + val, 0) / periodosAmortiguacion;
+    
+    proyecciones.push(Number(promedio.toFixed(2)));
+    serieTemporal.push(promedio); // La proyección se convierte en dato histórico para el mes siguiente
+  }
+
+  return proyecciones;
+}
+
+/**
+ * Pronóstico por Regresión Logarítmica (y = a + b * ln(x))
+ * Ideal para curvas de ventas que muestran rendimientos decrecientes.
+ */
+export function proyeccionLogaritmica(
+  ventasHistoricas: number[], 
+  periodosAProyectar: number = 12
+): number[] {
+  const n = ventasHistoricas.length;
+  if (n === 0) return [];
+
+  let sumLnX = 0;
+  let sumY = 0;
+  let sumY_LnX = 0;
+  let sumLnX_cuadrado = 0;
+
+  for (let i = 0; i < n; i++) {
+    const x = i + 1; // Periodo (1, 2, 3...)
+    const y = ventasHistoricas[i];
+    const lnX = Math.log(x);
+
+    sumLnX += lnX;
+    sumY += y;
+    sumY_LnX += (y * lnX);
+    sumLnX_cuadrado += Math.pow(lnX, 2);
+  }
+
+  // Despeje de la pendiente (b)
+  const numeradorB = (n * sumY_LnX) - (sumY * sumLnX);
+  const denominadorB = (n * sumLnX_cuadrado) - Math.pow(sumLnX, 2);
+  const b = numeradorB / denominadorB;
+
+  // Despeje de la intersección (a)
+  const a = (sumY - (b * sumLnX)) / n;
+
+  const proyecciones: number[] = [];
+  
+  // Proyectar para los periodos futuros (n+1, n+2...)
+  for (let i = 1; i <= periodosAProyectar; i++) {
+    const xFuturo = n + i;
+    const pronostico = a + (b * Math.log(xFuturo));
+    // Validamos que no existan ventas negativas en la proyección
+    proyecciones.push(Number(Math.max(0, pronostico).toFixed(2))); 
+  }
+
+  return proyecciones;
+}
