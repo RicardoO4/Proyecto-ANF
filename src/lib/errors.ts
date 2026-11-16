@@ -19,11 +19,22 @@ export class BusinessRuleException extends Error {
 export class ValidationException extends Error {
   status = 400
   errorLabel = 'Validation Error'
+  detalles: string[]
+
+  constructor(message: string, detalles: string[] = []) {
+    super(message)
+    this.detalles = detalles
+  }
 }
 
 export class UnauthorizedException extends Error {
   status = 401
   errorLabel = 'Unauthorized'
+}
+
+export class ForbiddenException extends Error {
+  status = 403
+  errorLabel = 'Forbidden'
 }
 
 export class InternalException extends Error {
@@ -39,7 +50,8 @@ export function errorResponse(req: Request, err: unknown): Response {
   const path = url.pathname
 
   if (err instanceof BadRequestException || err instanceof NotFoundException ||
-      err instanceof BusinessRuleException || err instanceof ValidationException) {
+      err instanceof BusinessRuleException || err instanceof ValidationException ||
+      err instanceof UnauthorizedException || err instanceof ForbiddenException) {
     return Response.json(
       {
         timestamp: new Date().toISOString(),
@@ -47,6 +59,9 @@ export function errorResponse(req: Request, err: unknown): Response {
         error: err.errorLabel,
         message: err.message,
         path,
+        ...(err instanceof ValidationException && err.detalles.length > 0
+          ? { detalles: err.detalles }
+          : {}),
       },
       { status: err.status },
     )
@@ -60,19 +75,27 @@ export function errorResponse(req: Request, err: unknown): Response {
       timestamp: new Date().toISOString(),
       status: 500,
       error: 'Internal Server Error',
-      message: err instanceof UnauthorizedException || err instanceof InternalException
-        ? GENERIC_500_MESSAGE
-        : GENERIC_500_MESSAGE,
+      message: GENERIC_500_MESSAGE,
       path,
     },
     { status: 500 },
   )
 }
 
-/** Wraps a handler so any thrown error becomes the proper ErrorResponse. */
-export function handle(
+/**
+ * Wraps a /api/v1 handler: checks the session and module permission
+ * (lib/permisos.ts), then turns any thrown error into the ErrorResponse.
+ */
+export async function handle(
   req: Request,
   fn: () => Promise<Response>,
 ): Promise<Response> {
-  return fn().catch((err) => errorResponse(req, err))
+  try {
+    // dynamic import: permisos.ts imports this module's exception classes
+    const { autorizar } = await import('@/lib/permisos')
+    await autorizar(req)
+    return await fn()
+  } catch (err) {
+    return errorResponse(req, err)
+  }
 }

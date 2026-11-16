@@ -13,6 +13,7 @@
 // correrlo limpia los restos antes de empezar.
 //
 // Uso:  node scripts/e2e-au1.mjs   (con `npm run dev` en el puerto 3000)
+//       E2E_USER / E2E_PASSWORD cambian el usuario (por defecto admin/admin123).
 // ================================================================
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
@@ -142,8 +143,21 @@ async function main() {
     }),
     'e2e-au1.xlsx',
   )
+  // /api/v1 exige sesión (Módulo A, A8): se inicia sesión como el admin del seed
+  const login = await fetch(`${BASE_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userName: process.env.E2E_USER ?? 'admin',
+      contrasena: process.env.E2E_PASSWORD ?? 'admin123',
+    }),
+  })
+  if (!login.ok) throw new Error(`Login falló (${login.status}): ${await login.text()}`)
+  const { token } = await login.json()
+
   const res = await fetch(`${BASE_URL}/api/v1/estados-financieros/upload`, {
     method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
     body: form,
   })
   console.log(`  POST /estados-financieros/upload → ${res.status}`)
