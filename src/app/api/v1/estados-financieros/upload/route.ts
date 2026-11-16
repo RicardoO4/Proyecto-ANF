@@ -83,13 +83,13 @@ async function resolverCuentas(codigos: string[]): Promise<Map<string, number>> 
 
 /** AU1 (Módulo C): silent recalculation; anio + 1 also uses this year as its previous one. */
 async function recalcularSilencioso(empresaId: number, anio: number): Promise<void> {
-  for (const year of [anio, anio + 1]) {
-    try {
-      await recalcularRatios(empresaId, year)
-    } catch (err) {
-      console.error(`[AU1] no se pudieron recalcular los ratios de ${year}:`, err)
-    }
-  }
+  await Promise.all(
+    [anio, anio + 1].map((year) =>
+      recalcularRatios(empresaId, year).catch((err) => {
+        console.error(`[AU1] no se pudieron recalcular los ratios de ${year}:`, err)
+      }),
+    ),
+  )
 }
 
 async function cargaUnificada(

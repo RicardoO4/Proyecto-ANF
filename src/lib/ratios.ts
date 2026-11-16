@@ -961,15 +961,16 @@ export async function recalcularRatios(empresaId: number, anio: number): Promise
     categoria_ratio: { nombre_tipo: string } | null
   }[]
 
-  for (const fila of filas) {
-    const nombre = fila.categoria_ratio?.nombre_tipo
-    const calcular = nombre ? CALCULADORES[nombre] : undefined
-    if (!calcular) continue
-    try {
-      await calcular(fila.id_ratio)
-    } catch {
-      // Silencioso a propósito: la carga ya se completó y el ratio queda
-      // pendiente para el próximo recálculo, sin revertir el estado financiero.
-    }
-  }
+  // Cada calculador lee y actualiza solo su fila de `ratio`, así que se
+  // corren en paralelo (en serie eran ~2 s por ratio).
+  // allSettled es silencioso a propósito: la carga ya se completó y un ratio
+  // que falle queda pendiente para el próximo recálculo, sin revertir el
+  // estado financiero.
+  await Promise.allSettled(
+    filas.map((fila) => {
+      const nombre = fila.categoria_ratio?.nombre_tipo
+      const calcular = nombre ? CALCULADORES[nombre] : undefined
+      return calcular ? calcular(fila.id_ratio) : Promise.resolve()
+    }),
+  )
 }
