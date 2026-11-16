@@ -7,7 +7,8 @@ import viewStyles from '@/styles/shared/View.module.css'
 import buttonStyles from '@/styles/shared/Button.module.css'
 import styles from '@/styles/analisis/AnalisisHV.module.css'
 import { Notifier } from '@/utils/Notifier'
-import type { EmpresaResponseDTO } from '@/types'
+import EmpresaFija from '@/components/shared/EmpresaFija'
+import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import { ACTIVO_TOTAL, VENTAS_NETAS, sumByPrefix } from '@/lib/accountCodes'
 
 interface LineaAnalisisHorizontal {
@@ -50,21 +51,15 @@ const formatPercent = (num: number) => {
 }
 
 const AnalisisHV = () => {
-  const [empresas, setEmpresas] = useState<EmpresaResponseDTO[]>([])
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('')
+  const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) =>
+    setEmpresaSeleccionada(String(e.empresaId)),
+  )
   const [anio1, setAnio1] = useState('')
   const [anio2, setAnio2] = useState('')
   const [aniosDisponibles, setAniosDisponibles] = useState<number[]>([])
   const [reporte, setReporte] = useState<ReporteInterno | null>(null)
   const [tipoAnalisis, setTipoAnalisis] = useState<'horizontal' | 'vertical'>('horizontal')
-
-  // Cargar empresas
-  useEffect(() => {
-    apiClient
-      .get('/empresas')
-      .then((res) => setEmpresas(res.data))
-      .catch((err) => console.error('Error al cargar empresas:', err))
-  }, [])
 
   // Cargar años disponibles según empresa
   useEffect(() => {
@@ -87,14 +82,6 @@ const AnalisisHV = () => {
       cancelado = true
     }
   }, [empresaSeleccionada])
-
-  const handleEmpresaChange = (empresaId: string) => {
-    setEmpresaSeleccionada(empresaId)
-    setAniosDisponibles([])
-    setAnio1('')
-    setAnio2('')
-    setReporte(null)
-  }
 
   const handleGenerarReporte = () => {
     if (!empresaSeleccionada || !anio1 || !anio2) return
@@ -198,18 +185,7 @@ const AnalisisHV = () => {
       <div className={styles.filterBar}>
         <div className={styles.formControl}>
           <label htmlFor="empresa">Empresa</label>
-          <select
-            id="empresa"
-            value={empresaSeleccionada}
-            onChange={(e) => handleEmpresaChange(e.target.value)}
-          >
-            <option value="">Seleccione una empresa</option>
-            {empresas.map((e) => (
-              <option key={e.empresaId} value={e.empresaId}>
-                {e.nombreEmpresa}
-              </option>
-            ))}
-          </select>
+          <EmpresaFija empresa={empresa} error={errorEmpresa} />
         </div>
 
         <div className={styles.formControl}>

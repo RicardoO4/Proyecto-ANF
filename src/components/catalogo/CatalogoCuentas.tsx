@@ -3,7 +3,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FaInbox, FaSearch } from 'react-icons/fa'
 
-import { empresaService } from '@/services/empresaService'
+import EmpresaFija from '@/components/shared/EmpresaFija'
+import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import {
   buildCuentaSecciones,
   catalogService,
@@ -25,7 +26,6 @@ const normalizar = (texto: string) =>
     .toLowerCase()
 
 export const CatalogoCuentas = () => {
-  const [empresas, setEmpresas] = useState<{ empresaId: number; nombreEmpresa: string }[]>([])
   const [selectedEmpresaId, setSelectedEmpresaId] = useState('')
 
   const [elementos, setElementos] = useState<ElementoCatalogo[]>([])
@@ -42,11 +42,6 @@ export const CatalogoCuentas = () => {
   const selectAllRef = useRef<HTMLInputElement>(null)
 
   const procesando = pendingIds.size > 0 || accionMasiva !== null
-
-  useEffect(() => {
-    const loadEmpresas = async () => setEmpresas(await empresaService.getEmpresas())
-    loadEmpresas().catch(() => Notifier.error('No se pudieron cargar las empresas.'))
-  }, [])
 
   const cargarFilas = useCallback(async (empresaId: string, silent = false) => {
     if (!empresaId) return
@@ -81,6 +76,10 @@ export const CatalogoCuentas = () => {
       setFilas([])
     }
   }
+
+  const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) =>
+    seleccionarEmpresa(String(e.empresaId)),
+  )
 
   const filasPorId = useMemo(() => new Map(filas.map((fila) => [fila.cuentaId, fila])), [filas])
 
@@ -262,20 +261,12 @@ export const CatalogoCuentas = () => {
         </div>
         <div className={styles.selector}>
           <label htmlFor="empresa-select">Empresa</label>
-          <select
+          <EmpresaFija
             id="empresa-select"
             className={`form-select ${styles.select}`}
-            value={selectedEmpresaId}
-            onChange={(e) => seleccionarEmpresa(e.target.value)}
-            disabled={procesando}
-          >
-            <option value="">-- Elija una empresa --</option>
-            {empresas.map((emp) => (
-              <option key={emp.empresaId} value={emp.empresaId}>
-                {emp.nombreEmpresa}
-              </option>
-            ))}
-          </select>
+            empresa={empresa}
+            error={errorEmpresa}
+          />
         </div>
       </header>
 

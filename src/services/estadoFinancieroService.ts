@@ -19,13 +19,36 @@ export type EstadoFinancieroDetail = {
   lineas: LineaEstadoFinancieroResponseDTO[]
 }
 
+export type ResultadoCarga = {
+  formato: 'BALANZA_COMPROBACION' | 'UNIFICADO' | 'INDIVIDUAL'
+  empresaId: number
+  nombreEmpresa?: string
+  anio: number
+  reemplazado: boolean
+  tipoReporte?: string
+  lineas?: number
+  lineasBalance?: number
+  lineasResultados?: number
+  totalActivo?: number
+  totalPasivo?: number
+  totalPatrimonio?: number
+  totalIngresos?: number
+  totalCostosGastos?: number
+  utilidadNeta?: number
+  ventasNetas?: number
+  ventaRegistrada?: number | null
+  avisos: string[]
+}
+
 export const estadoFinancieroService = {
-  async uploadEstadoFinanciero(file: File): Promise<void> {
+  async uploadEstadoFinanciero(file: File, reemplazar = false): Promise<ResultadoCarga> {
     const formData = new FormData()
     formData.append('file', file)
-    await apiClient.post('/estados-financieros/upload', formData, {
+    if (reemplazar) formData.append('reemplazar', 'true')
+    const resp = await apiClient.post<ResultadoCarga>('/estados-financieros/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
+    return resp.data
   },
   async getAllEstadosFinancieros(): Promise<EstadoFinancieroResponseDTO[]> {
     const resp = await apiClient.get('/estados-financieros')

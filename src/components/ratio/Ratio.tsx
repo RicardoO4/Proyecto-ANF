@@ -11,7 +11,7 @@ import { RatioFormModal } from '@/components/ratio/RatioFormModal'
 import { RatioDetailsModal } from '@/components/ratio/RatioDetailsModal'
 import { categoriasRatio } from '@/services/ratioService'
 import { parametroSectorService } from '@/services/ratioService'
-import { empresaService } from '@/services/empresaService'
+import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import type { RatioResponseDTO, CategoriaRatioResponseDTO, ParametroSectorResponseDTO, EmpresaResponseDTO } from '@/types'
 
 export const Ratio = () => {
@@ -19,10 +19,8 @@ export const Ratio = () => {
   const [ratios, setRatios] = useState<RatioResponseDTO[]>([])
   const [categorias, setCategorias] = useState<CategoriaRatioResponseDTO[]>([])
   const [parametros, setParametros] = useState<ParametroSectorResponseDTO[]>([])
-  const [empresas, setEmpresas] = useState<EmpresaResponseDTO[]>([])
-
-  // --- Estados para el filtrado ---
-  const [filtroEmpresa, setFiltroEmpresa] = useState('')
+  // --- Monoempresa (A4): los ratios se filtran por la empresa principal ---
+  const [filtroEmpresa, setFiltroEmpresa] = useState<string | null>(null)
 
   // --- Estados para la UI ---
   const [loading, setLoading] = useState(true)
@@ -50,14 +48,12 @@ export const Ratio = () => {
   useEffect(() => {
     const fetchDropdownData = async () => {
       try {
-        const [categoriasData, parametrosData, empresasData] = await Promise.all([
+        const [categoriasData, parametrosData] = await Promise.all([
           categoriasRatio.getCategoriasRatio(),
           parametroSectorService.getParametros(),
-          empresaService.getEmpresas(),
         ])
         setCategorias(categoriasData as CategoriaRatioResponseDTO[])
         setParametros(parametrosData)
-        setEmpresas(empresasData)
       } catch (error) {
         Notifier.error('No se pudieron cargar los datos para los formularios.')
       }
@@ -65,16 +61,13 @@ export const Ratio = () => {
     fetchDropdownData()
   }, [])
 
-  // --- useEffect para aplicar el filtro con debounce ---
-  useEffect(() => {
-    const timerId = setTimeout(() => {
-      fetchData(filtroEmpresa)
-    }, 300)
-
-    return () => {
-      clearTimeout(timerId)
-    }
-  }, [filtroEmpresa, fetchData])
+  const { empresa } = useEmpresaPrincipal((e) => {
+    setFiltroEmpresa(e.nombreEmpresa)
+    void fetchData(e.nombreEmpresa)
+  })
+  const empresas: EmpresaResponseDTO[] = empresa
+    ? [{ empresaId: empresa.empresaId, nombreEmpresa: empresa.nombreEmpresa } as EmpresaResponseDTO]
+    : []
 
   // --- Definición de las columnas para la tabla (versión original) ---
   const columnas = [
@@ -182,7 +175,7 @@ export const Ratio = () => {
       await funcionDeCalculo(ratioId)
       Notifier.dismiss(String(loadingToastId))
       Notifier.success(`¡Ratio ID: ${ratioId} calculado exitosamente!`)
-      fetchData(filtroEmpresa)
+      fetchData(filtroEmpresa ?? '')
     } catch (error: unknown) {
       Notifier.dismiss(String(loadingToastId))
       const err = error as { response?: { data?: { message?: string } } }
@@ -215,7 +208,7 @@ export const Ratio = () => {
       Notifier.success(`¡Ratio ${isEditing ? 'actualizado' : 'creado'} exitosamente!`)
 
       handleCloseModal()
-      fetchData(filtroEmpresa)
+      fetchData(filtroEmpresa ?? '')
     } catch (error) {
       Notifier.dismiss(String(loadingToastId))
       Notifier.error(`Error al ${isEditing ? 'actualizar' : 'crear'} el ratio.`)
@@ -236,7 +229,7 @@ export const Ratio = () => {
         await ratioService.deleteRatio(ratio.id_ratio)
         Notifier.dismiss(String(loadingToastId))
         Notifier.success('Ratio eliminado correctamente.')
-        fetchData(filtroEmpresa)
+        fetchData(filtroEmpresa ?? '')
       } catch (error) {
         Notifier.dismiss(String(loadingToastId))
         Notifier.error('No se pudo eliminar el ratio. Inténtalo de nuevo.')
@@ -250,20 +243,6 @@ export const Ratio = () => {
       <SubMenu links={sectoresSubMenuLinks} />
 
       <div style={{ marginTop: '2rem' }}>
-        <div style={{ marginBottom: '1.5rem', maxWidth: '400px' }}>
-          <label htmlFor="filtro-empresa" className="form-label">
-            Filtrar por Nombre de Empresa
-          </label>
-          <input
-            id="filtro-empresa"
-            type="text"
-            className="form-control"
-            placeholder="Ej: DIANA"
-            value={filtroEmpresa}
-            onChange={(e) => setFiltroEmpresa(e.target.value)}
-          />
-        </div>
-
         {loading ? (
           <p>Cargando ratios...</p>
         ) : (

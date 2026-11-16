@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { apiClient } from '@/services/api'
 import { Notifier } from '@/utils/Notifier'
-import type { EmpresaResponseDTO } from '@/types'
+import EmpresaFija from '@/components/shared/EmpresaFija'
+import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 
 // --- 1. Importaciones de Estilo del Proyecto ---
 import viewStyles from '@/styles/shared/View.module.css'
@@ -38,27 +39,20 @@ const ratiosDisponibles = [
 ]
 
 const PaginaEvolucionRatios = () => {
-  const [empresas, setEmpresas] = useState<EmpresaResponseDTO[]>([])
   const [empresaSel, setEmpresaSel] = useState('')
   const [ratiosSel, setRatiosSel] = useState<string[]>([])
   const [datosGraficos, setDatosGraficos] = useState<Record<string, string | number | null>[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Carga las empresas reales para el selector y deja valores por defecto
-  // (monoempresa A4: primera empresa + los 5 ratios) para que las gráficas
-  // se generen solas al entrar, sin requerir el clic en "Generar".
+  // Monoempresa (A4): empresa principal + los 5 ratios por defecto, para
+  // que las gráficas se generen solas al entrar.
+  const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) => {
+    setEmpresaSel(String(e.empresaId))
+    setRatiosSel(ratiosDisponibles.map((r) => r.value))
+  })
   useEffect(() => {
-    apiClient
-      .get('/empresas')
-      .then((res) => {
-        setEmpresas(res.data)
-        if (Array.isArray(res.data) && res.data.length > 0) {
-          setEmpresaSel(String(res.data[0].empresaId))
-          setRatiosSel(ratiosDisponibles.map((r) => r.value))
-        }
-      })
-      .catch(() => Notifier.error('No se pudieron cargar las empresas.'))
-  }, [])
+    if (errorEmpresa) Notifier.error('No se pudo cargar la empresa principal.')
+  }, [errorEmpresa])
 
   // Secuencia de peticiones: evita que una respuesta vieja pise a la nueva
   // cuando el usuario cambia rápido de empresa o actualiza los datos.
@@ -110,13 +104,6 @@ const PaginaEvolucionRatios = () => {
     }
   }, [empresaSel, generarGraficos])
 
-  const handleEmpresaChange = (empresa: string) => {
-    requestSeq.current += 1
-    setEmpresaSel(empresa)
-    setDatosGraficos([])
-    setLoading(false)
-  }
-
   const handleRatioChange = (event: SelectChangeEvent<string[]>) => {
     const {
       target: { value },
@@ -140,18 +127,7 @@ const PaginaEvolucionRatios = () => {
         {/* Selector de Empresa */}
         <div className={styles.formControl}>
           <label htmlFor="empresa-select">Empresa</label>
-          <select
-            id="empresa-select"
-            value={empresaSel}
-            onChange={(e) => handleEmpresaChange(e.target.value)}
-          >
-            <option value="">Seleccione una empresa</option>
-            {empresas.map((emp) => (
-              <option key={emp.empresaId} value={emp.empresaId}>
-                {emp.nombreEmpresa}
-              </option>
-            ))}
-          </select>
+          <EmpresaFija id="empresa-select" empresa={empresa} error={errorEmpresa} />
         </div>
 
         {/* Selector de Ratios (Mantenemos MUI por complejidad) */}

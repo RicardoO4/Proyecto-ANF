@@ -1,14 +1,14 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { FaPlus, FaTrash } from 'react-icons/fa'
 import { Notifier } from '@/utils/Notifier'
-import { empresaService } from '@/services/empresaService'
+import EmpresaFija from '@/components/shared/EmpresaFija'
+import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import { ventaHistoricaService } from '@/services/ventaHistoricaService'
 import buttonStyles from '@/styles/shared/Button.module.css'
 import viewStyles from '@/styles/shared/View.module.css'
-import type { EmpresaResponseDTO } from '@/types'
 
 interface VentaRow {
   fechaVenta: string
@@ -28,25 +28,23 @@ interface CargaManualVentasProps {
 }
 
 export const CargaManualVentas = (_props: CargaManualVentasProps) => {
-  const [empresas, setEmpresas] = useState<EmpresaResponseDTO[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const {
     register,
     control,
     handleSubmit,
     reset,
+    setValue,
+    getValues,
     formState: { errors },
   } = useForm<ManualFormValues>({
     defaultValues: { empresaId: '', ventas: [{ fechaVenta: '', montoVenta: '', observacion: '' }] },
   })
   const { fields, append, remove } = useFieldArray({ control, name: 'ventas' })
 
-  useEffect(() => {
-    empresaService
-      .getEmpresas()
-      .then(setEmpresas)
-      .catch(() => Notifier.error('No se pudieron cargar las empresas.'))
-  }, [])
+  const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) =>
+    setValue('empresaId', String(e.empresaId)),
+  )
 
   const onSubmit = async (data: ManualFormValues) => {
     setIsLoading(true)
@@ -78,7 +76,10 @@ export const CargaManualVentas = (_props: CargaManualVentasProps) => {
       await ventaHistoricaService.createVentasManual(payload)
       Notifier.dismiss(String(toastId))
       Notifier.success('Ventas guardadas correctamente.')
-      reset()
+      reset({
+        empresaId: getValues('empresaId'),
+        ventas: [{ fechaVenta: '', montoVenta: '', observacion: '' }],
+      })
     } catch (error: unknown) {
       Notifier.dismiss(String(toastId))
       const err = error as { response?: { data?: { message?: string } } }
@@ -93,18 +94,13 @@ export const CargaManualVentas = (_props: CargaManualVentasProps) => {
       {/* Selector de Empresa */}
       <div className="mb-4">
         <label htmlFor="empresaId" className="form-label fw-bold">Empresa</label>
-        <select
+        <input type="hidden" {...register('empresaId', { required: 'No se pudo cargar la empresa principal' })} />
+        <EmpresaFija
           id="empresaId"
           className={`form-select ${errors.empresaId ? 'is-invalid' : ''}`}
-          {...register('empresaId', { required: 'Debe seleccionar una empresa' })}
-        >
-          <option value="">-- Seleccione una Empresa --</option>
-          {empresas.map((e) => (
-            <option key={e.empresaId} value={e.empresaId}>
-              {e.nombreEmpresa}
-            </option>
-          ))}
-        </select>
+          empresa={empresa}
+          error={errorEmpresa}
+        />
         {errors.empresaId && <div className="invalid-feedback">{errors.empresaId.message}</div>}
       </div>
 
