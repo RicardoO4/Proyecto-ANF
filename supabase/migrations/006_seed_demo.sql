@@ -6,7 +6,8 @@
 --      empresa_id = 2 (los seeds 003/004 del Módulo C dependen de ese id).
 --   2. La marca como empresa principal si no hay otra.
 --   3. Agrega al catálogo SOLO las cuentas que usan las plantillas de
---      ejemplo y que todavía no existan. El catálogo real (FINAN II 2025)
+--      ejemplo y las balanzas 2023-2025 del equipo (1105.05) y que
+--      todavía no existan. El catálogo real (FINAN II 2025)
 --      no se modifica: cada cuenta nueva se cuelga del padre existente con
 --      el prefijo más largo.
 --   4. Activa esas cuentas en el catálogo de la empresa principal.
@@ -47,6 +48,7 @@ WITH nuevas(codigo, nombre, tipo) AS (
     ('1101.02', 'Bancos',                             'ACTIVO'),
     ('1102',    'Cuentas y documentos por cobrar',    'ACTIVO'),
     ('1105',    'Inventarios',                        'ACTIVO'),
+    ('1105.05', 'Otros inventarios',                  'ACTIVO'),
     ('1201',    'Propiedades, planta y equipo',       'ACTIVO'),
     ('2101',    'Préstamos y sobregiros bancarios',   'PASIVO'),
     ('2102',    'Cuentas comerciales por pagar',      'PASIVO'),
@@ -75,7 +77,7 @@ INSERT INTO catalogo (activo, empresa_id, cuenta_id)
 SELECT TRUE, e.empresa_id, c.cuenta_id
 FROM empresa e
 JOIN cuenta c ON c.cue_cuenta_id IN (
-  '1101.01', '1101.02', '1102', '1105', '1201', '2101', '2102', '2201',
+  '1101.01', '1101.02', '1102', '1105', '1105.05', '1201', '2101', '2102', '2201',
   '3101', '3204', '4101', '4102', '4103', '4201', '5101.01', '5101.02'
 )
 WHERE e.es_principal
