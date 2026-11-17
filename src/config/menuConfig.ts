@@ -62,6 +62,8 @@ export const proyeccionesSubMenuLinks = [
   { to: '/proyecciones/historial', label: 'Ver Historial de Ventas' },
   { to: '/proyecciones/pronostico', label: 'Pronóstico de Ventas' },
   { to: '/proyecciones/proforma', label: 'Estados Proforma' },
+  { to: '/proyecciones/presupuestos', label: 'Presupuestos' },
+  { to: '/proyecciones/capital', label: 'Presupuesto de Capital' },
 ]
 
 /**

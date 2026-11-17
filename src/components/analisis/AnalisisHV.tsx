@@ -9,6 +9,7 @@ import styles from '@/styles/analisis/AnalisisHV.module.css'
 import { Notifier } from '@/utils/Notifier'
 import EmpresaFija from '@/components/shared/EmpresaFija'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
+import BotonResumenIA from '@/components/shared/BotonResumenIA'
 import { ACTIVO_TOTAL, VENTAS_NETAS, sumByPrefix } from '@/lib/accountCodes'
 
 interface LineaAnalisisHorizontal {
@@ -229,6 +230,11 @@ const AnalisisHV = () => {
         >
           Generar Reporte
         </button>
+        <BotonResumenIA
+          tipo="comparativo"
+          datos={{ empresaId: Number(empresaSeleccionada), anio1: Number(anio1), anio2: Number(anio2) }}
+          disabled={!reporte}
+        />
       </div>
 
       {/* Botones de vista */}

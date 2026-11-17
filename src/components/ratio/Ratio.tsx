@@ -12,6 +12,7 @@ import { RatioDetailsModal } from '@/components/ratio/RatioDetailsModal'
 import { categoriasRatio } from '@/services/ratioService'
 import { parametroSectorService } from '@/services/ratioService'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
+import BotonResumenIA from '@/components/shared/BotonResumenIA'
 import type { RatioResponseDTO, CategoriaRatioResponseDTO, ParametroSectorResponseDTO, EmpresaResponseDTO } from '@/types'
 
 export const Ratio = () => {
@@ -238,11 +239,25 @@ export const Ratio = () => {
     }
   }
 
+  // Módulo E: el resumen con IA usa el año más reciente con ratios calculados.
+  const ratiosConValor = ratios.filter((r) => r.valor_calculado != null && r.anio_ratio)
+  const anioResumen = ratiosConValor.length > 0 ? Math.max(...ratiosConValor.map((r) => Number(r.anio_ratio))) : 0
+  const empresaResumen = ratiosConValor[0]?.empresa?.empresa_id ?? 0
+
   return (
     <div style={{ padding: '20px' }}>
       <SubMenu links={sectoresSubMenuLinks} />
 
-      <div style={{ marginTop: '2rem' }}>
+      <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+        <BotonResumenIA
+          tipo="ratios"
+          datos={{ empresaId: empresaResumen, anio: anioResumen }}
+          disabled={loading || anioResumen === 0}
+          etiqueta={anioResumen ? `Resumen con IA (${anioResumen})` : 'Resumen con IA'}
+        />
+      </div>
+
+      <div style={{ marginTop: '1rem' }}>
         {loading ? (
           <p>Cargando ratios...</p>
         ) : (

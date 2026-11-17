@@ -14,6 +14,7 @@ import { ventaHistoricaService } from '@/services/ventaHistoricaService'
 import { Notifier } from '@/utils/Notifier'
 import type { ProyeccionDTO } from '@/types'
 import Link from 'next/link'
+import BotonResumenIA from '@/components/shared/BotonResumenIA'
 
 export const Proyecciones = () => {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('')
@@ -137,6 +138,15 @@ export const Proyecciones = () => {
         {proyecciones.length > 0 && (
           <div className="mt-4 table-responsive">
             <h5>Resultados de la Proyección</h5>
+            <div className="mb-3">
+              <BotonResumenIA
+                tipo="proyeccion"
+                datos={{
+                  empresaId: Number(empresaSeleccionada),
+                  metodo: metodo.toUpperCase().replace('-', '_'),
+                }}
+              />
+            </div>
             <table className={viewStyles.table}>
               <thead>
                 <tr>

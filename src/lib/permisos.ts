@@ -29,6 +29,8 @@ const REGLAS: Regla[] = [
   { prefijo: '/api/v1/catalogo-empresa', opcion: 5, soloEscritura: true },
   { prefijo: '/api/v1/cuentas-maestro', opcion: 5, soloEscritura: true },
   { prefijo: '/api/v1/ventas-historicas', opcion: 6, soloEscritura: true },
+  { prefijo: '/api/v1/presupuestos', opcion: 6, soloEscritura: true },
+  { prefijo: '/api/v1/evaluaciones-capital', opcion: 6, soloEscritura: true },
   { prefijo: '/api/v1/estados-financieros', opcion: 7, soloEscritura: true },
 ].sort((a, b) => b.prefijo.length - a.prefijo.length)
 
