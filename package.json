@@ -19,7 +19,9 @@
     "e2e:integracion": "node --import ./scripts/register-ts.mjs scripts/e2e-integracion.mjs",
     "e2e:browser": "node scripts/e2e-browser.mjs",
     "verify:cache-ia": "node --import ./scripts/register-ts.mjs --test scripts/verify-cache-ia.mjs",
-    "verify:excel-modulos": "node --import ./scripts/register-ts.mjs --test scripts/verify-excel-modulos.mjs"
+    "verify:excel-modulos": "node --import ./scripts/register-ts.mjs --test scripts/verify-excel-modulos.mjs",
+    "verify:modulo-d": "node --import ./scripts/register-ts.mjs --test scripts/verify-modulo-d.mjs",
+    "verify:persistencia": "node --import ./scripts/register-ts.mjs scripts/verify-persistencia.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

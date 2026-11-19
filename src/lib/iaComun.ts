@@ -1,7 +1,8 @@
 // Piezas compartidas del Asistente IA (Módulo E): formato de respuesta,
 // instrucciones base y caché para ahorrar tokens de la versión gratuita.
 import { createHash } from 'node:crypto'
-import { generarJsonConGemini, modeloGemini, type TokensUsados } from '@/lib/gemini'
+import { conCachePersistente } from '@/lib/cacheIA'
+import { generarJsonConGemini, modeloGemini, GeminiError, type TokensUsados } from '@/lib/gemini'
 
 export type EstadoGeneral = 'saludable' | 'atencion' | 'riesgo'
 
@@ -91,66 +92,26 @@ export function normalizarInterpretacion(r: Partial<InterpretacionIA>): Interpre
 // Caché: el mismo análisis con los mismos datos no gasta tokens otra vez
 // ---------------------------------------------------------------
 
-const CACHE_MS = 6 * 60 * 60 * 1000 // 6 horas
-const ESPERA_REGENERAR_MS = 60 * 1000 // "Volver a generar" como mucho 1 vez por minuto
-const MAX_ENTRADAS = 100
-
-interface EntradaCache {
-  interpretacion: InterpretacionIA
-  meta: Omit<MetaIA, 'desdeCache'>
-  creado: number
-}
-
-const cache = new Map<string, EntradaCache>()
-const enCurso = new Map<string, Promise<EntradaCache>>()
-
-/** Huella corta de los datos: si los datos cambian, cambia la clave. */
+/** Full hash: includes context, model, prompt, schema and input data. */
 export function huella(valor: unknown): string {
-  return createHash('sha256').update(JSON.stringify(valor)).digest('hex').slice(0, 16)
+  return createHash('sha256').update(JSON.stringify(valor)).digest('hex')
 }
 
-/**
- * Devuelve la interpretación de `mensaje`, usando la caché cuando puede.
- * - Misma clave dentro de 6 h → no llama a Gemini.
- * - `forzar` solo vuelve a llamar si la entrada tiene más de 1 minuto.
- * - Dos pedidos iguales al mismo tiempo comparten una sola llamada.
- */
+/** Durable across deployments; explicit regeneration is protected by SQL. */
 export async function interpretarConCache(
-  clave: string,
-  mensaje: string,
-  forzar = false,
+  clave: string, mensaje: string, forzar = false,
 ): Promise<{ interpretacion: InterpretacionIA; meta: MetaIA }> {
-  const claveCompleta = `${modeloGemini()}|${clave}|${huella(mensaje)}`
-  const guardado = cache.get(claveCompleta)
-  const edad = guardado ? Date.now() - guardado.creado : Infinity
-
-  const usarGuardado = guardado && edad < CACHE_MS && (!forzar || edad < ESPERA_REGENERAR_MS)
-  if (usarGuardado) {
-    return { interpretacion: guardado.interpretacion, meta: { ...guardado.meta, desdeCache: true } }
-  }
-
-  let pendiente = enCurso.get(claveCompleta)
-  if (!pendiente) {
-    pendiente = (async () => {
-      const { datos, tokens } = await generarJsonConGemini<Partial<InterpretacionIA>>({
-        instrucciones: INSTRUCCIONES_BASE,
-        mensaje,
-        esquemaRespuesta: ESQUEMA_RESPUESTA,
-      })
-      const entrada: EntradaCache = {
-        interpretacion: normalizarInterpretacion(datos),
-        meta: { modelo: modeloGemini(), generadoEn: new Date().toISOString(), tokens },
-        creado: Date.now(),
-      }
-      if (cache.size >= MAX_ENTRADAS) cache.delete(cache.keys().next().value as string)
-      cache.set(claveCompleta, entrada)
-      return entrada
-    })().finally(() => enCurso.delete(claveCompleta))
-    enCurso.set(claveCompleta, pendiente)
-  }
-
-  const entrada = await pendiente
-  return { interpretacion: entrada.interpretacion, meta: { ...entrada.meta, desdeCache: false } }
+  const modelo = modeloGemini()
+  const hash = huella({ version: 1, modelo, clave, mensaje, instrucciones: INSTRUCCIONES_BASE, esquema: ESQUEMA_RESPUESTA })
+  return conCachePersistente(hash, modelo, forzar, async () => {
+    const { datos, tokens } = await generarJsonConGemini<Partial<InterpretacionIA>>({
+      instrucciones: INSTRUCCIONES_BASE, mensaje, esquemaRespuesta: ESQUEMA_RESPUESTA,
+    })
+    if (!datos || typeof datos.resumen !== 'string' || !datos.resumen.trim()) {
+      throw new GeminiError('Gemini no devolvi\u00f3 una explicaci\u00f3n v\u00e1lida. No se guard\u00f3 la respuesta.', 502)
+    }
+    return { interpretacion: normalizarInterpretacion(datos), meta: { modelo, generadoEn: new Date().toISOString(), tokens } }
+  })
 }
 
 // ---------------------------------------------------------------

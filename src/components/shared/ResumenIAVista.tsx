@@ -110,7 +110,7 @@ const ResumenIAVista = ({ interpretacion: interp, meta, datosClave, children }: 
 
       <p className={styles.pie}>
         Generado por inteligencia artificial ({meta.modelo}) el {formatoFecha.format(new Date(meta.generadoEn))}
-        {meta.desdeCache ? ', reutilizado de una consulta reciente (sin gastar tokens)' : ''}. Tokens usados:{' '}
+        {meta.desdeCache ? ', reutilizado de una consulta guardada (sin consumir Gemini en esta consulta)' : ''}. Tokens de la generación original:{' '}
         {meta.tokens.total.toLocaleString('es-SV')} ({meta.tokens.entrada} de envío y {meta.tokens.salida} de
         respuesta). Es orientativo y no reemplaza la asesoría de un profesional. No se envió el nombre de la empresa.
       </p>

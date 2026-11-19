@@ -35,6 +35,8 @@ import { getEmpresaPrincipal } from '@/lib/empresaPrincipal'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { recalcularRatios } from '@/lib/ratios'
 
+export const maxDuration = 300
+
 export async function POST(req: Request) {
   return handle(req, async () => {
     const formData = await req.formData()

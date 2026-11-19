@@ -6,7 +6,10 @@ import { apiClient, getErrorMessage } from '@/services/api'
 import type { PronosticoVentas } from '@/lib/pronosticos'
 import BotonResumenIA from '@/components/shared/BotonResumenIA'
 import view from '@/styles/shared/View.module.css'
+import Link from 'next/link'
+import { useDisponibilidadVentas } from '@/hooks/useDisponibilidadVentas'
 export default function PronosticoIntegrado() {
+  const disponibilidad = useDisponibilidadVentas()
   const [periodicidad, setPeriodicidad] = useState<'anual' | 'mensual'>('anual')
   const [periodos, setPeriodos] = useState(3)
   const [resultado, setResultado] = useState<(PronosticoVentas & { empresaId: number }) | null>(null)
@@ -23,6 +26,7 @@ export default function PronosticoIntegrado() {
   const { empresa } = useEmpresaPrincipal(() => { void generar('anual', 3) })
   const datos = resultado ? [...resultado.historico.map(h => ({ ...h, historico: h.monto })), ...resultado.proyecciones] : []
   return <div className={view.viewContainer}><h1>Pronósticos de ventas</h1><p>{empresa?.nombreEmpresa} · Histórico real, sin convertir ventas anuales en meses ni completar periodos con valores inventados.</p>
+    {disponibilidad.datos && <p>Totales anuales del balance: {disponibilidad.datos.totalesAnuales}. Meses reales: {disponibilidad.datos.total}. {periodicidad === 'mensual' && !disponibilidad.datos.avanzada && <>Se necesitan al menos tres periodos mensuales reales y consecutivos. <Link href="/proyecciones">Cargar ventas mensuales</Link>.</>}</p>}
     <div className="row g-3 mb-4"><label className="col-md-4">Periodicidad<select className="form-select" value={periodicidad} onChange={e => { setPeriodicidad(e.target.value as 'anual' | 'mensual'); setResultado(null); setCargando(false); setError(''); secuencia.current++ }}><option value="anual">Anual</option><option value="mensual">Mensual</option></select></label><label className="col-md-4">Periodos a proyectar<input className="form-control" type="number" min={1} max={12} value={periodos} onChange={e => { setPeriodos(Number(e.target.value)); setResultado(null); setCargando(false); setError(''); secuencia.current++ }} /></label><div><button className="btn btn-primary" disabled={cargando || !empresa} onClick={() => void generar()}>{cargando ? 'Calculando…' : 'Generar pronóstico'}</button></div></div>
     {error && <p role="alert" className="text-danger">{error}</p>}
     {resultado && <><p>Periodicidad del resultado: <strong>{resultado.periodicidad}</strong>. Con pocos periodos históricos, la extrapolación puede ser inestable. Las predicciones negativas se limitan a cero.</p>

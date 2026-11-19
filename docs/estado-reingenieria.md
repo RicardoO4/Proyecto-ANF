@@ -21,7 +21,7 @@ Actualizado: 19 de noviembre de 2026. Referencia: `plan_reigenieria.md`. Cambios
 
 ## Supabase
 
-Ejecutadas por el usuario: `007_presupuestos.sql`, `008_integracion_inventarios_ratios.sql` y `009_catalogo_completo_ratios.sql`.
+Ejecutadas por el usuario: `007_presupuestos.sql`, `008_integracion_inventarios_ratios.sql`, `009_catalogo_completo_ratios.sql`, `010_cache_ia_persistente.sql` y `011_ventas_mensuales.sql`.
 
 No se inventan benchmarks. Sin referencia sectorial se calcula el indicador y la comparación queda sin valor. Para años nuevos se reutiliza la referencia más reciente del mismo sector que no sea posterior al ejercicio; el parámetro conserva su año de referencia.
 
@@ -48,6 +48,7 @@ npm run verify:capital
 npm run verify:integracion
 npm run verify:excel-modulos
 npm run verify:cache-ia
+npm run verify:modulo-d
 npm run verify:servicios
 ```
 
@@ -55,7 +56,9 @@ npm run verify:servicios
 
 `verify:excel-modulos` recorre cinco Excel reales/de ejemplo (2020, 2021, 2023–2025) por las funciones de A/B/C/D con Supabase simulado: compara utilidad, ventas, ROA y Proforma sin crecimiento. Incluye devoluciones para prevenir la regresión.
 
-`verify:cache-ia` intercepta toda conexión con Google: prueba reutilización, solicitudes simultáneas, cambio de datos, regeneración, vencimiento y errores 429/503 sin reintentos. Los tokens que muestra son ficticios.
+`verify:cache-ia` intercepta toda conexión con Google y Supabase: prueba reutilización, solicitudes simultáneas, cambio de datos, regeneración, persistencia después de seis horas y errores 429/503 sin reintentos. Los tokens que muestra son ficticios.
+
+`verify:modulo-d` prueba disponibilidad mensual, fechas y lotes inválidos y Excel mensual. `verify:persistencia` usa Supabase real con filas propias y un año de ventas previamente vacío (2096); comprueba las reservas de caché y las transacciones mensuales, y elimina sus filas al terminar. No llama a Gemini; no ejecutar dos instancias simultáneas.
 
 Para HTTP y navegador reales, iniciar el servidor y usar otra terminal:
 
@@ -72,8 +75,8 @@ Se admiten `E2E_BASE_URL`, `E2E_USER` y `E2E_PASSWORD`. El test HTTP comprueba p
 - Build de producción y TypeScript correctos.
 - Lint: 0 errores, 44 advertencias de código existente.
 - Carga: 58/58; ratios: 35/35; presupuestos: 59/59; capital: 19/19.
-- Integración local: 16/16 pruebas, incluyendo permisos y CRUD.
-- Excel entre módulos: 5/5; caché de IA simulada: 5/5.
+- Integración local: 17/17 pruebas, incluyendo permisos, CRUD y lotes mensuales.
+- Excel entre módulos: 5/5; caché de IA simulada: 7/7; módulo D: 3/3.
 - Supabase real: las tres tablas existen y hay 23 categorías; lecturas entre módulos y Proforma cuadrado verificados.
 - HTTP real: CRUD de presupuestos/capital/inventario y carga 2098 → 2097; creación de 23 indicadores por año y actualización del ROA del año siguiente verificadas. Datos y archivos de prueba eliminados.
 - Navegador real: seis pantallas, cambio de crecimiento en Proforma, invalidación/recuperación al cambiar periodicidad y bloqueo de acceso directo. Sin errores de hidratación ni excepciones.
@@ -83,6 +86,14 @@ Se admiten `E2E_BASE_URL`, `E2E_USER` y `E2E_PASSWORD`. El test HTTP comprueba p
 
 La prueba real de Gemini del 19/11/2026 hizo dos peticiones HTTP en total: primero un 400 de configuración, después un 503 de alta demanda tras corregir el pensamiento mínimo del modelo. No se obtuvo una interpretación real ni metadatos de tokens. Se detuvieron los intentos para cuidar la cuota; no se afirma que la generación completa funcione. El cliente ahora hace un solo intento por generación, sin reintentos automáticos. La prueba manual `node --import ./scripts/register-ts.mjs scripts/verify-gemini.mjs` permite como máximo una petición real por ejecución y comprueba la reutilización si Google responde bien; no forma parte de los tests normales.
 
-La caché actual es **en memoria por proceso**, dura seis horas y admite hasta 100 entradas. Reutiliza el mismo modelo, clave de análisis y mensaje; agrupa solicitudes iguales simultáneas. Se pierde al reiniciar/desplegar y no se comparte entre instancias. No guarda interpretaciones en Supabase ni garantiza reutilización permanente. Una regeneración explícita puede llamar otra vez después de un minuto. Sigue pendiente implementar almacenamiento persistente si se necesita conservar respuestas entre despliegues y validar el recorrido real de Gemini cuando el servicio esté disponible.
+La caché ahora se guarda en la tabla privada `ia_cache` de Supabase. Sobrevive a reinicios y despliegues y se comparte entre instancias. No caduca automáticamente: el hash incluye modelo, contexto, instrucciones, esquema y datos. Datos distintos generan otra entrada. Una reserva SQL atómica evita duplicar generaciones concurrentes durante su vigencia; si una instancia falla, vence en un minuto. La regeneración explícita puede consultar otra vez después de un minuto desde la respuesta anterior. Si el almacenamiento no está disponible, se informa el problema antes de consultar Gemini. No se guardan claves ni el mensaje original. Verificado contra Supabase con respuestas ficticias sin consumir Gemini.
+
+## Correcciones finales de D
+
+El total anual automático y el detalle mensual de diciembre pueden coexistir. `guardar_ventas_mensuales` valida y guarda el lote en una transacción y serializa las operaciones mensuales de la misma empresa; rechaza duplicados incluso entre solicitudes concurrentes. Los importes cero son válidos y los negativos/fechas inexistentes no. El Excel mensual ya no omite silenciosamente filas inválidas. Los totales anuales se actualizan desde estados financieros; no se editan ni eliminan desde el histórico mensual.
+
+La interfaz muestra la cantidad de meses reales, bloquea la proyección clásica hasta disponer de doce meses consecutivos al final del histórico y ofrece el pronóstico anual. La captura manual permite preparar doce filas vacías de un año. Los importes deben proporcionarse con información real; no se reparten totales anuales en meses. El pronóstico avanzado mensual necesita al menos tres meses reales sin huecos.
+
+La carga de estados declara `maxDuration = 300` para incluir el recálculo de ratios; el proyecto Vercel debe permitir esa duración. Estas correcciones requieren desplegar el código nuevo. Las migraciones 010/011 ya se verificaron en Supabase y no requieren claves adicionales.
 
 La aceptación del equipo con los datos de la cátedra sigue siendo necesaria. Revisar hipótesis de Proforma y referencias sectoriales con el docente. El lint debe pasar sin errores; las advertencias anteriores se reportan por separado.

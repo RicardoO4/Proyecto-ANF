@@ -15,12 +15,13 @@ import { Notifier } from '@/utils/Notifier'
 import type { ProyeccionDTO } from '@/types'
 import Link from 'next/link'
 import BotonResumenIA from '@/components/shared/BotonResumenIA'
+import { useDisponibilidadVentas } from '@/hooks/useDisponibilidadVentas'
 
 export const Proyecciones = () => {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('')
   const secuencia = useRef(0)
   const [metodo, setMetodo] = useState('')
-  const [ventas, setVentas] = useState<string[]>(Array(12).fill('')) // 12 meses vacíos
+  const disponibilidad = useDisponibilidadVentas()
   const [activeTab, setActiveTab] = useState<'masiva' | 'manual'>('masiva')
 
   const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) =>
@@ -30,7 +31,7 @@ export const Proyecciones = () => {
   const [proyecciones, setProyecciones] = useState<ProyeccionDTO[]>([])
 
   const handleGenerarProyeccion = async () => {
-    if (!empresaSeleccionada || !metodo) {
+    if (!empresaSeleccionada || !metodo || !disponibilidad.datos?.clasica) {
       Notifier.warning('Por favor seleccione una empresa y un método de proyección.')
       return
     }
@@ -39,7 +40,6 @@ export const Proyecciones = () => {
     const toastId = Notifier.loading('Generando proyección...')
     try {
       // keep numeric month values in sync for the manual tab
-      setVentas(Array(12).fill(''))
       const response = await ventaHistoricaService.getProyeccionVentas(
         parseInt(empresaSeleccionada, 10),
         12,
@@ -64,6 +64,11 @@ export const Proyecciones = () => {
       <p className="mb-4">
         Este módulo permite realizar una proyección de ventas a 12 meses basada en datos históricos.
       </p>
+      {disponibilidad.error && <p role="alert">{disponibilidad.error}</p>}
+      {disponibilidad.datos && <div className="alert alert-info">
+        Meses reales registrados: {disponibilidad.datos.total}. Para esta proyección se necesitan doce meses consecutivos al final del histórico.
+        {!disponibilidad.datos.clasica && <> Cargue los importes mensuales abajo o utilice <Link href="/proyecciones/pronostico">el pronóstico anual con los datos del balance</Link>.</>}
+      </div>}
 
       {/* --- Selector de Empresa --- */}
       <div className="mb-3">
@@ -105,10 +110,10 @@ export const Proyecciones = () => {
       {/* --- Contenido de la pestaña activa --- */}
       <div className="mt-3">
         {activeTab === 'masiva' && (
-          <CargaMasivaVentas ventas={ventas} setVentas={setVentas} />
+          <CargaMasivaVentas onGuardado={() => { setProyecciones([]); secuencia.current++; void disponibilidad.cargar() }} />
         )}
         {activeTab === 'manual' && (
-          <CargaManualVentas ventas={ventas} setVentas={setVentas} />
+          <CargaManualVentas onGuardado={() => { setProyecciones([]); secuencia.current++; void disponibilidad.cargar() }} />
         )}
       </div>
 
@@ -117,6 +122,7 @@ export const Proyecciones = () => {
         <button
           className={buttonStyles.btnPrimary}
           onClick={handleGenerarProyeccion}
+          disabled={!disponibilidad.datos?.clasica || !metodo}
         >
           Generar Proyección
         </button>

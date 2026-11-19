@@ -166,21 +166,25 @@ export function parseVentas(buffer: ArrayBuffer): UploadedVentas {
     const montoCell = ventasSheet[XLSX.utils.encode_cell({ r, c: 1 })]
     const obsCell = ventasSheet[XLSX.utils.encode_cell({ r, c: 2 })]
 
+    if ([fechaCell, montoCell, obsCell].every(c => c?.v == null || String(c.v).trim() === '')) continue
+
     // col A must be a date
     let fecha: Date | null = null
     if (fechaCell?.v instanceof Date) {
-      fecha = fechaCell.v
+      const d = fechaCell.v
+      fecha = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
     } else if (typeof fechaCell?.v === 'string' && fechaCell.v.trim() !== '') {
-      const parsed = new Date(fechaCell.v)
-      if (!Number.isNaN(parsed.getTime())) fecha = parsed
+      const texto = fechaCell.v.trim()
+      const parsed = new Date(texto + 'T00:00:00Z')
+      if (/^\d{4}-\d{2}-\d{2}$/.test(texto) && Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === texto) fecha = parsed
     }
-    if (!fecha) continue
+    if (!fecha || !Number.isFinite(fecha.getTime())) throw new BadRequestException(`Fila ${r + 1}: fecha de venta inválida.`)
 
     const monto =
       typeof montoCell?.v === 'number' && Number.isFinite(montoCell.v)
         ? (montoCell.v as number)
         : null
-    if (monto === null) continue // non-numeric rows are skipped silently
+    if (monto === null || monto < 0) throw new BadRequestException(`Fila ${r + 1}: el monto debe ser numérico y mayor o igual a cero.`)
 
     const observacion =
       typeof obsCell?.v === 'string' && (obsCell.v as string).trim() !== ''

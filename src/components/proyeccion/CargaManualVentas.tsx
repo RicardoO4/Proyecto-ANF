@@ -9,6 +9,7 @@ import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import { ventaHistoricaService } from '@/services/ventaHistoricaService'
 import buttonStyles from '@/styles/shared/Button.module.css'
 import viewStyles from '@/styles/shared/View.module.css'
+import { fechaFinDeMes } from '@/lib/ventasMensuales'
 
 interface VentaRow {
   fechaVenta: string
@@ -22,13 +23,12 @@ interface ManualFormValues {
 }
 
 interface CargaManualVentasProps {
-  ventas: string[]
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  setVentas: (v: string[]) => void
+  onGuardado?: () => void
 }
 
-export const CargaManualVentas = (_props: CargaManualVentasProps) => {
+export const CargaManualVentas = ({ onGuardado }: CargaManualVentasProps) => {
   const [isLoading, setIsLoading] = useState(false)
+  const [anioCarga, setAnioCarga] = useState(new Date().getFullYear())
   const {
     register,
     control,
@@ -60,14 +60,14 @@ export const CargaManualVentas = (_props: CargaManualVentasProps) => {
       ventas: data.ventas.map((v) => {
         // Aseguramos formato YYYY-MM-DD (último día del mes)
         const [year, month] = v.fechaVenta.split('-')
-        const fechaVenta = new Date(Number(year), Number(month), 0) // Día 0 del mes siguiente = último día del mes actual
+        const fechaVenta = fechaFinDeMes(`${year}-${month}`)
 
         return {
-          fechaVenta: fechaVenta.toISOString().split('T')[0], // "YYYY-MM-DD"
-          montoVenta: parseFloat(v.montoVenta),
+          fechaVenta,
+          montoVenta: Number(v.montoVenta),
           observacion:
             v.observacion ||
-            `Ventas ${fechaVenta.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}`,
+            `Ventas ${v.fechaVenta}`,
         }
       }),
     }
@@ -76,6 +76,7 @@ export const CargaManualVentas = (_props: CargaManualVentasProps) => {
       await ventaHistoricaService.createVentasManual(payload)
       Notifier.dismiss(String(toastId))
       Notifier.success('Ventas guardadas correctamente.')
+      onGuardado?.()
       reset({
         empresaId: getValues('empresaId'),
         ventas: [{ fechaVenta: '', montoVenta: '', observacion: '' }],
@@ -91,6 +92,11 @@ export const CargaManualVentas = (_props: CargaManualVentasProps) => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
+      <div className="d-flex gap-2 align-items-end mb-3">
+        <label>Año de los datos<input className="form-control" type="number" min={1900} max={2200} value={anioCarga} onChange={e => setAnioCarga(Number(e.target.value))} /></label>
+        <button type="button" className={buttonStyles.btnSecondary} disabled={isLoading || !Number.isInteger(anioCarga) || anioCarga < 1900 || anioCarga > 2200} onClick={() => reset({ empresaId: getValues('empresaId'), ventas: Array.from({ length: 12 }, (_, i) => ({ fechaVenta: `${anioCarga}-${String(i + 1).padStart(2, '0')}`, montoVenta: '', observacion: '' })) })}>Preparar doce meses</button>
+      </div>
+      <p>Ingrese el total real de cada mes. El total anual del balance no sustituye estos importes. Preparar los meses reemplaza las filas sin guardar; no modifica registros guardados.</p>
       {/* Selector de Empresa */}
       <div className="mb-4">
         <label htmlFor="empresaId" className="form-label fw-bold">Empresa</label>
@@ -129,9 +135,11 @@ export const CargaManualVentas = (_props: CargaManualVentasProps) => {
                   <input
                     type="number"
                     step="0.01"
+                    min={0}
                     className="form-control"
                     {...register(`ventas.${index}.montoVenta` as const, {
                       required: true,
+                      min: 0,
                       valueAsNumber: true,
                     })}
                   />

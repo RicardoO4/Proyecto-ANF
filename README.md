@@ -121,6 +121,12 @@ las asimetrías de nombres (camelCase vs snake_case) de los DTOs originales.
   dinámicas y validan el token `Bearer` para consultas a Supabase.
 - Para producción, despliega en Vercel/Node y define las tres variables de
   entorno de Supabase en el entorno.
+- Para las explicaciones de IA también define `GEMINI_API_KEY` en Vercel;
+  `GEMINI_MODEL` es opcional. Después de cambiar variables hay que desplegar de nuevo.
+- La caché compartida de IA requiere `010_cache_ia_persistente.sql`; la carga mensual
+  transaccional requiere `011_ventas_mensuales.sql`. No requieren variables adicionales.
+- Resultado de la revisión del sitio publicado y pendientes de configuración:
+  [docs/verificacion-vercel.md](docs/verificacion-vercel.md).
 
 
 ## Reingeniería e integración A-E

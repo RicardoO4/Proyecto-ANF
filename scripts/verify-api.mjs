@@ -7,6 +7,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key'
 let rol = 'ADMIN', accesos = [], sequence = 0, nextId = 1
 const documentos = new Map()
 let escenarioRatios = null
+let ventasGuardadas = null
 const tabla = nombre => { if (!documentos.has(nombre)) documentos.set(nombre, new Map()); return documentos.get(nombre) }
 globalThis.fetch = async (input, init = {}) => {
   const url = new URL(typeof input === 'string' ? input : input.url ?? input.href)
@@ -28,6 +29,7 @@ globalThis.fetch = async (input, init = {}) => {
   }
   if (escenarioRatios && nombre === 'linea_estado_financiero') return new Response(JSON.stringify({ code: 'TEST', message: 'Fallo controlado de datos' }), { status: 400, headers: { 'Content-Type': 'application/json' } })
   if (nombre === 'inventario_producto') return json([])
+  if (nombre === 'guardar_ventas_mensuales') { ventasGuardadas = JSON.parse(options.body); return json({ cantidad: ventasGuardadas.p_ventas.length }) }
   if (['presupuesto', 'evaluacion_capital'].includes(nombre)) {
     const idCampo = nombre === 'presupuesto' ? 'id_presupuesto' : 'id_evaluacion'
     const filtro = url.searchParams.get(idCampo)
@@ -51,6 +53,7 @@ const presupuestoId = await import('../src/app/api/v1/presupuestos/[id]/route.ts
 const capital = await import('../src/app/api/v1/evaluaciones-capital/route.ts')
 const capitalId = await import('../src/app/api/v1/evaluaciones-capital/[id]/route.ts')
 const resumen = await import('../src/app/api/v1/resumen-ia/route.ts')
+const ventasManual = await import('../src/app/api/v1/ventas-historicas/route.ts')
 const { supuestosEjemplo } = await import('../src/lib/presupuesto.ts')
 const { capitalEjemplo } = await import('../src/lib/capital.ts')
 function request(path, method = 'GET', body, autenticado = true) {
@@ -58,6 +61,19 @@ function request(path, method = 'GET', body, autenticado = true) {
 }
 test('API: sin sesión devuelve 401', async () => {
   assert.equal((await inventario.GET(request('inventarios', 'GET', undefined, false))).status, 401)
+})
+
+test('D: valida el lote mensual antes de invocar SQL y exige permisos', async () => {
+  rol = 'USER'; accesos = [3]
+  assert.equal((await ventasManual.POST(request('ventas-historicas', 'POST', { empresaId: 1, ventas: [] }))).status, 403)
+  accesos = [6]; ventasGuardadas = null
+  const repetidas = [{ fechaVenta: '2025-01-01', montoVenta: 100 }, { fechaVenta: '2025-01-31', montoVenta: 200 }]
+  assert.equal((await ventasManual.POST(request('ventas-historicas', 'POST', { empresaId: 1, ventas: repetidas }))).status, 400)
+  assert.equal(ventasGuardadas, null)
+  assert.equal((await ventasManual.POST(request('ventas-historicas', 'POST', { empresaId: 1, ventas: [{ fechaVenta: '2025-12-31', montoVenta: 0 }] }))).status, 201)
+  assert.equal(ventasGuardadas.p_ventas[0].montoVenta, 0)
+  assert.equal((await ventasManual.POST(request('ventas-historicas', 'POST', null))).status, 400)
+  rol = 'ADMIN'
 })
 test('API: inventarios exige permiso del módulo tanto al leer como escribir', async () => {
   rol = 'USER'; accesos = [6]

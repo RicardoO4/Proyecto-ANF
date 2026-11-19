@@ -11,6 +11,7 @@ import { VentaFormModal, type VentaFormData } from '@/components/proyeccion/Vent
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa'
 import viewStyles from '@/styles/shared/View.module.css'
 import buttonStyles from '@/styles/shared/Button.module.css'
+import { esVentaAnual } from '@/lib/ventasMensuales'
 export const HistorialVentas = () => {
   const [selectedEmpresaId, setSelectedEmpresaId] = useState('')
   const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) =>
@@ -38,7 +39,7 @@ export const HistorialVentas = () => {
     ventaHistoricaService
       .getAllVentasPorEmpresa(parseInt(selectedEmpresaId, 10))
       .then((data) => {
-        const years = [...new Set(data.map((v) => new Date(v.fechaVenta).getFullYear()))]
+        const years = [...new Set(data.map((v) => new Date(v.fechaVenta).getUTCFullYear()))]
         setAvailableYears(years.sort((a, b) => b - a)) // Ordenar de más reciente a más antiguo
       })
   }, [selectedEmpresaId])
@@ -197,7 +198,7 @@ export const HistorialVentas = () => {
                   ventas.map((v) => (
                     <tr key={v.id}>
                       <td>{v.id}</td>
-                      <td>{new Date(v.fechaVenta).toLocaleDateString()}</td>
+                      <td>{v.fechaVenta.slice(0, 10)}</td>
                       <td className="text-end">
                         {v.montoVenta.toLocaleString('es-SV', { style: 'currency', currency: 'USD' })}
                       </td>
@@ -206,7 +207,8 @@ export const HistorialVentas = () => {
                         <button
                           className={`${buttonStyles.btnIcon} ${buttonStyles.btnIconEdit}`}
                           onClick={() => handleOpenEditModal(v)}
-                          title="Editar"
+                          title={esVentaAnual(v.observacion) ? 'Total anual: se actualiza desde el Excel contable' : 'Editar'}
+                          disabled={esVentaAnual(v.observacion)}
                         >
                           <FaEdit />
                         </button>
@@ -214,6 +216,7 @@ export const HistorialVentas = () => {
                           className={`${buttonStyles.btnIcon} ${buttonStyles.btnIconDelete}`}
                           onClick={() => handleDelete(v)}
                           title="Eliminar"
+                          disabled={esVentaAnual(v.observacion)}
                         >
                           <FaTrash />
                         </button>

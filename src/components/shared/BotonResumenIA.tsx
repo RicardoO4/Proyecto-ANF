@@ -111,7 +111,7 @@ const BotonResumenIA = ({ tipo, datos, disabled = false, etiqueta = 'Resumen con
         <Modal.Footer className={modalStyles.modalFooter}>
           {resultado && !cargando && (
             <button type="button" className={buttonStyles.btnSecondary} onClick={() => void pedir(true)}>
-              Volver a generar
+              Volver a generar (consume cuota)
             </button>
           )}
           <button type="button" className={buttonStyles.btnPrimary} onClick={() => setAbierto(false)}>

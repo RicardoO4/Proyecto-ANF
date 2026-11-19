@@ -114,7 +114,7 @@ const AsistenteIA = () => {
           </button>
           {resultado && !generando && (
             <button type="button" className={buttonStyles.btnSecondary} onClick={() => void generar(true)}>
-              Volver a generar
+              Volver a generar (consume cuota)
             </button>
           )}
         </div>
