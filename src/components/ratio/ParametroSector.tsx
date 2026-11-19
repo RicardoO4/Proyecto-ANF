@@ -140,7 +140,7 @@ export const ParametroSector = () => {
             titulo="Gestión de Parámetros por Sector"
             textoBotonNuevo="Nuevo Parámetro"
             columnas={columnas}
-            datos={parametros as unknown as Record<string, unknown>[]}
+            datos={parametros}
             enEditar={handleEditar}
             enEliminar={handleEliminar}
             onNuevoClick={handleNuevo}

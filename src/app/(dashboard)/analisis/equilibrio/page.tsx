@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { calcularPuntoEquilibrio, type DatosEquilibrio } from "@/lib/equilibrio";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import BotonResumenIA from "@/components/shared/BotonResumenIA";
 
@@ -11,29 +12,14 @@ export default function PuntoEquilibrioPage() {
 
   const [unidadesEquilibrio, setUnidadesEquilibrio] = useState<number | null>(null);
   const [ventasEquilibrio, setVentasEquilibrio] = useState<number | null>(null);
-  const [datosGrafico, setDatosGrafico] = useState<any[]>([]);
+  const [datosGrafico, setDatosGrafico] = useState<DatosEquilibrio['datosGrafico']>([]);
 
   const calcularEquilibrio = () => {
-    if (precioVenta <= costoVariable) {
-      alert("El precio de venta debe ser mayor al costo variable.");
-      return;
-    }
-    const unidades = costosFijos / (precioVenta - costoVariable);
-    const ventas = unidades * precioVenta;
-
-    setUnidadesEquilibrio(unidades);
-    setVentasEquilibrio(ventas);
-
-    const nuevosDatos = [];
-    for (let i = 0; i <= unidades * 2; i += Math.max(1, Math.floor(unidades / 5))) {
-      nuevosDatos.push({
-        unidades: i,
-        costosFijos: costosFijos,
-        costosTotales: costosFijos + (costoVariable * i),
-        ventasTotales: precioVenta * i
-      });
-    }
-    setDatosGrafico(nuevosDatos);
+    const resultado = calcularPuntoEquilibrio(costosFijos, precioVenta, costoVariable);
+    if (!resultado) { alert('Ingrese valores no negativos y un precio mayor al costo variable.'); return; }
+    setUnidadesEquilibrio(resultado.unidadesEquilibrio);
+    setVentasEquilibrio(resultado.ventasEquilibrio);
+    setDatosGrafico(resultado.datosGrafico);
   };
 
   const styles = {
@@ -57,13 +43,13 @@ export default function PuntoEquilibrioPage() {
       <div style={styles.grid}>
         <div style={styles.card}>
           <label style={styles.label}>Costos Fijos Totales ($)</label>
-          <input type="number" style={styles.input} value={costosFijos} onChange={(e) => setCostosFijos(Number(e.target.value))} />
+          <input type="number" style={styles.input} value={costosFijos} onChange={(e) => { setCostosFijos(Number(e.target.value)); setUnidadesEquilibrio(null); setVentasEquilibrio(null); setDatosGrafico([]); } } />
           
           <label style={styles.label}>Precio de Venta Unitario ($)</label>
-          <input type="number" style={styles.input} value={precioVenta} onChange={(e) => setPrecioVenta(Number(e.target.value))} />
+          <input type="number" style={styles.input} value={precioVenta} onChange={(e) => { setPrecioVenta(Number(e.target.value)); setUnidadesEquilibrio(null); setVentasEquilibrio(null); setDatosGrafico([]); } } />
           
           <label style={styles.label}>Costo Variable Unitario ($)</label>
-          <input type="number" style={styles.input} value={costoVariable} onChange={(e) => setCostoVariable(Number(e.target.value))} />
+          <input type="number" style={styles.input} value={costoVariable} onChange={(e) => { setCostoVariable(Number(e.target.value)); setUnidadesEquilibrio(null); setVentasEquilibrio(null); setDatosGrafico([]); } } />
           
           <button style={styles.button} onClick={calcularEquilibrio}>Calcular y Graficar</button>
         </div>

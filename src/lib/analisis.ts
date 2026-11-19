@@ -1,5 +1,6 @@
 // Analysis logic — faithful port of AnalisisService.
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { saldoPromedio, utilidadEjercicio } from '@/lib/rentabilidad'
 import type { LineaAnalisisDTO, ReporteInternoDTO } from '@/types'
 import {
   ACTIVO_CORRIENTE,
@@ -11,7 +12,7 @@ import {
   RESULTADO_EJERCICIO,
   TIPO_REPORTE,
   TOTAL_COSTOS_GASTOS,
-  TOTAL_INGRESOS,
+  INGRESOS_NETOS,
   VENTAS_NETAS,
   sumByPrefix,
 } from '@/lib/accountCodes'
@@ -40,7 +41,7 @@ interface LineaEstadoRow {
  *    and ESTADO_RESULTADOS maps are never mixed.
  * name = cuenta.nombreCuenta ?? "Cuenta " + code; duplicates keep the FIRST.
  */
-async function getSaldoMap(
+export async function getSaldoMap(
   empresaId: number,
   anio: number,
   tipoReporte: TipoReporte,
@@ -200,12 +201,14 @@ function computeRatio(
   key: string,
   bal: Map<string, LineaData>,
   res: Map<string, LineaData>,
+  anterior: Map<string, LineaData> | null,
 ): number | null {
   const A = (codes: string | string[]) => sumByPrefix(bal, codes)
   const R = (codes: string | string[]) => sumByPrefix(res, codes)
   // Utilidad Neta: from the ER (ingresos − costos/gastos) when available,
   // otherwise fall back to the balance line 3204 (resultado del ejercicio).
-  const utilidadNeta = res.size > 0 ? R(TOTAL_INGRESOS) - R(TOTAL_COSTOS_GASTOS) : A(RESULTADO_EJERCICIO)
+  const utilidadNeta = utilidadEjercicio(res.size > 0, R(INGRESOS_NETOS), R(TOTAL_COSTOS_GASTOS), A(RESULTADO_EJERCICIO))
+  const promedio = (codes: string) => saldoPromedio(A(codes), anterior ? sumByPrefix(anterior, codes) : null)
 
   switch (key) {
     case 'LIQUIDEZ_CORRIENTE':
@@ -215,13 +218,13 @@ function computeRatio(
         ? round2((A(ACTIVO_CORRIENTE) - A(INVENTARIOS)) / A(PASIVO_CORRIENTE))
         : 0.0
     case 'ROE': {
-      const patrimonio = A(PATRIMONIO_TOTAL)
+      const patrimonio = promedio(PATRIMONIO_TOTAL)
       // Patrimonio ≤ 0 → ROE no significativo (N/M): pérdida ÷ patrimonio
       // negativo daría un falso positivo.
-      return patrimonio > 0 ? round2((utilidadNeta / patrimonio) * 100) : null
+      return A(PATRIMONIO_TOTAL) > 0 && patrimonio > 0 ? round2((utilidadNeta / patrimonio) * 100) : null
     }
     case 'ROA':
-      return A(ACTIVO_TOTAL) !== 0 ? round2((utilidadNeta / A(ACTIVO_TOTAL)) * 100) : 0.0
+      return promedio(ACTIVO_TOTAL) !== 0 ? round2((utilidadNeta / promedio(ACTIVO_TOTAL)) * 100) : 0.0
     case 'ENDEUDAMIENTO':
       return A(ACTIVO_TOTAL) !== 0
         ? round2((A(PASIVO_TOTAL) / A(ACTIVO_TOTAL)) * 100)
@@ -253,14 +256,15 @@ export async function calcularEvolucionRatios(
 
   const resultado: Map<string, unknown>[] = []
   for (const anio of anios) {
-    const [bal, res] = await Promise.all([
+    const [bal, res, anterior] = await Promise.all([
       getSaldoMap(empresaId, anio, TIPO_REPORTE.BALANCE),
       getSaldoMap(empresaId, anio, TIPO_REPORTE.RESULTADOS),
+      getSaldoMap(empresaId, anio - 1, TIPO_REPORTE.BALANCE),
     ])
     const entry: Map<string, unknown> = new Map()
     entry.set('anio', String(anio))
     for (const ratio of ratios) {
-      entry.set(ratio, computeRatio(ratio, bal, res))
+      entry.set(ratio, computeRatio(ratio, bal, res, anterior.size ? anterior : null))
     }
     resultado.push(entry)
   }

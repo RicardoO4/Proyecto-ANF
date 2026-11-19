@@ -1,3 +1,8 @@
+import { REBAJAS_DEVOLUCIONES } from '@/lib/accountCodes'
+import { pronosticarVentas } from '@/lib/pronosticos'
+import { obtenerBaseFinanciera } from '@/lib/baseFinanciera'
+import { getEmpresaPrincipal } from '@/lib/empresaPrincipal'
+import { generarProforma } from '@/lib/proforma'
 // Resumen con IA de cada análisis (Módulo E).
 //
 // Cada pantalla de análisis envía su tipo y sus parámetros. El servidor
@@ -105,8 +110,8 @@ async function comparativo(d: Datos): Promise<Preparado> {
   const esBalance = (l: LineaAnalisisDTO) => (l.tipoReporte ?? 'BALANCE_GENERAL') === 'BALANCE_GENERAL'
   const esResultados = (l: LineaAnalisisDTO) => l.tipoReporte === 'ESTADO_RESULTADOS'
 
-  const ingresos1 = suma('5', 1)
-  const ingresos2 = suma('5', 2)
+  const ingresos1 = suma('5', 1) - 2 * suma(REBAJAS_DEVOLUCIONES, 1)
+  const ingresos2 = suma('5', 2) - 2 * suma(REBAJAS_DEVOLUCIONES, 2)
   const costos1 = suma('4', 1)
   const costos2 = suma('4', 2)
 
@@ -206,7 +211,7 @@ function equilibrio(d: Datos): Preparado {
   const costosFijos = numero(d, 'costosFijos', { min: 0 })
   const precio = numero(d, 'precioVenta', { min: 0 })
   const costoVariable = numero(d, 'costoVariable', { min: 0 })
-  if (costosFijos <= 0) throw new BadRequestException('Los costos fijos deben ser mayores que cero.')
+  if (costosFijos < 0) throw new BadRequestException('Los costos fijos no pueden ser negativos.')
   if (precio <= costoVariable) {
     throw new BadRequestException('El precio de venta debe ser mayor que el costo variable unitario.')
   }
@@ -303,7 +308,19 @@ async function proyeccion(d: Datos): Promise<Preparado> {
   }
 }
 
-function pronostico(d: Datos): Preparado {
+async function pronostico(d: Datos): Promise<Preparado> {
+  if (d.empresaId !== undefined) {
+    const empresa = await getEmpresaPrincipal()
+    if (numero(d, 'empresaId', { min: 1, entero: true }) !== empresa.empresaId) throw new BadRequestException('Empresa inválida.')
+    const periodicidad = d.periodicidad === 'anual' ? 'anual' : d.periodicidad === 'mensual' ? 'mensual' : null
+    if (!periodicidad) throw new BadRequestException('Periodicidad inválida.')
+    const periodos = numero(d, 'periodos', { min: 1, entero: true })
+    const { data, error } = await supabaseAdmin.from('venta').select('*').eq('empresa_id', empresa.empresaId).order('fecha_venta')
+    if (error) throw error
+    const p = pronosticarVentas((data ?? []) as VentaRow[], periodicidad, periodos)
+    const datosClave = p.proyecciones.map(f => ({ etiqueta: f.periodo, valor: `Promedio móvil ${dinero(f.movil)}; logarítmica ${dinero(f.logaritmica)}; cuadrática ${dinero(f.cuadratica)}` }))
+    return { titulo: 'Pronóstico de ventas', clave: `pronostico|${empresa.empresaId}|${periodicidad}|${periodos}`, datosClave, mensaje: `Pronóstico ${periodicidad}. Histórico real: ${p.historico.map(f => `${f.periodo}: ${dinero(f.monto)}`).join('; ')}. Resultados: ${datosClave.map(f => `${f.etiqueta}: ${f.valor}`).join('; ')}. Compara los tres métodos y advierte sobre extrapolación con pocos datos. No confundir años con meses.` }
+  }
   const ventas = listaNumeros(d, 'ventas', 3, 36)
   const periodos = Math.min(numero(d, 'periodos', { min: 1, entero: true }), 12)
   const movil = proyeccionPromedioMovil(ventas, 3, periodos)
@@ -322,7 +339,16 @@ function pronostico(d: Datos): Preparado {
   }
 }
 
-function proforma(d: Datos): Preparado {
+async function proforma(d: Datos): Promise<Preparado> {
+  if (d.anioBase !== undefined) {
+    const empresa = await getEmpresaPrincipal()
+    const base = await obtenerBaseFinanciera(empresa.empresaId, numero(d, 'anioBase', { min: 1900, entero: true }))
+    let p
+    try { p = generarProforma(base, { ventasProyectadas: base.ventas * (1 + numero(d, 'crecimiento') / 100), retencion: numero(d, 'retencion'), porcentajeVariableGastos: numero(d, 'porcentajeVariableGastos') }) }
+    catch (error) { throw new BadRequestException(error instanceof Error ? error.message : 'Supuestos inválidos.') }
+    const datosClave = [{ etiqueta: 'Ingresos proyectados', valor: dinero(p.ingresos) }, { etiqueta: 'Costos y gastos', valor: dinero(p.gastos) }, { etiqueta: 'Utilidad neta', valor: dinero(p.utilidad) }, { etiqueta: 'Utilidad retenida', valor: dinero(p.retenida) }, { etiqueta: 'Financiamiento externo requerido (FER)', valor: dinero(p.fer) }, { etiqueta: 'Total activos', valor: dinero(p.activos) }, { etiqueta: 'Total pasivos', valor: dinero(p.pasivos) }, { etiqueta: 'Patrimonio', valor: dinero(p.patrimonio) }]
+    return { titulo: `Estados Proforma ${p.anio}`, clave: `proforma|${empresa.empresaId}|${base.anio}|${JSON.stringify(d)}`, datosClave, mensaje: `Proforma a partir de estados reales de ${base.anio}. Ingresos y costo de ventas proporcionales, gastos operativos variables ${d.porcentajeVariableGastos}%, demás gastos fijos; activos corrientes sin caja y proveedores proporcionales. Retención ${d.retencion}%. ${datosClave.map(f => `${f.etiqueta}: ${f.valor}`).join('; ')}. Explica las hipótesis, FER positivo requiere financiamiento y negativo se conserva como efectivo. No presentes la proyección como certeza.` }
+  }
   const ventasActuales = numero(d, 'ventasActuales', { min: 0 })
   const ventasProyectadas = numero(d, 'ventasProyectadas', { min: 0 })
   const activos = numero(d, 'activosEspontaneos', { min: 0 })

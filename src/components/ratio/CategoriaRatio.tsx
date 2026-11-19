@@ -38,7 +38,8 @@ export const CategoriaRatio = () => {
   }
 
   useEffect(() => {
-    fetchData()
+    const timer = setTimeout(() => void fetchData(), 0)
+    return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -131,7 +132,7 @@ export const CategoriaRatio = () => {
             titulo="Gestión de Categorías"
             textoBotonNuevo="Nueva Categoría"
             columnas={columnas}
-            datos={categoriasRatioList as unknown as Record<string, unknown>[]}
+            datos={categoriasRatioList}
             enEditar={handleEditar}
             enEliminar={handleEliminar}
             onNuevoClick={handleNuevaCategoria}

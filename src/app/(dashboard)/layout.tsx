@@ -10,9 +10,10 @@ import { Suspense, useEffect, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import MainLayout from '@/components/MainLayout'
+import { puedeVerPagina } from '@/lib/accesos'
 
 function DashboardInner({ children }: { children: ReactNode }) {
-  const { isAuthenticated, isRestoring } = useAuth()
+  const { isAuthenticated, isRestoring, user } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
@@ -25,6 +26,7 @@ function DashboardInner({ children }: { children: ReactNode }) {
   // mientras restaura la sesión (montaje), evita redirección inmediata / parpadeo
   if (isRestoring || !isAuthenticated) return null
 
+  if (user && !puedeVerPagina(pathname, user)) return <MainLayout><p role="alert">No tiene permiso para acceder a este módulo.</p></MainLayout>
   return <MainLayout key={pathname}>{children}</MainLayout>
 }
 

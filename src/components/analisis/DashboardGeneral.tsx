@@ -17,11 +17,11 @@ const DashboardGeneral = () => {
 
   const items = [
     { id: 1, label: 'Gestionar Empresas', icon: Building, to: '/empresas' },
-    { id: 2, label: 'Gestionar Ratios', icon: Diagram3, to: '/ratios' },
-    { id: 3, label: 'Gestionar Usuarios', icon: PeopleFill, to: '/usuarios' },
-    { id: 4, label: 'Catálogo de Cuentas', icon: JournalCheck, to: '/catalogo-cuentas' },
-    { id: 5, label: 'Proyecciones', icon: GraphUpArrow, to: '/proyecciones' },
-    { id: 6, label: 'Estados Financieros', icon: FileEarmarkText, to: '/estados-financieros' },
+    { id: 3, label: 'Gestionar Ratios', icon: Diagram3, to: '/ratios' },
+    { id: 4, label: 'Gestionar Usuarios', icon: PeopleFill, to: '/usuarios' },
+    { id: 5, label: 'Catálogo de Cuentas', icon: JournalCheck, to: '/catalogo-cuentas' },
+    { id: 6, label: 'Proyecciones', icon: GraphUpArrow, to: '/proyecciones' },
+    { id: 7, label: 'Estados Financieros', icon: FileEarmarkText, to: '/estados-financieros' },
   ]
 
   // Filtramos los items según los accesos del usuario

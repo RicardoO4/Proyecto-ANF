@@ -4,7 +4,9 @@ import React from 'react'
 import { IMaskInput } from 'react-imask'
 
 // Este es un componente "forwardRef" que permite a react-hook-form controlarlo
-export const MaskedInput = React.forwardRef<HTMLInputElement, any>((props, ref) => {
+export const MaskedInput = React.forwardRef<HTMLInputElement, Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> & {
+  mask: string; value?: string; onChange: (event: { target: { name?: string; value: string } }) => void
+}>((props, ref) => {
   const { onChange, name, ...otherProps } = props
   return (
     <IMaskInput

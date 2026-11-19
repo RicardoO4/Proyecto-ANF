@@ -1,5 +1,6 @@
 'use client'
 
+import { isAxiosError } from 'axios'
 import React, { useState, useEffect } from 'react'
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
 import SubMenu from '@/components/shared/SubMenu'
@@ -29,7 +30,8 @@ export const Empresas = () => {
   }
 
   useEffect(() => {
-    fetchEmpresas()
+    const timer = setTimeout(() => void fetchEmpresas(), 0)
+    return () => clearTimeout(timer)
   }, [])
 
   const handleOpenCreateModal = () => {
@@ -45,7 +47,7 @@ export const Empresas = () => {
     setEditingEmpresa(null)
   }
 
-  const handleSave = async (data: any, id?: number) => {
+  const handleSave = async (data: Parameters<typeof empresaService.createEmpresa>[0], id?: number) => {
     const isEditing = !!id
     const toastId = Notifier.loading(isEditing ? 'Actualizando...' : 'Guardando...')
     try {
@@ -58,7 +60,8 @@ export const Empresas = () => {
       Notifier.success(`¡Empresa ${isEditing ? 'actualizada' : 'creada'}!`)
       handleCloseModal()
       fetchEmpresas()
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = isAxiosError<{ message?: string }>(error) ? error : undefined
       Notifier.dismiss(toastId)
       Notifier.error(err?.response?.data?.message || `Error al ${isEditing ? 'actualizar' : 'crear'}.`)
     }

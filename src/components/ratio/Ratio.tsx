@@ -13,6 +13,7 @@ import { categoriasRatio } from '@/services/ratioService'
 import { parametroSectorService } from '@/services/ratioService'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import BotonResumenIA from '@/components/shared/BotonResumenIA'
+import { apiClient, getErrorMessage } from '@/services/api'
 import type { RatioResponseDTO, CategoriaRatioResponseDTO, ParametroSectorResponseDTO, EmpresaResponseDTO } from '@/types'
 
 export const Ratio = () => {
@@ -25,6 +26,8 @@ export const Ratio = () => {
 
   // --- Estados para la UI ---
   const [loading, setLoading] = useState(true)
+  const [recalculando, setRecalculando] = useState(false)
+  const [avisosRecalculo, setAvisosRecalculo] = useState<string[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingRatio, setEditingRatio] = useState<Record<string, unknown> | null>(null)
 
@@ -244,18 +247,35 @@ export const Ratio = () => {
   const anioResumen = ratiosConValor.length > 0 ? Math.max(...ratiosConValor.map((r) => Number(r.anio_ratio))) : 0
   const empresaResumen = ratiosConValor[0]?.empresa?.empresa_id ?? 0
 
+  const recalcularTodos = async () => {
+    setRecalculando(true)
+    try {
+      const { data } = await apiClient.post<{ calculados: number; avisos: string[] }>('/ratios/recalcular', {}, { timeout: 300_000 })
+      setAvisosRecalculo(data.avisos)
+      await fetchData(filtroEmpresa ?? '')
+      if (data.avisos.length) Notifier.warning('Recálculo terminado con avisos. Revise el detalle.')
+      else Notifier.success(`${data.calculados} indicadores actualizados.`)
+    } catch (e) { Notifier.error(getErrorMessage(e, 'No se pudo completar el recálculo.')) }
+    finally { setRecalculando(false) }
+  }
+
   return (
     <div style={{ padding: '20px' }}>
       <SubMenu links={sectoresSubMenuLinks} />
 
       <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+        <button className="btn btn-secondary me-3" disabled={loading || recalculando || !empresa} onClick={() => void recalcularTodos()}>
+          {recalculando ? 'Recalculando…' : 'Recalcular todos los años'}
+        </button>
         <BotonResumenIA
+          key={JSON.stringify(ratios)}
           tipo="ratios"
           datos={{ empresaId: empresaResumen, anio: anioResumen }}
           disabled={loading || anioResumen === 0}
           etiqueta={anioResumen ? `Resumen con IA (${anioResumen})` : 'Resumen con IA'}
         />
       </div>
+      {avisosRecalculo.length > 0 && <details role="status"><summary>Avisos del último recálculo ({avisosRecalculo.length})</summary><ul>{avisosRecalculo.map((a, i) => <li key={i}>{a}</li>)}</ul></details>}
 
       <div style={{ marginTop: '1rem' }}>
         {loading ? (

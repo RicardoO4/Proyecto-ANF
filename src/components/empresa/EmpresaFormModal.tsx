@@ -16,7 +16,7 @@ interface EmpresaFormModalProps {
   show: boolean
   onClose: () => void
   // eslint-disable-next-line no-unused-vars
-  onSave: (data: any, id?: number) => void
+  onSave: (data: import("@/services/empresaService").EmpresaData, id?: number) => void
   initialData?: EmpresaResponseDTO | null
 }
 
@@ -63,8 +63,8 @@ export const EmpresaFormModal = ({ show, onClose, onSave, initialData = null }: 
           empresaDui: '',
           empresaNit: '',
           empresaNrc: '',
-          usuarioId: (initialData ? (initialData as any).usuarioId : '') || '',
-          idSector: (initialData ? (initialData as any).idSector : '') || '',
+          usuarioId: String(initialData?.usuarioId ?? ''),
+          idSector: String(initialData?.idSector ?? ''),
         },
       )
     }

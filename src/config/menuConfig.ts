@@ -35,6 +35,7 @@ export const empresasSubMenuLinks = [
 
 export const sectoresSubMenuLinks = [
   { to: '/ratios', label: 'Ratio' },
+  { to: '/inventarios', label: 'Inventarios ABC / EOQ' },
   { to: '/categoria_ratio', label: 'Categoria' },
   { to: '/tipo_ratio', label: 'Tipo' },
   { to: '/parametro_sector', label: 'Parametro' },

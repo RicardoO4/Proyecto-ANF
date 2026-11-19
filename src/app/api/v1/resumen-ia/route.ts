@@ -26,6 +26,7 @@ export async function POST(req: Request) {
     let body: { tipo?: unknown; datos?: unknown; forzar?: unknown }
     try {
       body = JSON.parse(texto)
+      if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Objeto requerido')
     } catch {
       throw new BadRequestException('El cuerpo de la petición debe ser JSON.')
     }

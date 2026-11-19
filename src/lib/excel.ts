@@ -21,7 +21,7 @@ import {
   RESULTADO_EJERCICIO,
   TIPO_REPORTE,
   TOTAL_COSTOS_GASTOS,
-  TOTAL_INGRESOS,
+  INGRESOS_NETOS,
   VENTAS_NETAS,
   clasificarCuenta,
   sumByPrefix,
@@ -481,8 +481,7 @@ export function resumirCarga(balance: LineaCarga[], resultados: LineaCarga[]): R
   const res = toMap(resultados)
   // Rebajas y devoluciones (5101.02) vienen en positivo pero restan del
   // ingreso: sacarlas de la suma del grupo 5 y restarlas una vez.
-  const rebajas = sumByPrefix(res, REBAJAS_DEVOLUCIONES)
-  const totalIngresos = sumByPrefix(res, TOTAL_INGRESOS) - 2 * rebajas
+  const totalIngresos = sumByPrefix(res, INGRESOS_NETOS)
   const totalCostosGastos = sumByPrefix(res, TOTAL_COSTOS_GASTOS)
   return {
     totalActivo: sumByPrefix(bal, ACTIVO_TOTAL),

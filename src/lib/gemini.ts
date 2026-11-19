@@ -10,11 +10,10 @@
 //
 // Ahorro de tokens (versión gratuita):
 //   - maxOutputTokens limita el largo de cada respuesta.
-//   - Se desactiva el "pensamiento" del modelo (sus tokens también cuentan);
-//     si el modelo no admite esa opción, se reintenta una vez sin ella y se
-//     recuerda para no volver a fallar.
+//   - Gemini 3 Flash usa pensamiento mínimo; Gemini 2.5 Flash usa presupuesto 0.
+//   - Un solo intento por consulta, sin reintentos automáticos del SDK.
 //   - Cada llamada registra en la terminal los tokens usados.
-import { ApiError, GoogleGenAI } from '@google/genai'
+import { ApiError, GoogleGenAI, ThinkingLevel } from '@google/genai'
 
 const MODELO_POR_DEFECTO = 'gemini-3.5-flash-lite'
 const TIEMPO_LIMITE_MS = 30_000
@@ -60,8 +59,6 @@ export function modeloGemini(): string {
 
 // Un solo cliente por proceso; se recrea si cambia la clave.
 let cliente: { apiKey: string; ai: GoogleGenAI } | null = null
-// Modelos que rechazaron desactivar el pensamiento.
-const sinOpcionPensamiento = new Set<string>()
 
 function obtenerCliente(): GoogleGenAI {
   const apiKey = process.env.GEMINI_API_KEY?.trim()
@@ -72,7 +69,7 @@ function obtenerCliente(): GoogleGenAI {
     )
   }
   if (!cliente || cliente.apiKey !== apiKey) {
-    cliente = { apiKey, ai: new GoogleGenAI({ apiKey }) }
+    cliente = { apiKey, ai: new GoogleGenAI({ apiKey, httpOptions: { retryOptions: { attempts: 1 } } }) }
   }
   return cliente.ai
 }
@@ -88,7 +85,7 @@ export async function generarJsonConGemini<T>(
   const ai = obtenerCliente()
   const modelo = modeloGemini()
 
-  const llamar = (conPensamientoApagado: boolean) =>
+  const llamar = () =>
     ai.models.generateContent({
       model: modelo,
       contents: peticion.mensaje,
@@ -98,7 +95,9 @@ export async function generarJsonConGemini<T>(
         maxOutputTokens: peticion.maxTokensSalida ?? MAX_TOKENS_SALIDA,
         responseMimeType: 'application/json',
         responseJsonSchema: peticion.esquemaRespuesta,
-        ...(conPensamientoApagado ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+        ...(/^gemini-3[.-].*flash/.test(modelo)
+          ? { thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } }
+          : /^gemini-2\.5-flash/.test(modelo) ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
         abortSignal: AbortSignal.timeout(TIEMPO_LIMITE_MS),
       },
     })
@@ -106,22 +105,7 @@ export async function generarJsonConGemini<T>(
   let texto: string | undefined
   let tokens: TokensUsados
   try {
-    let respuesta
-    const pensamientoApagado = !sinOpcionPensamiento.has(modelo)
-    try {
-      respuesta = await llamar(pensamientoApagado)
-    } catch (err) {
-      // Algunos modelos no permiten apagar el pensamiento y responden 400
-      // (un 400 no gasta tokens). Se reintenta una vez sin esa opción y,
-      // si así funciona, se recuerda para las siguientes llamadas.
-      if (pensamientoApagado && err instanceof ApiError && err.status === 400) {
-        console.warn(`[Gemini] ${modelo} rechazó apagar el pensamiento; se reintenta sin esa opción.`)
-        respuesta = await llamar(false)
-        sinOpcionPensamiento.add(modelo)
-      } else {
-        throw err
-      }
-    }
+    const respuesta = await llamar()
 
     if (respuesta.promptFeedback?.blockReason) {
       throw new GeminiError(

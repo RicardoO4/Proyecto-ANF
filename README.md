@@ -121,3 +121,8 @@ las asimetrías de nombres (camelCase vs snake_case) de los DTOs originales.
   dinámicas y validan el token `Bearer` para consultas a Supabase.
 - Para producción, despliega en Vercel/Node y define las tres variables de
   entorno de Supabase en el entorno.
+
+
+## Reingeniería e integración A-E
+
+Estado, migraciones, hipótesis de cálculo y pruebas reproducibles: [docs/estado-reingenieria.md](docs/estado-reingenieria.md).

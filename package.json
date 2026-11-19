@@ -11,7 +11,15 @@
     "seed:ratios": "node scripts/seed-ratios.mjs",
     "e2e:au1": "node scripts/e2e-au1.mjs",
     "plantillas": "node scripts/generar-plantillas.mjs",
-    "verify:carga": "npx --yes tsx scripts/verify-carga.mts"
+    "verify:carga": "node --import ./scripts/register-ts.mjs scripts/verify-carga.mts",
+    "verify:integracion": "node --import ./scripts/register-ts.mjs --test scripts/verify-integracion.mjs scripts/verify-api.mjs",
+    "verify:servicios": "node --import ./scripts/register-ts.mjs scripts/verify-servicios.mjs",
+    "verify:presupuesto": "node --no-warnings scripts/verify-presupuesto.mts",
+    "verify:capital": "node --no-warnings scripts/verify-capital.mts",
+    "e2e:integracion": "node --import ./scripts/register-ts.mjs scripts/e2e-integracion.mjs",
+    "e2e:browser": "node scripts/e2e-browser.mjs",
+    "verify:cache-ia": "node --import ./scripts/register-ts.mjs --test scripts/verify-cache-ia.mjs",
+    "verify:excel-modulos": "node --import ./scripts/register-ts.mjs --test scripts/verify-excel-modulos.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

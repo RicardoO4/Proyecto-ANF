@@ -108,7 +108,9 @@ async function leerCuerpo(req: Request): Promise<{ nombre?: unknown; empresaId?:
   const texto = await req.text()
   if (texto.length > MAX_BYTES) throw new BadRequestException('Los datos enviados son demasiado grandes.')
   try {
-    return JSON.parse(texto)
+    const body: unknown = JSON.parse(texto)
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Objeto requerido')
+    return body as { nombre?: unknown; empresaId?: unknown; datos?: unknown }
   } catch {
     throw new BadRequestException('El cuerpo de la petición debe ser JSON.')
   }

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { apiClient } from '@/services/api'
 
 import viewStyles from '@/styles/shared/View.module.css'
@@ -56,6 +56,7 @@ const AnalisisHV = () => {
   const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) =>
     setEmpresaSeleccionada(String(e.empresaId)),
   )
+  const secuenciaReporte = useRef(0)
   const [anio1, setAnio1] = useState('')
   const [anio2, setAnio2] = useState('')
   const [aniosDisponibles, setAniosDisponibles] = useState<number[]>([])
@@ -87,15 +88,18 @@ const AnalisisHV = () => {
   const handleGenerarReporte = () => {
     if (!empresaSeleccionada || !anio1 || !anio2) return
 
+    const secuencia = ++secuenciaReporte.current
     apiClient
       .get('/analisis/reporte-interno', {
         params: { empresaId: empresaSeleccionada, anio1, anio2 },
       })
       .then((res) => {
+        if (secuencia !== secuenciaReporte.current) return
         setReporte(res.data)
         console.log('Reporte recibido:', res.data)
       })
       .catch((err) => {
+        if (secuencia !== secuenciaReporte.current) return
         console.error('Error al generar reporte:', err)
         Notifier.error('Error al generar el reporte.')
         setReporte(null) // Limpia el reporte anterior si hay un error
@@ -194,7 +198,7 @@ const AnalisisHV = () => {
           <select
             id="anio1"
             value={anio1}
-            onChange={(e) => setAnio1(e.target.value)}
+            onChange={(e) => { setAnio1(e.target.value); setReporte(null); secuenciaReporte.current++ }}
             disabled={!empresaSeleccionada || aniosDisponibles.length === 0}
           >
             <option value="">Seleccione un año</option>
@@ -211,7 +215,7 @@ const AnalisisHV = () => {
           <select
             id="anio2"
             value={anio2}
-            onChange={(e) => setAnio2(e.target.value)}
+            onChange={(e) => { setAnio2(e.target.value); setReporte(null); secuenciaReporte.current++ }}
             disabled={!empresaSeleccionada || aniosDisponibles.length === 0}
           >
             <option value="">Seleccione un año</option>
@@ -231,6 +235,7 @@ const AnalisisHV = () => {
           Generar Reporte
         </button>
         <BotonResumenIA
+          key={JSON.stringify(reporte)}
           tipo="comparativo"
           datos={{ empresaId: Number(empresaSeleccionada), anio1: Number(anio1), anio2: Number(anio2) }}
           disabled={!reporte}

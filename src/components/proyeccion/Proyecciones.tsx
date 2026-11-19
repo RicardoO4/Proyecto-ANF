@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import SubMenu from '@/components/shared/SubMenu'
 import { proyeccionesSubMenuLinks } from '@/config/menuConfig'
 import EmpresaFija from '@/components/shared/EmpresaFija'
@@ -18,6 +18,7 @@ import BotonResumenIA from '@/components/shared/BotonResumenIA'
 
 export const Proyecciones = () => {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('')
+  const secuencia = useRef(0)
   const [metodo, setMetodo] = useState('')
   const [ventas, setVentas] = useState<string[]>(Array(12).fill('')) // 12 meses vacíos
   const [activeTab, setActiveTab] = useState<'masiva' | 'manual'>('masiva')
@@ -34,6 +35,7 @@ export const Proyecciones = () => {
       return
     }
 
+    const solicitud = ++secuencia.current
     const toastId = Notifier.loading('Generando proyección...')
     try {
       // keep numeric month values in sync for the manual tab
@@ -43,6 +45,7 @@ export const Proyecciones = () => {
         12,
         metodo.toUpperCase().replace('-', '_'),
       )
+      if (solicitud !== secuencia.current) { Notifier.dismiss(String(toastId)); return }
       setProyecciones(response)
       Notifier.dismiss(String(toastId))
       Notifier.success('Proyección generada correctamente.')
@@ -74,7 +77,7 @@ export const Proyecciones = () => {
         <select
           className="form-select"
           value={metodo}
-          onChange={(e) => setMetodo(e.target.value)}
+          onChange={(e) => { setMetodo(e.target.value); setProyecciones([]); secuencia.current++ }}
         >
           <option value="">Seleccione un método...</option>
           <option value="minimos-cuadrados">Mínimos Cuadrados</option>
@@ -140,6 +143,7 @@ export const Proyecciones = () => {
             <h5>Resultados de la Proyección</h5>
             <div className="mb-3">
               <BotonResumenIA
+                key={JSON.stringify(proyecciones)}
                 tipo="proyeccion"
                 datos={{
                   empresaId: Number(empresaSeleccionada),

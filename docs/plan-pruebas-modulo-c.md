@@ -1,3 +1,5 @@
+> Documento de la entrega original de C. Para la implementación actual de C4, AU1 y pruebas globales consultar [estado-reingenieria.md](estado-reingenieria.md). Las limitaciones y conteos siguientes describen aquella entrega.
+
 # Plan de pruebas — Módulo C (ratios avanzados, apalancamiento, rentabilidad, ciclos y AU1)
 
 Rama: `Modulo-C`

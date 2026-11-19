@@ -22,14 +22,16 @@ export async function GET(req: Request) {
 
     const { data, error } = await supabaseAdmin
       .from('venta')
-      .select('fecha_venta, monto_venta')
+      .select('fecha_venta, monto_venta, observacion')
       .eq('empresa_id', empresaId)
     if (error) throw error
 
     // Agrupa por año (las fechas vienen como 'YYYY-MM-DD'; se lee el año del texto
     // para no depender de la zona horaria).
     const porAnio = new Map<number, number>()
+    const aniosContables = new Set((data ?? []).filter(v => v.observacion?.startsWith('Generado desde estados financieros ')).map(v => String(v.fecha_venta).slice(0, 4)))
     for (const v of data ?? []) {
+      if (aniosContables.has(String(v.fecha_venta).slice(0, 4)) && !v.observacion?.startsWith('Generado desde estados financieros ')) continue
       const anio = Number(String(v.fecha_venta).slice(0, 4))
       if (Number.isFinite(anio)) porAnio.set(anio, (porAnio.get(anio) ?? 0) + Number(v.monto_venta))
     }

@@ -22,6 +22,7 @@ const REGLAS: Regla[] = [
   { prefijo: '/api/v1/empresas', opcion: 1, soloEscritura: true },
   { prefijo: '/api/v1/analisis', opcion: 2, soloEscritura: true },
   { prefijo: '/api/v1/ratios', opcion: 3, soloEscritura: true },
+  { prefijo: '/api/v1/inventarios', opcion: 3, soloEscritura: false },
   { prefijo: '/api/v1/categorias-ratio', opcion: 3, soloEscritura: true },
   { prefijo: '/api/v1/tipos-ratio', opcion: 3, soloEscritura: true },
   { prefijo: '/api/v1/parametros-sector', opcion: 3, soloEscritura: true },

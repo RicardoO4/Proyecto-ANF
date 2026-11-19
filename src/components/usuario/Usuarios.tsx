@@ -1,5 +1,6 @@
 'use client'
 
+import { isAxiosError } from 'axios'
 import React, { useState, useEffect } from 'react'
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
 import SubMenu from '@/components/shared/SubMenu'
@@ -29,7 +30,8 @@ export const Usuarios = () => {
   }
 
   useEffect(() => {
-    fetchUsuarios()
+    const timer = setTimeout(() => void fetchUsuarios(), 0)
+    return () => clearTimeout(timer)
   }, [])
 
   const handleOpenCreateModal = () => {
@@ -58,7 +60,8 @@ export const Usuarios = () => {
       Notifier.success(`¡Usuario ${isEditing ? 'actualizado' : 'creado'} correctamente!`)
       handleCloseModal()
       fetchUsuarios()
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = isAxiosError<{ message?: string }>(error) ? error : undefined
       Notifier.dismiss(toastId)
       Notifier.error(err?.response?.data?.message || `Error al ${isEditing ? 'actualizar' : 'crear'} usuario.`)
     }
@@ -139,7 +142,7 @@ export const Usuarios = () => {
         )}
       </div>
 
-      <UsuarioFormModal show={isModalOpen} onClose={handleCloseModal} onSave={handleSave} initialData={editingUsuario} />
+      <UsuarioFormModal key={`${editingUsuario?.usuarioId ?? "nuevo"}-${isModalOpen}`} show={isModalOpen} onClose={handleCloseModal} onSave={handleSave} initialData={editingUsuario} />
     </>
   )
 }

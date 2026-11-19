@@ -30,9 +30,8 @@ export const HistorialVentas = () => {
   // para extraer los años únicos en los que hay datos.
   useEffect(() => {
     if (!selectedEmpresaId) {
-      setAvailableYears([])
-      setVentas([])
-      setSelectedYear('')
+      const timer = setTimeout(() => { setAvailableYears([]); setVentas([]); setSelectedYear('') }, 0)
+      return () => clearTimeout(timer)
       return
     }
     // Llamamos al endpoint que trae TODAS las ventas para sacar los años
@@ -66,7 +65,8 @@ export const HistorialVentas = () => {
 
   // Este efecto se ejecuta cada vez que la función fetchVentasDelAnio cambia
   useEffect(() => {
-    fetchVentasDelAnio()
+    const timer = setTimeout(() => fetchVentasDelAnio(), 0)
+    return () => clearTimeout(timer)
   }, [fetchVentasDelAnio])
 
   // Funciones para manejar la apertura de los modales
