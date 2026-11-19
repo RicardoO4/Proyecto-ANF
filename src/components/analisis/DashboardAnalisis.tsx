@@ -6,7 +6,8 @@ import {
   ArrowRepeat, 
   GraphUp, 
   Calculator,
-  Diagram3
+  Diagram3,
+  Robot
 } from 'react-bootstrap-icons'
 
 const DashboardAnalisis = () => {
@@ -41,6 +42,13 @@ const DashboardAnalisis = () => {
       icon: Diagram3,
       to: '/analisis/dupont',
       descripcion: 'Análisis interactivo de rentabilidad y desglose de los componentes del ROE.',
+    },
+    // --- Módulo Integrante E ---
+    {
+      label: 'Asistente Financiero IA',
+      icon: Robot,
+      to: '/analisis/asistente',
+      descripcion: 'Explicación en lenguaje sencillo de los ratios calculados, generada con IA.',
     },
   ]
 

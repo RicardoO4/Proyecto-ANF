@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BotonResumenIA from "@/components/shared/BotonResumenIA";
 
 export default function EstadosProformaPage() {
   const [ventasActuales, setVentasActuales] = useState<number>(100000);
@@ -111,6 +112,18 @@ export default function EstadosProformaPage() {
                 ? "La empresa necesita pedir un préstamo para soportar este nivel de ventas." 
                 : "La empresa tiene exceso de liquidez. No requiere financiamiento bancario."}
             </p>
+            <BotonResumenIA
+              tipo="proforma"
+              datos={{
+                ventasActuales,
+                ventasProyectadas,
+                activosEspontaneos,
+                pasivosEspontaneos,
+                margenNetoPorcentaje,
+                retencionPorcentaje,
+              }}
+              disabled={ventasActuales <= 0}
+            />
           </div>
         </div>
 

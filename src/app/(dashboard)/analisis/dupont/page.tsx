@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import BotonResumenIA from "@/components/shared/BotonResumenIA";
 
 export default function SistemaDupontPage() {
   const [ventas, setVentas] = useState<number>(100000);
@@ -86,6 +87,11 @@ export default function SistemaDupontPage() {
           <p style={styles.resultDesc}>
             La empresa genera ${(roe).toFixed(2)} de utilidad por cada $1 aportado.
           </p>
+          <BotonResumenIA
+            tipo="dupont"
+            datos={{ ventas, utilidadNeta, activoTotal, patrimonio }}
+            disabled={ventas <= 0 || activoTotal <= 0}
+          />
         </div>
       </div>
     </div>

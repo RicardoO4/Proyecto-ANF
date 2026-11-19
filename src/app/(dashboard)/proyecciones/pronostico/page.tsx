@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { proyeccionPromedioMovil, proyeccionLogaritmica } from "@/lib/proyeccion"; // Asegúrate de que esta ruta sea correcta según tu proyecto
+import BotonResumenIA from "@/components/shared/BotonResumenIA";
 
 export default function PronosticosPage() {
   const [ventas] = useState<number[]>([1200, 1350, 1400, 1600, 1850, 1900, 2100, 2150, 2200, 2350, 2400, 2450]);
@@ -50,6 +51,9 @@ export default function PronosticosPage() {
             <Line type="monotone" dataKey="logaritmico" name="Regresión Logarítmica" stroke="var(--accent-positive)" strokeDasharray="5 5" strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
+      </div>
+      <div style={{ marginTop: '16px' }}>
+        <BotonResumenIA tipo="pronostico" datos={{ ventas, periodos: 6 }} />
       </div>
     </div>
   );

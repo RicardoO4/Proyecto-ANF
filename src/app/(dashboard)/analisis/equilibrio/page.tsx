@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import BotonResumenIA from "@/components/shared/BotonResumenIA";
 
 export default function PuntoEquilibrioPage() {
   const [costosFijos, setCostosFijos] = useState<number>(0);
@@ -76,6 +77,11 @@ export default function PuntoEquilibrioPage() {
              <h3 style={styles.resultLabel}>Ventas en dólares para el equilibrio</h3>
              <p style={styles.resultValueHighlight}>{ventasEquilibrio !== null ? `$${ventasEquilibrio.toLocaleString()}` : '---'}</p>
            </div>
+           <BotonResumenIA
+             tipo="equilibrio"
+             datos={{ costosFijos, precioVenta, costoVariable }}
+             disabled={unidadesEquilibrio === null}
+           />
         </div>
       </div>
 

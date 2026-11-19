@@ -6,6 +6,7 @@ import { apiClient } from '@/services/api'
 import { Notifier } from '@/utils/Notifier'
 import EmpresaFija from '@/components/shared/EmpresaFija'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
+import BotonResumenIA from '@/components/shared/BotonResumenIA'
 
 // --- 1. Importaciones de Estilo del Proyecto ---
 import viewStyles from '@/styles/shared/View.module.css'
@@ -191,6 +192,11 @@ const PaginaEvolucionRatios = () => {
         >
           {loading ? 'Generando...' : 'Generar'}
         </button>
+        <BotonResumenIA
+          tipo="evolucion"
+          datos={{ empresaId: Number(empresaSel), ratios: ratiosSel }}
+          disabled={loading || datosGraficos.length === 0 || ratiosSel.length === 0}
+        />
       </div>
 
       {/* --- 6. Área de Gráficos --- */}
