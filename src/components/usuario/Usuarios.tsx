@@ -11,6 +11,7 @@ import { UsuarioFormModal } from '@/components/usuario/UsuarioFormModal'
 import viewStyles from '@/styles/shared/View.module.css'
 import buttonStyles from '@/styles/shared/Button.module.css'
 import type { UsuarioResponseDTO } from '@/types'
+import { NOMBRES_ROLES } from '@/lib/roles'
 
 export const Usuarios = () => {
   const [usuarios, setUsuarios] = useState<UsuarioResponseDTO[]>([])
@@ -119,7 +120,7 @@ export const Usuarios = () => {
                     <td>{u.nombreUsuario}</td>
                     <td>{u.apellidoUsuario}</td>
                     <td>{u.userName}</td>
-                    <td>{u.rol}</td>
+                    <td>{NOMBRES_ROLES[u.rol] ?? u.rol}</td>
                     <td className="text-end">
                       <button
                         className={`${buttonStyles.btnIcon} ${buttonStyles.btnIconEdit} me-2`}

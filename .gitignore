@@ -44,3 +44,6 @@ next-env.d.ts
 
 /docs/sesion-modulo-b.md
 /plan_reigenieria.md
+
+# Copias privadas y datos de desarrollo local
+/.local-data/

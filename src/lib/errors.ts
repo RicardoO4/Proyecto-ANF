@@ -46,6 +46,9 @@ const GENERIC_500_MESSAGE =
   'Ocurrió un error inesperado. Por favor, contacte al administrador.'
 
 export function errorResponse(req: Request, err: unknown): Response {
+  if (typeof err === 'object' && err !== null && 'code' in err && err.code === 'ANF04') {
+    return errorResponse(req, new BusinessRuleException(String('message' in err ? err.message : 'Operación protegida por Contabilidad.')))
+  }
   const url = new URL(req.url)
   const path = url.pathname
 

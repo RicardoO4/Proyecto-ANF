@@ -24,7 +24,21 @@
     "verify:persistencia": "node --import ./scripts/register-ts.mjs scripts/verify-persistencia.mjs",
     "verify:recalculo": "node --import ./scripts/register-ts.mjs --test scripts/verify-recalculo.mjs",
     "verify:recalculo-servicios": "node --import ./scripts/register-ts.mjs scripts/verify-recalculo-servicios.mjs",
-    "e2e:ratios": "node scripts/e2e-ratios.mjs"
+    "e2e:ratios": "node scripts/e2e-ratios.mjs",
+    "dev:local": "node scripts/dev-local.mjs",
+    "db:start": "node scripts/supabase-local.mjs start",
+    "db:studio": "node scripts/supabase-local.mjs studio",
+    "db:stop": "node scripts/supabase-local.mjs stop",
+    "db:status": "node scripts/supabase-local.mjs status",
+    "db:migrate": "node scripts/supabase-local.mjs migrate",
+    "db:seed": "node scripts/supabase-local.mjs seed",
+    "db:historico": "node scripts/supabase-local.mjs history",
+    "db:contador": "node scripts/crear-contador-local.mjs",
+    "db:env": "node scripts/supabase-local.mjs env",
+    "db:export": "node scripts/exportar-anf-local.mjs",
+    "verify:contabilidad": "node --import ./scripts/register-ts.mjs --test scripts/verify-contabilidad.mjs scripts/verify-contabilidad-api.mjs",
+    "verify:contabilidad-local": "node scripts/verify-contabilidad-local.mjs",
+    "e2e:contabilidad": "node scripts/e2e-contabilidad.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -55,6 +69,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "pg": "8.16.3",
+    "supabase": "3.2.0",
     "typescript": "^5"
   }
 }

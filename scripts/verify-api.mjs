@@ -67,7 +67,7 @@ test('API: sin sesión devuelve 401', async () => {
 })
 
 test('API: recálculo exige permisos y valida la opción de forzar', async () => {
-  rol = 'USER'; accesos = [6]
+  rol = 'ANALISTA'; accesos = [6]
   assert.equal((await recalcApi.POST(request('ratios/recalcular', 'POST', {}))).status, 403)
   rol = 'ADMIN'
   for (const body of [null, [], { forzar: 'true' }]) assert.equal((await recalcApi.POST(request('ratios/recalcular', 'POST', body))).status, 400)
@@ -89,7 +89,7 @@ test('API: año vigente informa omitidos sin escribir; forzar lo vuelve a proces
 })
 
 test('D: valida el lote mensual antes de invocar SQL y exige permisos', async () => {
-  rol = 'USER'; accesos = [3]
+  rol = 'ANALISTA'; accesos = [3]
   assert.equal((await ventasManual.POST(request('ventas-historicas', 'POST', { empresaId: 1, ventas: [] }))).status, 403)
   accesos = [6]; ventasGuardadas = null
   const repetidas = [{ fechaVenta: '2025-01-01', montoVenta: 100 }, { fechaVenta: '2025-01-31', montoVenta: 200 }]
@@ -101,14 +101,14 @@ test('D: valida el lote mensual antes de invocar SQL y exige permisos', async ()
   rol = 'ADMIN'
 })
 test('API: inventarios exige permiso del módulo tanto al leer como escribir', async () => {
-  rol = 'USER'; accesos = [6]
+  rol = 'ANALISTA'; accesos = [6]
   assert.equal((await inventario.GET(request('inventarios'))).status, 403)
   assert.equal((await inventario.POST(request('inventarios', 'POST', {}))).status, 403)
   accesos = [3]
   assert.equal((await inventario.GET(request('inventarios'))).status, 200)
 })
 test('API: usuario sin Proyecciones no puede guardar presupuestos ni capital', async () => {
-  rol = 'USER'; accesos = [3]
+  rol = 'ANALISTA'; accesos = [3]
   assert.equal((await presupuesto.POST(request('presupuestos', 'POST', {}))).status, 403)
   assert.equal((await capital.POST(request('evaluaciones-capital', 'POST', {}))).status, 403)
 })
@@ -118,7 +118,7 @@ test('API: JSON null es 400 en presupuestos y resumen; no llama a Gemini', async
   assert.equal((await resumen.POST(request('resumen-ia', 'POST', null))).status, 400)
 })
 test('E: crear, listar, abrir, modificar y borrar ambos tipos de documentos', async () => {
-  rol = 'USER'; accesos = [6]
+  rol = 'ANALISTA'; accesos = [6]
   for (const [path, collection, item, datos] of [['presupuestos', presupuesto, presupuestoId, supuestosEjemplo(2027)], ['evaluaciones-capital', capital, capitalId, capitalEjemplo()]]) {
     const crear = await collection.POST(request(path, 'POST', { empresaId: 1, nombre: 'Prueba integrada', datos }))
     assert.equal(crear.status, 201, await crear.clone().text())

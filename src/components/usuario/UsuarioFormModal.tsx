@@ -100,9 +100,11 @@ export const UsuarioFormModal: React.FC<UsuarioFormModalProps> = ({ show, onClos
               required
             >
               <option value="">Seleccione...</option>
-              <option value="ADMIN">ADMIN</option>
-              <option value="USER">USER</option>
+              <option value="ADMIN">Administrador · ambas áreas</option>
+              <option value="CONTADOR">Contador · área contable</option>
+              <option value="ANALISTA">Analista financiero</option>
             </select>
+            <p className="form-text">El contador gestiona el ciclo contable completo. El analista financiero trabaja con los estados e indicadores. El administrador accede a ambas áreas y gestiona usuarios.</p>
           </div>
         </Modal.Body>
 

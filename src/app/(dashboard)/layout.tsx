@@ -11,6 +11,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import MainLayout from '@/components/MainLayout'
 import { puedeVerPagina } from '@/lib/accesos'
+import Link from 'next/link'
 
 function DashboardInner({ children }: { children: ReactNode }) {
   const { isAuthenticated, isRestoring, user } = useAuth()
@@ -21,13 +22,14 @@ function DashboardInner({ children }: { children: ReactNode }) {
     if (!isRestoring && !isAuthenticated) {
       router.replace('/')
     }
-  }, [isAuthenticated, isRestoring, router])
+    if(!isRestoring&&isAuthenticated&&user?.rol==='CONTADOR'&&pathname==='/dashboard')router.replace('/contabilidad')
+  }, [isAuthenticated, isRestoring, router, user?.rol, pathname])
 
   // mientras restaura la sesión (montaje), evita redirección inmediata / parpadeo
   if (isRestoring || !isAuthenticated) return null
 
-  if (user && !puedeVerPagina(pathname, user)) return <MainLayout><p role="alert">No tiene permiso para acceder a este módulo.</p></MainLayout>
-  return <MainLayout key={pathname}>{children}</MainLayout>
+  if (user && !puedeVerPagina(pathname, user)) return <MainLayout><p role="alert">No tiene permiso para acceder a este módulo.</p><Link href={user.rol==='CONTADOR'?'/contabilidad':'/dashboard'}>Volver al inicio</Link></MainLayout>
+  return <MainLayout key={pathname.startsWith('/contabilidad')?'contabilidad':pathname}>{children}</MainLayout>
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {

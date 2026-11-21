@@ -19,6 +19,7 @@ export const mainLinks: { idOp: number; to: string; label: string; icon: IconTyp
   { idOp: 3, to: '/ratios', label: 'Ratios', icon: Diagram3 },
   { idOp: 4, to: '/usuarios', label: 'Usuarios', icon: PeopleFill },
   { idOp: 5, to: '/catalogo-cuentas', label: 'Catálogo de Cuentas', icon: JournalCheck },
+  { idOp: 8, to: '/contabilidad', label: 'Contabilidad', icon: JournalCheck },
   { idOp: 6, to: '/proyecciones', label: 'Proyecciones', icon: GraphUpArrow },
   { idOp: 7, to: '/estados-financieros', label: 'Estados Financieros', icon: FileEarmarkText },
 ]

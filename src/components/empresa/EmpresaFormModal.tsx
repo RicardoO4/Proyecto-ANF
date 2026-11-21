@@ -11,6 +11,7 @@ import modalStyles from '@/styles/shared/Modal.module.css'
 import type { EmpresaResponseDTO } from '@/types'
 import type { SectorResponse } from '@/services/sectorService'
 import type { UsuarioResponseDTO } from '@/types'
+import { useAuth } from '@/context/AuthContext'
 
 interface EmpresaFormModalProps {
   show: boolean
@@ -30,6 +31,8 @@ interface FormValues {
 }
 
 export const EmpresaFormModal = ({ show, onClose, onSave, initialData = null }: EmpresaFormModalProps) => {
+  const { user } = useAuth()
+  const puedeAsignarUsuario = user?.rol === 'ADMIN'
   const isCreateMode = !initialData
   const {
     register,
@@ -45,7 +48,7 @@ export const EmpresaFormModal = ({ show, onClose, onSave, initialData = null }: 
   useEffect(() => {
     const loadSelectData = async () => {
       try {
-        const [sectoresData, usuariosData] = await Promise.all([sectorService.getSectores(), usuarioService.getUsuarios()])
+        const [sectoresData, usuariosData] = await Promise.all([sectorService.getSectores(), puedeAsignarUsuario ? usuarioService.getUsuarios() : Promise.resolve([])])
         setSectores(sectoresData)
         setUsuarios(usuariosData)
       } catch (error) {
@@ -53,7 +56,7 @@ export const EmpresaFormModal = ({ show, onClose, onSave, initialData = null }: 
       }
     }
     loadSelectData()
-  }, [])
+  }, [puedeAsignarUsuario])
 
   useEffect(() => {
     if (show) {
@@ -73,10 +76,10 @@ export const EmpresaFormModal = ({ show, onClose, onSave, initialData = null }: 
   const onSubmit = (data: FormValues) => {
     const payload = {
       ...data,
-      usuarioId: parseInt(data.usuarioId, 10),
-      idSector: parseInt(data.idSector, 10),
+      usuarioId: puedeAsignarUsuario ? parseInt(data.usuarioId, 10) : initialData?.usuarioId ?? user?.id ?? NaN,
+      idSector: isCreateMode ? parseInt(data.idSector, 10) : initialData?.idSector ?? null,
     }
-    if (isNaN(payload.usuarioId) || isNaN(payload.idSector)) {
+    if (isNaN(payload.usuarioId) || (payload.idSector !== null && isNaN(payload.idSector))) {
       console.error('Error: ID de usuario o sector no es un número válido.', payload)
       return // Detiene el envío
     }
@@ -147,7 +150,7 @@ export const EmpresaFormModal = ({ show, onClose, onSave, initialData = null }: 
               </select>
               {errors.idSector && <div className="invalid-feedback">{errors.idSector.message}</div>}
             </div>
-            <div className="col-md-6 mb-3">
+            {puedeAsignarUsuario && <div className="col-md-6 mb-3">
               <label className="form-label">Usuario Asignado</label>
               <select
                 className={`form-select ${errors.usuarioId ? 'is-invalid' : ''}`}
@@ -162,7 +165,7 @@ export const EmpresaFormModal = ({ show, onClose, onSave, initialData = null }: 
                 ))}
               </select>
               {errors.usuarioId && <div className="invalid-feedback">{errors.usuarioId.message}</div>}
-            </div>
+            </div>}
             {/* --- FIN DE SELECTORES --- */}
           </div>
         </Modal.Body>

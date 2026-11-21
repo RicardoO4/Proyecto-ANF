@@ -194,6 +194,45 @@
   color: var(--fey-smoke);
 }
 
+.passwordField {
+  position: relative;
+}
+
+.passwordInput {
+  padding-right: 52px;
+}
+
+.passwordInput::-ms-reveal {
+  display: none;
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--fey-graphite);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.passwordToggle:hover {
+  color: var(--fey-white);
+}
+
+.passwordToggle:focus-visible {
+  outline: 2px solid var(--fey-signal);
+  outline-offset: -2px;
+}
+
 .input:focus {
   border-color: var(--fey-signal);
   box-shadow: var(--shadow-focus);

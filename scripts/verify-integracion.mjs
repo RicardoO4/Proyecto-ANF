@@ -83,7 +83,7 @@ test('D4: cero costos fijos no produce bucles; entradas inválidas no calculan',
 })
 test('A8: rutas directas, inventarios y accesos respetan el módulo', () => {
   assert.equal(opcionDePagina('/inventarios'), 3)
-  assert.equal(puedeVerPagina('/proyecciones/capital', { rol: 'USER', accesos: [3] }), false)
-  assert.equal(puedeVerPagina('/inventarios', { rol: 'USER', accesos: [3] }), true)
+  assert.equal(puedeVerPagina('/proyecciones/capital', { rol: 'ANALISTA', accesos: [3] }), false)
+  assert.equal(puedeVerPagina('/inventarios', { rol: 'ANALISTA', accesos: [3] }), true)
   assert.equal(puedeVerPagina('/usuarios', { rol: 'ADMIN', accesos: [] }), true)
 })

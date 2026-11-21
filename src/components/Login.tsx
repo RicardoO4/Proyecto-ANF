@@ -5,9 +5,10 @@ import { useForm } from 'react-hook-form'
 import { useRouter } from 'next/navigation'
 import styles from '@/styles/Login.module.css'
 import { FaArrowRightToBracket } from 'react-icons/fa6'
-import { FaInfoCircle } from 'react-icons/fa'
+import { FaEye, FaEyeSlash, FaInfoCircle } from 'react-icons/fa'
 import { useAuth } from '@/context/AuthContext'
 import { Notifier } from '@/utils/Notifier'
+import { inicioDeUsuario } from '@/lib/roles'
 
 export default function Login() {
   const {
@@ -18,6 +19,7 @@ export default function Login() {
   const navigate = useRouter()
   const { login } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleLoginSubmit = async (data: { userName: string; password: string }) => {
     setIsSubmitting(true)
@@ -25,13 +27,12 @@ export default function Login() {
 
     try {
       // Llamamos a la función de login del contexto
-      await login(data.userName, data.password)
+      const sesion = await login(data.userName, data.password)
 
       Notifier.dismiss(String(loadingToastId))
       Notifier.success(`¡Bienvenido, ${data.userName}!`)
 
-      // Siempre navegamos al dashboard principal
-      navigate.push('/dashboard')
+      navigate.push(inicioDeUsuario(sesion))
     } catch (error) {
       Notifier.dismiss(String(loadingToastId))
       const errorMessage =
@@ -93,7 +94,7 @@ export default function Login() {
             </p>
           </header>
 
-          <form onSubmit={handleSubmit(handleLoginSubmit)} noValidate>
+          <form method="post" onSubmit={handleSubmit(handleLoginSubmit)} noValidate>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="userName">
                 Usuario
@@ -113,14 +114,27 @@ export default function Login() {
               <label className={styles.label} htmlFor="password">
                 Contraseña
               </label>
-              <input
-                type="password"
-                id="password"
-                autoComplete="current-password"
-                suppressHydrationWarning
-                {...register('password', { required: 'La contraseña es obligatoria' })}
-                className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
-              />
+              <div className={styles.passwordField}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  autoComplete="current-password"
+                  suppressHydrationWarning
+                  {...register('password', { required: 'La contraseña es obligatoria' })}
+                  className={`${styles.input} ${styles.passwordInput} ${errors.password ? styles.inputError : ''}`}
+                />
+                <button
+                  type="button"
+                  className={styles.passwordToggle}
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-controls="password"
+                  aria-pressed={showPassword}
+                  title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? <FaEyeSlash aria-hidden="true" /> : <FaEye aria-hidden="true" />}
+                </button>
+              </div>
               {errors.password && <p className={styles.errorMessage}>{errors.password.message}</p>}
             </div>
 

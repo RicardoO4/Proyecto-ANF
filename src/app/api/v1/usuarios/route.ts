@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { BadRequestException, BusinessRuleException, handle } from '@/lib/errors'
 import { createAuthUserForUsuario } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import { ROLES } from '@/lib/roles'
 
 function toResponseDTO(row: unknown) {
   const r = row as Record<string, unknown>
@@ -52,6 +53,7 @@ export async function POST(req: Request) {
     if (!body.nombreUsuario || !body.apellidoUsuario || !body.userName || !body.contrasena || !body.rol) {
       throw new BadRequestException('Todos los campos del usuario son obligatorios.')
     }
+    if(!ROLES.some(rol=>rol===body.rol))throw new BadRequestException('Rol inválido.')
 
     const { usuario } = await createAuthUserForUsuario({
       userName: body.userName,

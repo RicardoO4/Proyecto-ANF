@@ -13,6 +13,9 @@ function getInstance(): SupabaseClient {
   if (!instance) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    if (supabaseUrl && process.env.ANF_LOCAL_ONLY === '1' && !['localhost', '127.0.0.1', '[::1]'].includes(new URL(supabaseUrl).hostname)) {
+      throw new Error('El entorno de desarrollo local rechazó una conexión remota de Supabase.')
+    }
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error(
         'Supabase no está configurado: define NEXT_PUBLIC_SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en .env.local',

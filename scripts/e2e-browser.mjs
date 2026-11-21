@@ -88,7 +88,7 @@ try {
   await until(() => evaluate("document.querySelectorAll('input[type=month]').length===12"))
   assert.equal(await evaluate("[...document.querySelectorAll('form input[type=number]')].slice(1).every(i=>i.value==='')"), true)
   console.log('PASS D: muestra faltantes, bloquea proyección mensual sin datos y prepara doce meses vacíos')
-  await command('Page.addScriptToEvaluateOnNewDocument', { source: `sessionStorage.setItem('analisis_user',${JSON.stringify(JSON.stringify({ ...user, rol: 'USER', accesos: [3] }))});` })
+  await command('Page.addScriptToEvaluateOnNewDocument', { source: `sessionStorage.setItem('analisis_user',${JSON.stringify(JSON.stringify({ ...user, rol: 'ANALISTA', accesos: [3] }))});` })
   await command('Page.navigate', { url: base + '/proyecciones/proforma' })
   await until(() => evaluate("document.body.innerText.includes('No tiene permiso para acceder a este módulo')"))
   console.log('PASS control de acceso directo en navegador')
