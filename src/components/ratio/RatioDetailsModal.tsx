@@ -26,7 +26,7 @@ export const RatioDetailsModal = ({ show, onClose, ratio }: RatioDetailsModalPro
     }
 
     if (typeof value === 'number') {
-      return value.toFixed(2) // Formatea a 2 decimales
+      return value.toFixed(4) // Conserva la precisión NUMERIC(15,4)
     }
 
     return value as string

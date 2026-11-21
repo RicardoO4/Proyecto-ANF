@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatMoney } from "@/lib/formatoMonetario";
 
 export default function SistemaDupontPage() {
   const [ventas, setVentas] = useState<number>(100000);
@@ -84,7 +85,7 @@ export default function SistemaDupontPage() {
           <h2 style={styles.resultTitle}>Retorno sobre el Patrimonio (ROE)</h2>
           <p style={styles.resultValue}>{(roe * 100).toFixed(2)}%</p>
           <p style={styles.resultDesc}>
-            La empresa genera ${(roe).toFixed(2)} de utilidad por cada $1 aportado.
+            La empresa genera {formatMoney(roe)} de utilidad por cada {formatMoney(1)} aportado.
           </p>
         </div>
       </div>

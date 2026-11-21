@@ -5,7 +5,7 @@
 //   public/templates/ejemplo_estados_2021.xlsx         (ejemplo, año 2021)
 //
 // Los ejemplos usan 2020/2021 a propósito: no tienen datos reales de
-// Inv ABC (2023-2025) ni chocan con el E2E de AU1 (2022). Las cuentas
+// Inv ABC (2023-2025) ni chocan con el E2E de AU1 (2099). Las cuentas
 // existen en el catálogo tras el seed 006. Cada balanza suma cero y es
 // previa al cierre: al cargarla, la utilidad (100000) va a la 3204.
 //

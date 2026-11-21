@@ -10,6 +10,7 @@ import { Notifier } from '@/utils/Notifier'
 import EmpresaFija from '@/components/shared/EmpresaFija'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import { ACTIVO_TOTAL, VENTAS_NETAS, sumByPrefix } from '@/lib/accountCodes'
+import { formatMoney } from '@/lib/formatoMonetario'
 
 interface LineaAnalisisHorizontal {
   codigoCuenta: string
@@ -33,14 +34,6 @@ interface LineaAnalisisVertical {
 interface ReporteInterno {
   analisisHorizontal: LineaAnalisisHorizontal[]
   analisisVertical: LineaAnalisisVertical[]
-}
-
-const formatNumber = (num: number) => {
-  if (typeof num !== 'number') return num as unknown as string
-  return num.toLocaleString('es-SV', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
 }
 
 // Función para formatear porcentajes
@@ -133,8 +126,8 @@ const AnalisisHV = () => {
     <div style={{ marginBottom: '1.5rem' }}>
       <h3 style={{ marginBottom: '0.25rem' }}>{titulo}</h3>
       <p style={{ margin: '0 0 0.5rem', color: '#666', fontSize: '0.9rem' }}>
-        {subtitulo} — Base {anio1}: {formatNumber(base1)} | Base {anio2}:{' '}
-        {formatNumber(base2)}
+        {subtitulo} — Base {anio1}: {formatMoney(base1)} | Base {anio2}:{' '}
+        {formatMoney(base2)}
       </p>
       <div className="table-responsive">
         <table className={viewStyles.table}>
@@ -261,9 +254,9 @@ const AnalisisHV = () => {
               <tr>
                 <th>Código</th>
                 <th>Cuenta</th>
-                <th style={{ textAlign: 'right' }}>Saldo {anio1}</th>
-                <th style={{ textAlign: 'right' }}>Saldo {anio2}</th>
-                <th style={{ textAlign: 'right' }}>Variación Absoluta</th>
+                <th style={{ textAlign: 'right' }}>Saldo {anio1} ($)</th>
+                <th style={{ textAlign: 'right' }}>Saldo {anio2} ($)</th>
+                <th style={{ textAlign: 'right' }}>Variación Absoluta ($)</th>
                 <th style={{ textAlign: 'right' }}>Variación Relativa (%)</th>
               </tr>
             </thead>
@@ -273,9 +266,9 @@ const AnalisisHV = () => {
                   <tr key={i}>
                     <td>{linea.codigoCuenta}</td>
                     <td>{linea.nombreCuenta}</td>
-                    <td style={{ textAlign: 'right' }}>{formatNumber(linea.saldoAnio1)}</td>
-                    <td style={{ textAlign: 'right' }}>{formatNumber(linea.saldoAnio2)}</td>
-                    <td style={{ textAlign: 'right' }}>{formatNumber(linea.variacionAbsoluta)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(linea.saldoAnio1)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(linea.saldoAnio2)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatMoney(linea.variacionAbsoluta)}</td>
                     <td style={{ textAlign: 'right' }}>{formatPercent(linea.variacionRelativa)}</td>
                   </tr>
                 ))

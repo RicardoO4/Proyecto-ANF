@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { proyeccionPromedioMovil, proyeccionLogaritmica } from "@/lib/proyeccion"; // Asegúrate de que esta ruta sea correcta según tu proyecto
+import { formatMoney } from "@/lib/formatoMonetario";
 
 export default function PronosticosPage() {
   const [ventas] = useState<number[]>([1200, 1350, 1400, 1600, 1850, 1900, 2100, 2150, 2200, 2350, 2400, 2450]);
@@ -42,8 +43,8 @@ export default function PronosticosPage() {
           <LineChart data={datosGrafico} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
             <XAxis dataKey="mes" stroke="var(--text-secondary)" />
-            <YAxis stroke="var(--text-secondary)" />
-            <Tooltip />
+            <YAxis stroke="var(--text-secondary)" tickFormatter={(value) => formatMoney(Number(value))} width={90} />
+            <Tooltip formatter={(value) => formatMoney(Number(value))} />
             <Legend />
             <Line type="monotone" dataKey="historico" name="Ventas Históricas" stroke="var(--text-tertiary)" strokeWidth={3} />
             <Line type="monotone" dataKey="movil" name="Promedio Móvil (n=3)" stroke="var(--fey-signal)" strokeDasharray="5 5" strokeWidth={2} />

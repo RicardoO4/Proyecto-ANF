@@ -11,6 +11,7 @@ import buttonStyles from '@/styles/shared/Button.module.css'
 import { CargaMasivaVentas } from '@/components/proyeccion/CargaMasivaVentas'
 import { CargaManualVentas } from '@/components/proyeccion/CargaManualVentas'
 import { ventaHistoricaService } from '@/services/ventaHistoricaService'
+import { formatMoney } from '@/lib/formatoMonetario'
 import { Notifier } from '@/utils/Notifier'
 import type { ProyeccionDTO } from '@/types'
 import Link from 'next/link'
@@ -141,7 +142,7 @@ export const Proyecciones = () => {
               <thead>
                 <tr>
                   <th>Fecha proyectada</th>
-                  <th>Monto proyectado</th>
+                  <th>Monto proyectado ($)</th>
                 </tr>
               </thead>
               <tbody>
@@ -149,7 +150,7 @@ export const Proyecciones = () => {
                   <tr key={i}>
                     <td>{p.fechaProyectada || (p as unknown as { fecha?: string }).fecha}</td>
                     <td>
-                      {(p.montoProyectado ?? (p as unknown as { monto?: number }).monto)?.toFixed(2)}
+                      {formatMoney(p.montoProyectado ?? (p as unknown as { monto?: number }).monto)}
                     </td>
                   </tr>
                 ))}

@@ -11,11 +11,9 @@ import { Download, FileEarmarkArrowUp, InfoCircleFill } from 'react-bootstrap-ic
 import viewStyles from '@/styles/shared/View.module.css'
 import buttonStyles from '@/styles/shared/Button.module.css'
 import localStyles from '@/styles/estadosfinancieros/CargarEstadoFinanciero.module.css'
+import { formatMoney } from '@/lib/formatoMonetario'
 
 type ApiError = { response?: { status?: number; data?: { message?: string; detalles?: string[] } } }
-
-const money = (v: number | null | undefined) =>
-  (v ?? 0).toLocaleString('es-SV', { style: 'currency', currency: 'USD' })
 
 const CargarEstadoFinanciero = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -155,15 +153,15 @@ const CargarEstadoFinanciero = () => {
               {resultado.formato !== 'INDIVIDUAL' && (
                 <table className={viewStyles.table}>
                   <tbody>
-                    <tr><td>Total Activo</td><td>{money(resultado.totalActivo)}</td></tr>
-                    <tr><td>Total Pasivo</td><td>{money(resultado.totalPasivo)}</td></tr>
-                    <tr><td>Total Patrimonio</td><td>{money(resultado.totalPatrimonio)}</td></tr>
-                    <tr><td>Ingresos</td><td>{money(resultado.totalIngresos)}</td></tr>
-                    <tr><td>Costos y gastos</td><td>{money(resultado.totalCostosGastos)}</td></tr>
-                    <tr><td>Utilidad neta</td><td>{money(resultado.utilidadNeta)}</td></tr>
+                    <tr><td>Total Activo</td><td>{formatMoney(resultado.totalActivo)}</td></tr>
+                    <tr><td>Total Pasivo</td><td>{formatMoney(resultado.totalPasivo)}</td></tr>
+                    <tr><td>Total Patrimonio</td><td>{formatMoney(resultado.totalPatrimonio)}</td></tr>
+                    <tr><td>Ingresos</td><td>{formatMoney(resultado.totalIngresos)}</td></tr>
+                    <tr><td>Costos y gastos</td><td>{formatMoney(resultado.totalCostosGastos)}</td></tr>
+                    <tr><td>Utilidad neta</td><td>{formatMoney(resultado.utilidadNeta)}</td></tr>
                     <tr>
                       <td>Venta registrada</td>
-                      <td>{resultado.ventaRegistrada != null ? money(resultado.ventaRegistrada) : 'No registrada'}</td>
+                      <td>{resultado.ventaRegistrada != null ? formatMoney(resultado.ventaRegistrada) : 'No registrada'}</td>
                     </tr>
                     <tr>
                       <td>Cuentas cargadas</td>

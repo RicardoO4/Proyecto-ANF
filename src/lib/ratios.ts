@@ -4,6 +4,7 @@
 // benchmark, generate the Spanish interpretation, persist and return.
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { InternalException, NotFoundException } from '@/lib/errors'
+import { formatMoney } from '@/lib/formatoMonetario'
 import type { RatioResponseDTO } from '@/types'
 
 // ---------------------------------------------------------------
@@ -309,7 +310,7 @@ export function calcularLiquidez(id: number) {
       return {
         valor,
         cumple,
-        interpretacion: `La empresa dispone de ${f2(activoCorriente)} USD de activo corriente por cada dólar de deuda a corto plazo. Este valor se encuentra ${posicion} del benchmark del sector, que es de ${f2(ref)}.`,
+        interpretacion: `La empresa dispone de ${formatMoney(valor)} de activo corriente por cada ${formatMoney(1)} de pasivo corriente. Este valor se encuentra ${posicion} del benchmark del sector, que es de ${f2(ref)}.`,
       }
     },
   )
@@ -332,7 +333,10 @@ export function calcularCapitalTrabajo(id: number) {
       return {
         valor,
         cumple,
-        interpretacion: `La empresa genera ${f2(valor * 100)} centavos de capital de trabajo neto por cada dólar de activos totales, lo cual se encuentra ${posicion} del benchmark del sector (${f2(ref)}).`,
+        interpretacion:
+          valor < 0
+            ? `La empresa presenta un capital de trabajo neto negativo equivalente al ${f2(Math.abs(valor) * 100)}% de sus activos totales; se encuentra ${posicion} del benchmark del sector (${f2(ref)}).`
+            : `La empresa genera ${f2(valor * 100)} centavos de capital de trabajo neto por cada dólar de activos totales, lo cual se encuentra ${posicion} del benchmark del sector (${f2(ref)}).`,
       }
     },
   )
@@ -431,7 +435,7 @@ export function calcularRotacionActivosTotales(id: number) {
       return {
         valor,
         cumple,
-        interpretacion: `Cada dólar invertido en activos genera ${f2(valor)} dólares de ventas, un desempeño ${posicion} del benchmark del sector de ${f2(ref)}.`,
+        interpretacion: `Cada ${formatMoney(1)} invertido en activos genera ${formatMoney(valor)} de ventas, un desempeño ${posicion} del benchmark del sector de ${f2(ref)}.`,
       }
     },
   )
@@ -452,7 +456,7 @@ export function calcularRotacionActivosFijos(id: number) {
       return {
         valor,
         cumple,
-        interpretacion: `Cada dólar invertido en activos fijos genera ${f2(valor)} dólares de ventas, un desempeño ${posicion} del benchmark del sector de ${f2(ref)}.`,
+        interpretacion: `Cada ${formatMoney(1)} invertido en activos fijos genera ${formatMoney(valor)} de ventas, un desempeño ${posicion} del benchmark del sector de ${f2(ref)}.`,
       }
     },
   )
@@ -498,7 +502,10 @@ export function calcularMargenOperativo(id: number) {
       return {
         valor,
         cumple,
-        interpretacion: `Por cada dólar de ventas, la empresa genera ${f2(valor * 100)} centavos de utilidad operativa; una gestión ${posicion} en comparación con el benchmark del sector de ${f2(ref * 100)}%.`,
+        interpretacion:
+          valor < 0
+            ? `Por cada dólar de ventas, la empresa incurre en una pérdida operativa de ${f2(Math.abs(valor) * 100)} centavos (margen de ${f2(valor * 100)}%); gestión ${posicion} frente al benchmark del sector (${f2(ref * 100)}%).`
+            : `Por cada dólar de ventas, la empresa genera ${f2(valor * 100)} centavos de utilidad operativa; una gestión ${posicion} en comparación con el benchmark del sector de ${f2(ref * 100)}%.`,
       }
     },
   )
@@ -584,7 +591,7 @@ export function calcularGradoPropiedad(id: number) {
       const cumple = patrimonio > 0 && valor >= ref
       const interpretacion =
         patrimonio < 0
-          ? `El patrimonio es negativo (${f2(patrimonio)} USD): el capital propio no cubre las obligaciones y el indicador no admite una lectura normal de solvencia.`
+          ? `El patrimonio es negativo (${formatMoney(patrimonio)}): el capital propio no cubre las obligaciones; el valor negativo indica insolvencia técnica y no es comparable con el benchmark del sector.`
           : `El ${f2(valor * 100)}% del activo total pertenece a los dueños; la empresa se ubica ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
       return { valor, cumple, interpretacion }
     },
@@ -609,8 +616,8 @@ export function calcularEndeudamientoPatrimonial(id: number) {
       const cumple = patrimonio > 0 && valor <= ref // menor es mejor
       const interpretacion =
         patrimonio < 0
-          ? `El patrimonio es negativo (${f2(patrimonio)} USD), por lo que la razón pasivo/patrimonio no es interpretable: la empresa está técnicamente insolvente.`
-          : `Por cada dólar de patrimonio la empresa debe ${f2(valor)} dólares a terceros; se ubica ${cumple ? 'por debajo' : 'por encima'} del benchmark del sector (${f2(ref)}).`
+          ? `El patrimonio es negativo (${formatMoney(patrimonio)}): la razón pasivo/patrimonio toma valor ${f2(valor)} y refleja insolvencia técnica; no es comparable con el benchmark del sector.`
+          : `Por cada ${formatMoney(1)} de patrimonio la empresa debe ${formatMoney(valor)} a terceros; se ubica ${cumple ? 'por debajo' : 'por encima'} del benchmark del sector (${f2(ref)}).`
       return { valor, cumple, interpretacion }
     },
   )
@@ -642,7 +649,10 @@ export function calcularCoberturaIntereses(id: number) {
       const valor = coberturaIntereses(ebit, gastosFinancieros)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
       const cumple = valor >= ref
-      const interpretacion = `La empresa genera ${f2(valor)} veces su gasto financiero mediante su utilidad operativa; se ubica ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref)} veces).`
+      const interpretacion =
+        valor < 0
+          ? `La utilidad operativa es negativa: no cubre el gasto financiero (cobertura de ${f2(valor)} veces); se ubica ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref)} veces).`
+          : `La empresa genera ${f2(valor)} veces su gasto financiero mediante su utilidad operativa; se ubica ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref)} veces).`
       return { valor, cumple, interpretacion }
     },
   )
@@ -669,7 +679,10 @@ export function calcularMargenNeto(id: number) {
       const valor = margenNeto(utilidadNeta, ventasNetas)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
       const cumple = valor >= ref
-      const interpretacion = `Por cada dólar de ventas, la empresa retiene ${f2(valor * 100)} centavos como utilidad neta (${f2(valor * 100)}%); un margen ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
+      const interpretacion =
+        valor < 0
+          ? `Por cada dólar de ventas, la empresa pierde ${f2(Math.abs(valor) * 100)} centavos (margen neto de ${f2(valor * 100)}%); un margen ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
+          : `Por cada dólar de ventas, la empresa retiene ${f2(valor * 100)} centavos como utilidad neta (${f2(valor * 100)}%); un margen ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
       return { valor, cumple, interpretacion }
     },
   )
@@ -697,7 +710,10 @@ export function calcularROA(id: number) {
       const valor = roa(utilidadNeta, promedioActivos)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
       const cumple = valor >= ref
-      const interpretacion = `Cada dólar invertido en activos generó ${f2(valor * 100)} centavos de utilidad neta (${f2(valor * 100)}% de ROA), situándose ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
+      const interpretacion =
+        valor < 0
+          ? `Cada dólar invertido en activos generó una pérdida equivalente a ${f2(Math.abs(valor) * 100)} centavos (ROA de ${f2(valor * 100)}%), situándose ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
+          : `Cada dólar invertido en activos generó ${f2(valor * 100)} centavos de utilidad neta (${f2(valor * 100)}% de ROA), situándose ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
       return { valor, cumple, interpretacion }
     },
   )
@@ -722,10 +738,11 @@ export function calcularROE(id: number) {
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
       if (patrimonioActual <= 0) {
         const valor = patrimonioActual !== 0 ? roe(utilidadNeta, patrimonioActual) : 0
+        const situacion = patrimonioActual === 0 ? 'cero' : 'negativo'
         return {
           valor,
           cumple: false,
-          interpretacion: `El patrimonio es negativo (${f2(patrimonioActual)} USD): la empresa se encuentra en quiebra técnica y el ROE no es interpretable normalmente.`,
+          interpretacion: `El patrimonio es ${situacion} (${formatMoney(patrimonioActual)}): el valor de ${f2(valor * 100)}% es referencial y no representa un rendimiento comparable.`,
         }
       }
       const valor = roe(utilidadNeta, promedioPatrimonio)
@@ -759,9 +776,16 @@ export function calcularAnalisisDuPont(id: number) {
         : null
       const promedioPatrimonio = promedioSaldo(patrimonioActual, patrimonioAnterior)
 
+      if (promedioPatrimonio <= 0) {
+        return {
+          valor: 0,
+          cumple: false,
+          interpretacion: `El patrimonio promedio es cero o negativo (${formatMoney(promedioPatrimonio)}): la empresa se encuentra en quiebra técnica y el análisis DuPont no es interpretable normalmente.`,
+        }
+      }
       const mNeto = ventasNetas !== 0 ? utilidadNeta / ventasNetas : 0
       const rotAct = promedioActivos !== 0 ? ventasNetas / promedioActivos : 0
-      const multCap = promedioPatrimonio > 0 ? promedioActivos / promedioPatrimonio : 0
+      const multCap = promedioActivos / promedioPatrimonio
       const valor = analisisDuPont(mNeto, rotAct, multCap)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
       const cumple = valor >= ref
@@ -963,14 +987,22 @@ export async function recalcularRatios(empresaId: number, anio: number): Promise
 
   // Cada calculador lee y actualiza solo su fila de `ratio`, así que se
   // corren en paralelo (en serie eran ~2 s por ratio).
-  // allSettled es silencioso a propósito: la carga ya se completó y un ratio
-  // que falle queda pendiente para el próximo recálculo, sin revertir el
-  // estado financiero.
-  await Promise.allSettled(
+  // allSettled evita que un ratio detenga a los demás: la fila que falla
+  // conserva su valor anterior. Los fallos se agrupan al final para que AU1
+  // los registre en consola sin afectar la respuesta 201 de la carga.
+  const resultados = await Promise.allSettled(
     filas.map((fila) => {
       const nombre = fila.categoria_ratio?.nombre_tipo
       const calcular = nombre ? CALCULADORES[nombre] : undefined
       return calcular ? calcular(fila.id_ratio) : Promise.resolve()
     }),
   )
+  const errores = resultados
+    .filter((resultado): resultado is PromiseRejectedResult => resultado.status === 'rejected')
+    .map((resultado) =>
+      resultado.reason instanceof Error ? resultado.reason.message : String(resultado.reason),
+    )
+  if (errores.length > 0) {
+    throw new Error(`${errores.length} ratio(s) no se pudieron recalcular: ${errores.join(' | ')}`)
+  }
 }

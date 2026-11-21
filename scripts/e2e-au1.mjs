@@ -2,15 +2,16 @@
 // E2E de AU1 — recálculo automático tras una carga de estados financieros.
 //
 // Simula una carga real contra el servidor en marcha:
-//   1. crea 4 filas de `ratio` para la empresa 2, año 2022 (sin valor);
+//   1. crea 4 filas de `ratio` para la empresa 2, año 2099 (sin valor);
 //   2. arma un BALANCE_GENERAL mínimo y lo sube por
 //      POST /api/v1/estados-financieros/upload;
 //   3. comprueba que el hook AU1 calculó los 4 ratios sin intervención;
 //   4. borra TODO lo que creó (estado financiero + líneas + ratios).
 //
-// El año 2022 se elige a propósito: no tiene datos reales, así que no
-// pisa el histórico de Inv ABC. Si el proceso se interrumpe, volver a
-// correrlo limpia los restos antes de empezar.
+// El año 2099 se elige a propósito: no tiene datos reales y su año siguiente
+// (2100) tampoco, así que AU1 no recalcula el histórico de Inv ABC al subir
+// ni al limpiar. Si el proceso se interrumpe, volver a correrlo limpia los
+// restos antes de empezar.
 //
 // Uso:  node scripts/e2e-au1.mjs   (con `npm run dev` en el puerto 3000)
 //       E2E_USER / E2E_PASSWORD cambian el usuario (por defecto admin/admin123).
@@ -22,7 +23,7 @@ import * as XLSX from 'xlsx'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const EMPRESA_ID = 2
-const ANIO = 2022
+const ANIO = 2099
 const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
 
 function loadEnv() {
@@ -91,12 +92,12 @@ function buildWorkbook() {
 }
 
 async function limpiar() {
-  // ratios creados por este script para (empresa 2, 2022)
+  // ratios creados por este script para (empresa 2, 2099)
   const ratios = await rest('GET', `ratio?select=id_ratio&empresa_id=eq.${EMPRESA_ID}&anio_ratio=eq.${ANIO}`)
   if (ratios?.length) {
     await rest('DELETE', `ratio?id_ratio=in.(${ratios.map((r) => r.id_ratio).join(',')})`)
   }
-  // estados financieros de 2022 (borra en cascada las líneas)
+  // estados financieros de 2099 (borra en cascada las líneas)
   const efs = await rest('GET', `estado_financiero?select=id_estado_financiero&empresa_id=eq.${EMPRESA_ID}&anio=eq.${ANIO}`)
   if (efs?.length) {
     await rest('DELETE', `estado_financiero?id_estado_financiero=in.(${efs.map((e) => e.id_estado_financiero).join(',')})`)

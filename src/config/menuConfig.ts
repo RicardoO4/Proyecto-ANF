@@ -8,6 +8,7 @@ import {
   FileEarmarkText,
   JournalCheck,
   GraphUpArrow,
+  BoxSeam,
 } from 'react-bootstrap-icons'
 import type { Icon as IconType } from 'react-bootstrap-icons'
 
@@ -21,6 +22,7 @@ export const mainLinks: { idOp: number; to: string; label: string; icon: IconTyp
   { idOp: 5, to: '/catalogo-cuentas', label: 'Catálogo de Cuentas', icon: JournalCheck },
   { idOp: 6, to: '/proyecciones', label: 'Proyecciones', icon: GraphUpArrow },
   { idOp: 7, to: '/estados-financieros', label: 'Estados Financieros', icon: FileEarmarkText },
+  { idOp: 8, to: '/inventario', label: 'Inventario', icon: BoxSeam },
 ]
 
 /**
@@ -71,4 +73,11 @@ export const proyeccionesSubMenuLinks = [
 export const estadosFinancierosSubMenuLinks = [
   { to: '/estados-financieros/cargar', label: 'Cargar Estados Financieros' },
   { to: '/estados-financieros/historial', label: 'Historial de Reportes' },
+]
+
+export const inventarioSubMenuLinks = [
+  { to: '/inventario/productos', label: 'Productos' },
+  { to: '/inventario/movimientos', label: 'Movimientos' },
+  { to: '/inventario/parametros', label: 'Parámetros' },
+  { to: '/inventario/modelos', label: 'Modelos ABC / EOQ / PR' },
 ]

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatMoney, formatSignedMoney } from "@/lib/formatoMonetario";
 
 export default function EstadosProformaPage() {
   const [ventasActuales, setVentasActuales] = useState<number>(100000);
@@ -87,25 +88,25 @@ export default function EstadosProformaPage() {
             
             <div style={styles.listItem}>
               <span>Variación de Ventas Proyectadas:</span>
-              <span style={{ fontWeight: 'bold' }}>+${variacionVentas.toLocaleString()}</span>
+              <span style={{ fontWeight: 'bold' }}>{formatSignedMoney(variacionVentas)}</span>
             </div>
             <div style={styles.listItem}>
               <span>Nuevos Activos Requeridos:</span>
-              <span style={{ fontWeight: 'bold', color: 'var(--accent-negative)' }}>+${incrementoActivos.toLocaleString()}</span>
+              <span style={{ fontWeight: 'bold', color: 'var(--accent-negative)' }}>{formatSignedMoney(incrementoActivos)}</span>
             </div>
             <div style={styles.listItem}>
               <span>Financiamiento Espontáneo:</span>
-              <span style={{ fontWeight: 'bold', color: 'var(--accent-positive)' }}>-${incrementoPasivos.toLocaleString()}</span>
+              <span style={{ fontWeight: 'bold', color: 'var(--accent-positive)' }}>{formatSignedMoney(-incrementoPasivos)}</span>
             </div>
             <div style={{ ...styles.listItem, borderBottom: 'none', marginBottom: 0, paddingBottom: 0 }}>
               <span>Utilidad Retenida (Fondos Propios):</span>
-              <span style={{ fontWeight: 'bold', color: 'var(--accent-positive)' }}>-${utilidadRetenidaAdicional.toLocaleString()}</span>
+              <span style={{ fontWeight: 'bold', color: 'var(--accent-positive)' }}>{formatSignedMoney(-utilidadRetenidaAdicional)}</span>
             </div>
           </div>
 
           <div style={styles.ferContainer}>
             <h3 style={styles.ferTitle}>Financiamiento Externo Requerido (FER)</h3>
-            <p style={styles.ferValue}>${Math.abs(fer).toLocaleString()}</p>
+            <p style={styles.ferValue}>{formatMoney(Math.abs(fer))}</p>
             <p style={styles.ferDesc}>
               {fer > 0 
                 ? "La empresa necesita pedir un préstamo para soportar este nivel de ventas." 

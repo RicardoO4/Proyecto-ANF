@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { formatMoney } from "@/lib/formatoMonetario";
+
+type PuntoGrafico = {
+  unidades: number;
+  costosFijos: number;
+  costosTotales: number;
+  ventasTotales: number;
+};
 
 export default function PuntoEquilibrioPage() {
   const [costosFijos, setCostosFijos] = useState<number>(0);
@@ -10,7 +18,7 @@ export default function PuntoEquilibrioPage() {
 
   const [unidadesEquilibrio, setUnidadesEquilibrio] = useState<number | null>(null);
   const [ventasEquilibrio, setVentasEquilibrio] = useState<number | null>(null);
-  const [datosGrafico, setDatosGrafico] = useState<any[]>([]);
+  const [datosGrafico, setDatosGrafico] = useState<PuntoGrafico[]>([]);
 
   const calcularEquilibrio = () => {
     if (precioVenta <= costoVariable) {
@@ -23,7 +31,7 @@ export default function PuntoEquilibrioPage() {
     setUnidadesEquilibrio(unidades);
     setVentasEquilibrio(ventas);
 
-    const nuevosDatos = [];
+    const nuevosDatos: PuntoGrafico[] = [];
     for (let i = 0; i <= unidades * 2; i += Math.max(1, Math.floor(unidades / 5))) {
       nuevosDatos.push({
         unidades: i,
@@ -74,7 +82,7 @@ export default function PuntoEquilibrioPage() {
            </div>
            <div>
              <h3 style={styles.resultLabel}>Ventas en dólares para el equilibrio</h3>
-             <p style={styles.resultValueHighlight}>{ventasEquilibrio !== null ? `$${ventasEquilibrio.toLocaleString()}` : '---'}</p>
+              <p style={styles.resultValueHighlight}>{ventasEquilibrio !== null ? formatMoney(ventasEquilibrio) : '---'}</p>
            </div>
         </div>
       </div>
@@ -85,8 +93,8 @@ export default function PuntoEquilibrioPage() {
             <LineChart data={datosGrafico} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
               <XAxis dataKey="unidades" name="Unidades" stroke="var(--text-secondary)" />
-              <YAxis stroke="var(--text-secondary)" />
-              <Tooltip formatter={(value) => `$${value}`} />
+              <YAxis stroke="var(--text-secondary)" tickFormatter={(value) => formatMoney(Number(value))} width={90} />
+              <Tooltip formatter={(value) => formatMoney(Number(value))} />
               <Legend />
               <Line type="monotone" dataKey="costosFijos" name="Costos Fijos" stroke="var(--text-secondary)" strokeDasharray="5 5" strokeWidth={2} />
               <Line type="monotone" dataKey="costosTotales" name="Costos Totales" stroke="var(--text-tertiary)" strokeWidth={2} />

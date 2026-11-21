@@ -16,7 +16,6 @@ export interface VentaFormData {
 interface VentaFormModalProps {
   show: boolean
   onClose: () => void
-  // eslint-disable-next-line no-unused-vars
   onSave: (ventaId: number | null, data: VentaFormData) => void
   initialData: VentaHistorica | null
   isCreateMode: boolean
@@ -70,7 +69,7 @@ export const VentaFormModal = ({ show, onClose, onSave, initialData, isCreateMod
             )}
           </div>
           <div className="mb-3">
-            <label className="form-label">Monto de Venta</label>
+            <label className="form-label">Monto de Venta ($)</label>
             <input
               type="number"
               step="0.01"

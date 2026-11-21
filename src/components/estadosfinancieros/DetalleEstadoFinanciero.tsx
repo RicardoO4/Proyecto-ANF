@@ -12,6 +12,7 @@ import viewStyles from '@/styles/shared/View.module.css'
 import buttonStyles from '@/styles/shared/Button.module.css'
 import localStyles from '@/styles/estadosfinancieros/DetalleEstadoFinanciero.module.css'
 import type { LineaEstadoFinancieroResponseDTO } from '@/types'
+import { formatMoney } from '@/lib/formatoMonetario'
 import {
   ACTIVO_TOTAL,
   COSTO_VENTAS,
@@ -24,14 +25,6 @@ import {
   TOTAL_INGRESOS,
   VENTAS_BRUTAS,
 } from '@/lib/accountCodes'
-
-// Función para formatear números como moneda
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)
-}
 
 type ProcessedBalance = {
   type: 'Balance General'
@@ -74,14 +67,13 @@ const DetalleEstadoFinanciero = () => {
       try {
         const data = await estadoFinancieroService.getEstadoFinancieroById(Number(id))
         setReporte(data)
-      } catch (error) {
+      } catch {
         Notifier.error('No se pudo cargar el detalle del reporte.')
       } finally {
         setIsLoading(false)
       }
     }
     fetchReporte()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   // --- LÓGICA CONDICIONAL MEJORADA ---
@@ -174,12 +166,12 @@ const DetalleEstadoFinanciero = () => {
           {items.map((item) => (
             <tr key={item.id} className={localStyles.tableRow}>
               <td>{item.codigoCuenta} - {item.nombreCuenta}</td>
-              <td className={localStyles.numberCell}>{formatCurrency(item.saldo)}</td>
+              <td className={localStyles.numberCell}>{formatMoney(item.saldo)}</td>
             </tr>
           ))}
           <tr className={localStyles.subtotalRow}>
             <td>Total {title}</td>
-            <td className={localStyles.numberCell}>{formatCurrency(total)}</td>
+            <td className={localStyles.numberCell}>{formatMoney(total)}</td>
           </tr>
         </tbody>
       </table>
@@ -216,7 +208,7 @@ const DetalleEstadoFinanciero = () => {
                   <tr className={localStyles.grandTotalRow}>
                     <td>Total Pasivo y Patrimonio</td>
                     <td className={localStyles.numberCell}>
-                      {formatCurrency(processedData.totalPasivos + processedData.totalPatrimonio)}
+                      {formatMoney(processedData.totalPasivos + processedData.totalPatrimonio)}
                     </td>
                   </tr>
                 </tbody>
@@ -233,7 +225,7 @@ const DetalleEstadoFinanciero = () => {
                 <tbody>
                   <tr className={localStyles.subtotalRow} style={{ fontWeight: 'bold' }}>
                     <td>Utilidad antes de gastos</td>
-                    <td className={localStyles.numberCell}>{formatCurrency(processedData.utilidadAntesGastos)}</td>
+                    <td className={localStyles.numberCell}>{formatMoney(processedData.utilidadAntesGastos)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -244,7 +236,7 @@ const DetalleEstadoFinanciero = () => {
                 <tbody>
                   <tr className={localStyles.subtotalRow} style={{ fontWeight: 'bold' }}>
                     <td>Utilidad de operación</td>
-                    <td className={localStyles.numberCell}>{formatCurrency(processedData.utilidadOperacion)}</td>
+                    <td className={localStyles.numberCell}>{formatMoney(processedData.utilidadOperacion)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -256,7 +248,7 @@ const DetalleEstadoFinanciero = () => {
                 <tbody>
                   <tr className={localStyles.grandTotalRow}>
                     <td>Utilidad Neta</td>
-                    <td className={localStyles.numberCell}>{formatCurrency(processedData.utilidadNeta)}</td>
+                    <td className={localStyles.numberCell}>{formatMoney(processedData.utilidadNeta)}</td>
                   </tr>
                 </tbody>
               </table>

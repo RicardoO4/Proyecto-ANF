@@ -23,11 +23,11 @@ interface ManualFormValues {
 
 interface CargaManualVentasProps {
   ventas: string[]
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setVentas: (v: string[]) => void
 }
 
-export const CargaManualVentas = (_props: CargaManualVentasProps) => {
+export const CargaManualVentas = (props: CargaManualVentasProps) => {
+  void props
   const [isLoading, setIsLoading] = useState(false)
   const {
     register,
@@ -110,7 +110,7 @@ export const CargaManualVentas = (_props: CargaManualVentasProps) => {
           <thead>
             <tr>
               <th>Fecha de Venta</th>
-              <th>Monto de Venta</th>
+              <th>Monto de Venta ($)</th>
               <th>Observación (Opcional)</th>
               <th className="text-end">Acción</th>
             </tr>

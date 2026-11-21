@@ -7,6 +7,7 @@ import EmpresaFija from '@/components/shared/EmpresaFija'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import { ventaHistoricaService, type VentaHistorica } from '@/services/ventaHistoricaService'
 import { Notifier } from '@/utils/Notifier'
+import { formatMoney } from '@/lib/formatoMonetario'
 import { VentaFormModal, type VentaFormData } from '@/components/proyeccion/VentaFormModal'
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa'
 import viewStyles from '@/styles/shared/View.module.css'
@@ -29,19 +30,26 @@ export const HistorialVentas = () => {
   // Cuando el usuario selecciona una empresa, buscamos todos sus registros de ventas
   // para extraer los años únicos en los que hay datos.
   useEffect(() => {
-    if (!selectedEmpresaId) {
-      setAvailableYears([])
-      setVentas([])
-      setSelectedYear('')
-      return
+    let cancelado = false
+    void Promise.resolve().then(() => {
+      if (!selectedEmpresaId) {
+        setAvailableYears([])
+        setVentas([])
+        setSelectedYear('')
+        return
+      }
+      // Llamamos al endpoint que trae TODAS las ventas para sacar los años
+      ventaHistoricaService
+        .getAllVentasPorEmpresa(parseInt(selectedEmpresaId, 10))
+        .then((data) => {
+          if (cancelado) return
+          const years = [...new Set(data.map((v) => new Date(v.fechaVenta).getFullYear()))]
+          setAvailableYears(years.sort((a, b) => b - a)) // Ordenar de más reciente a más antiguo
+        })
+    })
+    return () => {
+      cancelado = true
     }
-    // Llamamos al endpoint que trae TODAS las ventas para sacar los años
-    ventaHistoricaService
-      .getAllVentasPorEmpresa(parseInt(selectedEmpresaId, 10))
-      .then((data) => {
-        const years = [...new Set(data.map((v) => new Date(v.fechaVenta).getFullYear()))]
-        setAvailableYears(years.sort((a, b) => b - a)) // Ordenar de más reciente a más antiguo
-      })
   }, [selectedEmpresaId])
 
   // Función para obtener las ventas de un año específico.
@@ -66,7 +74,7 @@ export const HistorialVentas = () => {
 
   // Este efecto se ejecuta cada vez que la función fetchVentasDelAnio cambia
   useEffect(() => {
-    fetchVentasDelAnio()
+    void Promise.resolve().then(() => fetchVentasDelAnio())
   }, [fetchVentasDelAnio])
 
   // Funciones para manejar la apertura de los modales
@@ -105,7 +113,7 @@ export const HistorialVentas = () => {
       }
       setIsModalOpen(false) // Cerramos el modal
       fetchVentasDelAnio() // Volvemos a cargar los datos para ver los cambios en la tabla
-    } catch (error) {
+    } catch {
       Notifier.dismiss(String(toastId))
       Notifier.error('Ocurrió un error al guardar los datos.')
     }
@@ -125,7 +133,7 @@ export const HistorialVentas = () => {
         Notifier.success('Venta eliminada.')
         // Actualizamos la lista en el frontend para no tener que recargar desde la API
         setVentas(ventas.filter((v) => v.id !== venta.id))
-      } catch (error) {
+      } catch {
         Notifier.dismiss(String(toastId))
         Notifier.error('Error al eliminar el registro.')
       }
@@ -187,7 +195,7 @@ export const HistorialVentas = () => {
                 <tr>
                   <th>ID</th>
                   <th>Fecha</th>
-                  <th className="text-end">Monto</th>
+                  <th className="text-end">Monto ($)</th>
                   <th>Observación</th>
                   <th className="text-end">Acciones</th>
                 </tr>
@@ -198,9 +206,7 @@ export const HistorialVentas = () => {
                     <tr key={v.id}>
                       <td>{v.id}</td>
                       <td>{new Date(v.fechaVenta).toLocaleDateString()}</td>
-                      <td className="text-end">
-                        {v.montoVenta.toLocaleString('es-SV', { style: 'currency', currency: 'USD' })}
-                      </td>
+                      <td className="text-end">{formatMoney(v.montoVenta)}</td>
                       <td>{v.observacion || <span className="text-muted">N/A</span>}</td>
                       <td className={viewStyles.actionsCell}>
                         <button
