@@ -5,6 +5,8 @@ import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import type { ProductoInventario, analizarInventarios } from '@/lib/inventarios'
 import view from '@/styles/shared/View.module.css'
 import buttons from '@/styles/shared/Button.module.css'
+import SubMenu from '@/components/shared/SubMenu'
+import { sectoresSubMenuLinks } from '@/config/menuConfig'
 
 const nuevo: ProductoInventario = { codigo: '', nombre: '', demanda_anual: 0, costo_unitario: 0, costo_pedido: 0, costo_mantenimiento_anual: 1, plazo_entrega_dias: 0, stock_seguridad: 0, dias_operacion: 365, existencias: 0 }
 const campos = { demanda_anual: 'Demanda anual (unidades)', costo_unitario: 'Costo unitario ($)', costo_pedido: 'Costo por pedido ($)', costo_mantenimiento_anual: 'Mantenimiento por unidad/año ($)', plazo_entrega_dias: 'Plazo de entrega (días)', stock_seguridad: 'Stock de seguridad', dias_operacion: 'Días de operación por año', existencias: 'Existencias actuales' } as const
@@ -25,7 +27,9 @@ export default function InventariosPage() {
     catch (e) { setError(getErrorMessage(e)) }
     finally { setOcupado(false) }
   }
-  return <div className={view.viewContainer}>
+  return <div style={{ padding: '20px' }}>
+    <SubMenu links={sectoresSubMenuLinks} ariaLabel="Navegación de Ratios" />
+    <div className={view.viewContainer} style={{ marginTop: '2rem' }}>
     <h1>Inventarios ABC, EOQ y punto de reorden</h1>
     <p>{empresa?.nombreEmpresa} · Clasificación por consumo anual en dinero: A hasta 80%, B hasta 95%, C restante. El artículo que cruza el umbral permanece en su clase.</p>
     {error && <p role="alert" className="text-danger">{error}</p>}
@@ -40,5 +44,6 @@ export default function InventariosPage() {
     </tbody></table></div>
     {!productos.length && <p>Agrega los productos para analizar su consumo, lotes y reposición.</p>}
     <p>EOQ = √(2 × demanda anual × costo por pedido / mantenimiento unitario anual). Reorden = demanda diaria × plazo + stock de seguridad. Si el costo por pedido es cero, EOQ es cero y no determina una frecuencia de pedidos.</p>
+    </div>
   </div>
 }
