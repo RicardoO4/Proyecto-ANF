@@ -125,6 +125,9 @@ las asimetrías de nombres (camelCase vs snake_case) de los DTOs originales.
   `GEMINI_MODEL` es opcional. Después de cambiar variables hay que desplegar de nuevo.
 - La caché compartida de IA requiere `010_cache_ia_persistente.sql`; la carga mensual
   transaccional requiere `011_ventas_mensuales.sql`. No requieren variables adicionales.
+- La actualización incremental de ratios requiere
+  `20261121011703_recalculo_ratios_incremental.sql`: comprueba cambios por año,
+  reutiliza resultados vigentes y conserva la opción de forzar el cálculo completo.
 - Resultado de la revisión del sitio publicado y pendientes de configuración:
   [docs/verificacion-vercel.md](docs/verificacion-vercel.md).
 

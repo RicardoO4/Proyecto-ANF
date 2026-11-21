@@ -3,8 +3,9 @@
 // financial statements by cuenta code, compute, compare against the sector
 // benchmark, generate the Spanish interpretation, persist and return.
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { utilidadEjercicio } from '@/lib/rentabilidad'
-import { InternalException, NotFoundException } from '@/lib/errors'
+import { InternalException, NotFoundException, BusinessRuleException } from '@/lib/errors'
 import type { RatioResponseDTO } from '@/types'
 
 // ---------------------------------------------------------------
@@ -62,6 +63,19 @@ type MetricInput = {
   codigos: PrefixCodes
 }
 
+// Isolated per request: a batch reuses one snapshot, never global financial data.
+interface FilaCalculada { id_ratio: number; valor_calculado: number | null; valor_sector_promedio: number | null; diferencia_vs_sector: number | null; cumple_sector: boolean | null; interpretacion: string }
+interface BaseRecalculo {
+  estados: { anio: number; tipo_reporte: string }[]
+  lineas: { anio: number; tipo_reporte: string; codigo: string; saldo: number }[]
+  ratios: RatioEntity[]
+  categorias: { nombre_tipo: string }[]
+}
+interface LoteRatios { empresaId: number; datos: BaseRecalculo; filas: FilaCalculada[] }
+const loteRatios = new AsyncLocalStorage<LoteRatios>()
+// Increment when formulas, account-code rules or interpretations change.
+export const VERSION_CALCULO_RATIOS = '2026-11-20.1'
+
 /**
  * SUM(saldo) filtered by empresa, year, report type and account codes.
  * Each code is a PREFIX: every line whose cue_cuenta_id starts with it is
@@ -71,6 +85,14 @@ type MetricInput = {
  */
 export async function sumSaldos(input: MetricInput): Promise<number> {
   const codigos = Array.isArray(input.codigos) ? input.codigos : [input.codigos]
+  const lote = loteRatios.getStore()
+  if (lote && lote.empresaId === input.empresaId) {
+    return codigos.reduce((total, entry) => {
+      const resta = entry.startsWith('-'), prefijo = resta ? entry.slice(1) : entry
+      const suma = lote.datos.lineas.filter(l => l.anio === input.anio && l.tipo_reporte === input.tipoReporte && l.codigo.startsWith(prefijo)).reduce((s, l) => s + Number(l.saldo), 0)
+      return total + (resta ? -suma : suma)
+    }, 0)
+  }
   let total = 0
   for (const entry of codigos) {
     const resta = entry.startsWith('-')
@@ -115,6 +137,8 @@ interface RatioEntity {
 }
 
 export async function loadRatio(id: number): Promise<RatioEntity> {
+  const precargado = loteRatios.getStore()?.datos.ratios.find(r => r.id_ratio === id)
+  if (precargado) return precargado
   const { data, error } = await supabaseAdmin
     .from('ratio')
     .select(
@@ -195,6 +219,8 @@ export async function calculateRatio(
         codigos,
       }),
     async (anio, tipoReporte) => {
+      const lote = loteRatios.getStore()
+      if (lote) return lote.datos.estados.some(e => e.anio === anio && e.tipo_reporte === tipoReporte)
       const { count, error } = await supabaseAdmin
         .from('estado_financiero')
         .select('id_estado_financiero', { count: 'exact', head: true })
@@ -209,6 +235,14 @@ export async function calculateRatio(
   const valorSector = ratio.parametroSector?.valor_referencia
   if (valor !== null && !Number.isFinite(valor)) throw new InternalException("El indicador no tiene un valor finito.")
   const diferencia = valorSector == null || valor === null ? null : round(valor - Number(valorSector), 4)
+
+  const lote = loteRatios.getStore()
+  if (lote) {
+    lote.filas.push({ id_ratio: id, valor_calculado: valor, valor_sector_promedio: valorSector == null ? null : Number(valorSector), diferencia_vs_sector: diferencia,
+      cumple_sector: valorSector == null || valor === null ? null : cumple,
+      interpretacion: (valorSector == null && valor !== null ? `Valor calculado: ${valor}. Sin referencia sectorial configurada para esta categoría.` : interpretacion).slice(0, 256) })
+    return Response.json({ id_ratio: id, valor_calculado: valor })
+  }
 
   const { data: updated, error } = await supabaseAdmin
     .from('ratio')
@@ -229,6 +263,11 @@ export async function calculateRatio(
 }
 
 /** Full RatioResponseDTO mapper (empresa/categoria/parametro nested shapes). */
+export interface RelacionesRatio {
+  empresa: { empresa_id: number; nombre_empresa: string } | null
+  categoria: { id_categoria_ratio: number; nombre_tipo: string } | null
+  parametro: { id_parametro_sector: number; valor_referencia: number; anio_referencia: number | null; nombre_ratio: string } | null
+}
 export async function mapRatioResponse(row: {
   id_ratio: number
   anio_ratio: number | null
@@ -241,8 +280,10 @@ export async function mapRatioResponse(row: {
   empresa_id: number
   id_categoria_ratio: number | null
   id_parametro_sector: number | null
-}): Promise<RatioResponseDTO> {
-  const [empresaRes, categoriaRes, parametroRes] = await Promise.all([
+}, relaciones?: RelacionesRatio): Promise<RatioResponseDTO> {
+  const [empresaRes, categoriaRes, parametroRes] = relaciones
+    ? [{ data: relaciones.empresa }, { data: relaciones.categoria }, { data: relaciones.parametro }]
+    : await Promise.all([
     supabaseAdmin
       .from('empresa')
       .select('empresa_id, nombre_empresa')
@@ -914,11 +955,9 @@ export function calcularCicloConversionEfectivo(id: number) {
 // AU1 — recálculo automático tras una carga de estados financieros.
 //
 // Firma acordada con el Módulo A: `recalcularRatios(empresaId, anio)`.
-// Solo recalcula las filas de `ratio` que YA existen para esa empresa y
-// año (el catálogo se crea con el seed 003 o desde la UI). Es silencioso
-// por diseño: un ratio que no se puede calcular —por ejemplo uno de
-// rentabilidad sin Estado de Resultados cargado— no debe hacer fallar la
-// carga que lo disparó.
+// Prepara filas faltantes, omite años vigentes y calcula sobre una sola base.
+// Los fallos se guardan como pendientes y no se marcan como actualizados.
+// Un fallo de ratios no cancela la carga: A informa sus avisos al usuario.
 // ---------------------------------------------------------------
 
 const CALCULADORES: Record<string, (id: number) => Promise<Response>> = {
@@ -950,43 +989,66 @@ const CALCULADORES: Record<string, (id: number) => Promise<Response>> = {
   'Ciclo de conversión de efectivo': calcularCicloConversionEfectivo,
 }
 
+export const CATEGORIAS_CALCULABLES = Object.keys(CALCULADORES)
+
 export interface ResultadoRecalculo {
   calculados: number
+  omitidos: number
+  actualizado: boolean
   fallos: { id: number; categoria: string; mensaje: string }[]
   avisos: string[]
 }
 
-export async function recalcularRatios(empresaId: number, anio: number): Promise<ResultadoRecalculo> {
-  const resultado: ResultadoRecalculo = { calculados: 0, fallos: [], avisos: [] }
-  const estado = await supabaseAdmin.from('estado_financiero').select('anio').eq('empresa_id', empresaId).eq('anio', anio).limit(1)
-  if (estado.error) throw estado.error
-  if (!estado.data?.length) return resultado
-  const crear = await supabaseAdmin.rpc('asegurar_ratios_anio', { p_empresa_id: empresaId, p_anio: anio, p_categorias: Object.keys(CALCULADORES) })
-  if (crear.error) {
-    resultado.avisos.push('No se pudieron preparar todos los indicadores. Verifique la migración 008 y el catálogo de categorías.')
-    console.error('[AU1] Preparación de ratios', crear.error)
-  }
-  const { data, error } = await supabaseAdmin.from('ratio').select('id_ratio, categoria_ratio(nombre_tipo)').eq('empresa_id', empresaId).eq('anio_ratio', anio)
+async function consultarRecalculo(empresaId: number, anio: number) {
+  const { data, error } = await supabaseAdmin.rpc('consultar_recalculo_ratios', { p_empresa_id: empresaId, p_anio: anio, p_version: VERSION_CALCULO_RATIOS })
+  if (error?.code === 'PGRST202') throw new BusinessRuleException('Falta ejecutar la migración recalculo_ratios_incremental.sql en Supabase.')
   if (error) throw error
-  const filas = (data ?? []) as unknown as { id_ratio: number; categoria_ratio: { nombre_tipo: string } | null }[]
-  // Límite de concurrencia: evita saturar Supabase al preparar un año completo.
-  for (let inicio = 0; inicio < filas.length; inicio += 4) {
-    await Promise.all(filas.slice(inicio, inicio + 4).map(async fila => {
-      const categoria = fila.categoria_ratio?.nombre_tipo ?? 'Sin categoría'
+  if (!data) throw new InternalException('No se pudo verificar la vigencia de los indicadores.')
+  return data as { vigente: boolean; huella: string; datos: BaseRecalculo }
+}
+
+export async function recalcularRatios(empresaId: number, anio: number, forzar = false): Promise<ResultadoRecalculo> {
+  const resultado: ResultadoRecalculo = { calculados: 0, omitidos: 0, actualizado: false, fallos: [], avisos: [] }
+  let base = await consultarRecalculo(empresaId, anio)
+  if (!base.datos.estados.some(e => e.anio === anio)) return resultado
+  if (base.vigente && !forzar) {
+    resultado.omitidos = base.datos.ratios.filter(r => CALCULADORES[r.categoriaRatio?.nombre_tipo ?? '']).length
+    resultado.actualizado = true
+    return resultado
+  }
+  const crear = await supabaseAdmin.rpc('asegurar_ratios_anio', { p_empresa_id: empresaId, p_anio: anio, p_categorias: Object.keys(CALCULADORES) })
+  if (crear.error) throw new BusinessRuleException('No se pudieron preparar los indicadores. Verifique la migración 008 y el catálogo de categorías.')
+  base = await consultarRecalculo(empresaId, anio)
+  // Another request may have completed the same year while this one prepared it.
+  if (base.vigente && !forzar) {
+    resultado.omitidos = base.datos.ratios.filter(r => CALCULADORES[r.categoriaRatio?.nombre_tipo ?? '']).length
+    resultado.actualizado = true
+    return resultado
+  }
+  const lote: LoteRatios = { empresaId, datos: base.datos, filas: [] }
+  await loteRatios.run(lote, async () => {
+    for (const fila of base.datos.ratios) {
+      const categoria = fila.categoriaRatio?.nombre_tipo ?? 'Sin categoría'
       const calcular = CALCULADORES[categoria]
-      if (!calcular) return
+      if (!calcular) continue
       try {
         await calcular(fila.id_ratio)
         resultado.calculados++
       } catch (error) {
         const mensaje = error instanceof Error ? error.message : 'Error al calcular el indicador.'
         resultado.fallos.push({ id: fila.id_ratio, categoria, mensaje })
-        console.error(`[AU1] ${anio} ${categoria}`, error)
-        const invalidado = await supabaseAdmin.from('ratio').update({ valor_calculado: null, valor_sector_promedio: null, diferencia_vs_sector: null, cumple_sector: null, interpretacion: `Pendiente de recálculo: ${mensaje}`.slice(0, 256) }).eq('id_ratio', fila.id_ratio)
-        if (invalidado.error) resultado.avisos.push(`No se pudo invalidar el valor anterior del indicador ${fila.id_ratio}.`)
+        lote.filas.push({ id_ratio: fila.id_ratio, valor_calculado: null, valor_sector_promedio: null, diferencia_vs_sector: null, cumple_sector: null, interpretacion: `Pendiente de recálculo: ${mensaje}`.slice(0, 256) })
       }
-    }))
-  }
-  resultado.avisos.push(...resultado.fallos.map(f => `${anio} ? ${f.categoria}: ${f.mensaje}`))
+    }
+  })
+  const faltantes = Object.keys(CALCULADORES).filter(c => !base.datos.ratios.some(r => r.categoriaRatio?.nombre_tipo === c))
+  if (faltantes.length) resultado.avisos.push(`Faltan categorías de indicadores: ${faltantes.join(', ')}.`)
+  const { error } = await supabaseAdmin.rpc('guardar_recalculo_ratios', {
+    p_empresa_id: empresaId, p_anio: anio, p_version: VERSION_CALCULO_RATIOS, p_huella: base.huella,
+    p_filas: lote.filas, p_completo: !resultado.fallos.length && !faltantes.length,
+  })
+  if (error?.code === 'ANF03') throw new BusinessRuleException(error.message)
+  if (error) throw error
+  resultado.avisos.push(...resultado.fallos.map(f => `${anio} · ${f.categoria}: ${f.mensaje}`))
   return resultado
 }

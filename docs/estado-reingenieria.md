@@ -25,7 +25,7 @@ Ejecutadas por el usuario: `007_presupuestos.sql`, `008_integracion_inventarios_
 
 No se inventan benchmarks. Sin referencia sectorial se calcula el indicador y la comparación queda sin valor. Para años nuevos se reutiliza la referencia más reciente del mismo sector que no sea posterior al ejercicio; el parámetro conserva su año de referencia.
 
-Para actualizar registros históricos con los criterios nuevos, entrar a Ratios y pulsar **Recalcular todos los años**. Muestra los avisos de indicadores no calculables y no oculta errores.
+Para actualizar registros históricos con los criterios nuevos, entrar a Ratios y pulsar **Actualizar indicadores**. Muestra los avisos de indicadores no calculables y no oculta errores. **Forzar recálculo completo** permite procesar también los años que ya están vigentes.
 
 ## Criterios
 
@@ -95,5 +95,17 @@ El total anual automático y el detalle mensual de diciembre pueden coexistir. `
 La interfaz muestra la cantidad de meses reales, bloquea la proyección clásica hasta disponer de doce meses consecutivos al final del histórico y ofrece el pronóstico anual. La captura manual permite preparar doce filas vacías de un año. Los importes deben proporcionarse con información real; no se reparten totales anuales en meses. El pronóstico avanzado mensual necesita al menos tres meses reales sin huecos.
 
 La carga de estados declara `maxDuration = 300` para incluir el recálculo de ratios; el proyecto Vercel debe permitir esa duración. Estas correcciones requieren desplegar el código nuevo. Las migraciones 010/011 ya se verificaron en Supabase y no requieren claves adicionales.
+
+## Actualización incremental de ratios — 20/11/2026
+
+El usuario ejecutó `20261121011703_recalculo_ratios_incremental.sql`. Crea `ratio_recalculo` y cuatro funciones privadas, sin borrar información anterior. El primer cálculo establece una huella persistente por empresa y año. La huella incluye estados/líneas del año actual y previo, códigos contables, categorías, sector y referencias. Otra huella detecta modificaciones manuales de los resultados guardados. Un valor N/M nulo es válido; un cálculo fallido no se marca como vigente y se vuelve a intentar.
+
+El recálculo normal omite años con entradas, resultados y versión iguales. El año anterior forma parte de la huella para los indicadores que usan promedios. `VERSION_CALCULO_RATIOS` en `src/lib/ratios.ts` debe incrementarse al cambiar fórmulas, reglas contables o interpretaciones. La casilla de forzado evita la omisión cuando se necesita mantenimiento.
+
+Cada año pendiente se calcula sobre una sola lectura consistente de la base; `AsyncLocalStorage` aísla el contexto entre solicitudes y empresas. El guardado de todos los resultados es una transacción. Si la base cambió antes del guardado, se rechaza la operación para no certificar datos anteriores. El listado de ratios también carga sus relaciones en una sola consulta en vez de tres consultas por indicador. Una verificación sin cambios no vuelve a descargar la tabla en el navegador.
+
+Pruebas: seis regresiones locales, contratos/permisos de API y navegador con POST simulado para preservar los años reales. Supabase real: años vacíos 2093/2094, 23 indicadores iniciales por año y luego 23 omitidos, cambios de balance actual/previo, referencia, resultado guardado, versión y forzado; rechazo de una base que cambia antes de guardar. Todos los datos propios se eliminaron. En esa prueba, el cálculo por año tomó aproximadamente 0,7–1,0 s y la verificación sin cambios 0,2 s; no es una garantía de tiempo en producción. Gemini no se utiliza en este flujo.
+
+Comandos: `npm run verify:recalculo` (sin red), `npm run verify:recalculo-servicios` (filas temporales con limpieza) y `npm run e2e:ratios` (servidor local 3100, POST simulado y lecturas reales).
 
 La aceptación del equipo con los datos de la cátedra sigue siendo necesaria. Revisar hipótesis de Proforma y referencias sectoriales con el docente. El lint debe pasar sin errores; las advertencias anteriores se reportan por separado.

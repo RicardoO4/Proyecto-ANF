@@ -17,6 +17,7 @@ import { apiClient, getErrorMessage } from '@/services/api'
 import type { RatioResponseDTO, CategoriaRatioResponseDTO, ParametroSectorResponseDTO, EmpresaResponseDTO } from '@/types'
 
 export const Ratio = () => {
+  const [forzarRecalculo, setForzarRecalculo] = useState(false)
   // --- Estados para los datos ---
   const [ratios, setRatios] = useState<RatioResponseDTO[]>([])
   const [categorias, setCategorias] = useState<CategoriaRatioResponseDTO[]>([])
@@ -250,11 +251,12 @@ export const Ratio = () => {
   const recalcularTodos = async () => {
     setRecalculando(true)
     try {
-      const { data } = await apiClient.post<{ calculados: number; avisos: string[] }>('/ratios/recalcular', {}, { timeout: 300_000 })
+      const { data } = await apiClient.post<{ calculados: number; omitidos: number; avisos: string[] }>('/ratios/recalcular', { forzar: forzarRecalculo }, { timeout: 300_000 })
       setAvisosRecalculo(data.avisos)
-      await fetchData(filtroEmpresa ?? '')
+      if (data.calculados || data.avisos.length) await fetchData(filtroEmpresa ?? '')
       if (data.avisos.length) Notifier.warning('Recálculo terminado con avisos. Revise el detalle.')
-      else Notifier.success(`${data.calculados} indicadores actualizados.`)
+      else if (!data.calculados && data.omitidos) Notifier.success('Los indicadores ya están actualizados. No se repitieron los cálculos.')
+      else Notifier.success(`${data.calculados} indicadores actualizados; ${data.omitidos} sin cambios.`)
     } catch (e) { Notifier.error(getErrorMessage(e, 'No se pudo completar el recálculo.')) }
     finally { setRecalculando(false) }
   }
@@ -265,8 +267,9 @@ export const Ratio = () => {
 
       <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
         <button className="btn btn-secondary me-3" disabled={loading || recalculando || !empresa} onClick={() => void recalcularTodos()}>
-          {recalculando ? 'Recalculando…' : 'Recalcular todos los años'}
+          {recalculando ? 'Verificando y actualizando…' : 'Actualizar indicadores'}
         </button>
+        <label className="me-3"><input type="checkbox" className="me-2" checked={forzarRecalculo} disabled={recalculando} onChange={e => setForzarRecalculo(e.target.checked)} />Forzar recálculo completo</label>
         <BotonResumenIA
           key={JSON.stringify(ratios)}
           tipo="ratios"

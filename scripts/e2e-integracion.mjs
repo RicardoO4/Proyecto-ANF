@@ -92,7 +92,7 @@ try {
   }
   if (productoId) { try { await api(`/api/v1/inventarios?id=${productoId}`, 'DELETE') } catch { fallos.push('inventario/' + productoId) } }
   if (reservar) {
-    for (const [tabla, columna] of [['ratio', 'anio_ratio'], ['estado_financiero', 'anio']]) {
+    for (const [tabla, columna] of [['ratio_recalculo', 'anio'], ['ratio', 'anio_ratio'], ['estado_financiero', 'anio']]) {
       const { error } = await supabaseAdmin.from(tabla).delete().eq('empresa_id', empresaId).in(columna, years)
       if (error) fallos.push(tabla + ': años 2097/2098')
     }

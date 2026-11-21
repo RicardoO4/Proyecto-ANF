@@ -22,6 +22,8 @@ globalThis.fetch = async (input, init = {}) => {
   if (nombre === 'empresa') return json({ empresa_id: 1, nombre_empresa: 'Prueba aislada', id_sector: 1 })
   if (escenarioRatios && nombre === 'estado_financiero') return json([{ anio: 2099 }])
   if (escenarioRatios && nombre === 'asegurar_ratios_anio') { escenarioRatios.preparado = true; return json(1) }
+  if (escenarioRatios && nombre === 'consultar_recalculo_ratios') return json({ vigente: escenarioRatios.vigente ?? false, huella: 'prueba', datos: { estados: [{ anio: 2099, tipo_reporte: 'BALANCE_GENERAL' }], lineas: [], categorias: [], ratios: [{ id_ratio: 1, anio_ratio: 2099, empresa_id: 1, categoriaRatio: { id_categoria_ratio: 1, nombre_tipo: 'Rendimiento sobre activos (ROA)' }, parametroSector: null }] } })
+  if (escenarioRatios && nombre === 'guardar_recalculo_ratios') { escenarioRatios.invalidacion = JSON.parse(options.body).p_filas[0]; return new Response(null, { status: 204 }) }
   if (escenarioRatios && nombre === 'ratio') {
     if (method === 'PATCH') { escenarioRatios.invalidacion = JSON.parse(options.body); return new Response(null, { status: 204 }) }
     if (url.searchParams.has('id_ratio')) return json({ id_ratio: 1, anio_ratio: 2099, empresa_id: 1, categoria_ratio: { id_categoria_ratio: 1, nombre_tipo: 'Rendimiento sobre activos (ROA)' }, parametro_sector: null })
@@ -54,6 +56,7 @@ const capital = await import('../src/app/api/v1/evaluaciones-capital/route.ts')
 const capitalId = await import('../src/app/api/v1/evaluaciones-capital/[id]/route.ts')
 const resumen = await import('../src/app/api/v1/resumen-ia/route.ts')
 const ventasManual = await import('../src/app/api/v1/ventas-historicas/route.ts')
+const recalcApi = await import('../src/app/api/v1/ratios/recalcular/route.ts')
 const { supuestosEjemplo } = await import('../src/lib/presupuesto.ts')
 const { capitalEjemplo } = await import('../src/lib/capital.ts')
 function request(path, method = 'GET', body, autenticado = true) {
@@ -61,6 +64,28 @@ function request(path, method = 'GET', body, autenticado = true) {
 }
 test('API: sin sesión devuelve 401', async () => {
   assert.equal((await inventario.GET(request('inventarios', 'GET', undefined, false))).status, 401)
+})
+
+test('API: recálculo exige permisos y valida la opción de forzar', async () => {
+  rol = 'USER'; accesos = [6]
+  assert.equal((await recalcApi.POST(request('ratios/recalcular', 'POST', {}))).status, 403)
+  rol = 'ADMIN'
+  for (const body of [null, [], { forzar: 'true' }]) assert.equal((await recalcApi.POST(request('ratios/recalcular', 'POST', body))).status, 400)
+})
+
+test('API: año vigente informa omitidos sin escribir; forzar lo vuelve a procesar', async () => {
+  rol = 'ADMIN'; escenarioRatios = { vigente: true, preparado: false, invalidacion: null }
+  try {
+    const respuesta = await recalcApi.POST(request('ratios/recalcular', 'POST', {}))
+    assert.equal(respuesta.status, 200)
+    const datos = await respuesta.json()
+    assert.equal(datos.calculados, 0); assert.equal(datos.omitidos, 1); assert.equal(datos.actualizados, 1)
+    assert.equal(escenarioRatios.preparado, false); assert.equal(escenarioRatios.invalidacion, null)
+    const forzada = await recalcApi.POST(request('ratios/recalcular', 'POST', { forzar: true }))
+    assert.equal(forzada.status, 200)
+    assert.equal(escenarioRatios.preparado, true)
+    assert.ok(escenarioRatios.invalidacion)
+  } finally { escenarioRatios = null }
 })
 
 test('D: valida el lote mensual antes de invocar SQL y exige permisos', async () => {

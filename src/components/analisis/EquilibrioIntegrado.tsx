@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useBaseFinanciera } from '@/hooks/useBaseFinanciera'
+import type { BaseFinanciera } from '@/lib/baseFinanciera'
 import { calcularPuntoEquilibrio, type DatosEquilibrio } from '@/lib/equilibrio'
 import BotonResumenIA from '@/components/shared/BotonResumenIA'
 import view from '@/styles/shared/View.module.css'
@@ -10,44 +11,35 @@ import view from '@/styles/shared/View.module.css'
 export default function EquilibrioIntegrado() {
   const { base, empresa, error, cargando, cargar } = useBaseFinanciera()
 
-  const [costosFijos, setCostosFijos] = useState<number>(0)
-  const [precioVenta, setPrecioVenta] = useState<number>(0)
-  const [costoVariable, setCostoVariable] = useState<number>(0)
+  if (!base || cargando) {
+    return <div className={view.viewContainer}>
+      <h1>Análisis de Punto de Equilibrio</h1>
+      {cargando && <p role="status">Cargando datos contables…</p>}
+      {error && <p role="alert">{error}</p>}
+    </div>
+  }
+
+  return <CalculadoraEquilibrio key={`${base.empresaId}-${base.anio}`} base={base} nombreEmpresa={empresa?.nombreEmpresa} cargar={cargar} />
+}
+
+function CalculadoraEquilibrio({ base, nombreEmpresa, cargar }: {
+  base: BaseFinanciera
+  nombreEmpresa?: string
+  cargar: (anio?: number) => Promise<void>
+}) {
+  const gastosFijos = base.resultados.filter(r => r.codigo.startsWith('4102') || r.codigo.startsWith('4103')).reduce((total, r) => total + r.saldo, 0)
+  const costoVentas = base.resultados.find(r => r.codigo.startsWith('4101'))?.saldo ?? 0
+  const fijosIniciales = base.tieneResultados ? Number((gastosFijos > 0 ? gastosFijos : (base.costosGastos || 0)).toFixed(2)) : 0
+  const variableInicial = base.tieneResultados ? Number((costoVentas > 0 ? costoVentas / 1000 : 40).toFixed(2)) : 0
+  const precioInicial = base.tieneResultados ? Number((variableInicial > 0 ? variableInicial * 1.35 : 100).toFixed(2)) : 0
+
+  const [costosFijos, setCostosFijos] = useState(fijosIniciales)
+  const [precioVenta, setPrecioVenta] = useState(precioInicial)
+  const [costoVariable, setCostoVariable] = useState(variableInicial)
 
   const [unidadesEquilibrio, setUnidadesEquilibrio] = useState<number | null>(null)
   const [ventasEquilibrio, setVentasEquilibrio] = useState<number | null>(null)
   const [datosGrafico, setDatosGrafico] = useState<DatosEquilibrio['datosGrafico']>([])
-
-  // Autocompletar con los datos contables reales de la BD formateados a 2 decimales
-  useEffect(() => {
-    if (base && base.tieneResultados) {
-      // 1. Obtener gastos fijos (Gastos operativos: 4102 + 4103 o fallback de costosGastos)
-      const lineasGastos = base.resultados.filter(r => r.codigo.startsWith('4102') || r.codigo.startsWith('4103'))
-      const totalGastosFijos = lineasGastos.reduce((acc, curr) => acc + curr.saldo, 0)
-      
-      const cFijosBruto = totalGastosFijos > 0 ? totalGastosFijos : (base.costosGastos || 0)
-      const cFijosRedondeado = Number(cFijosBruto.toFixed(2))
-
-      // 2. Obtener costo variable estimado (Costo de ventas: 4101)
-      const lineaCostoVentas = base.resultados.find(r => r.codigo.startsWith('4101'))
-      const totalCostoVentas = lineaCostoVentas ? lineaCostoVentas.saldo : 0
-      
-      const cVariableEstimadoBruto = totalCostoVentas > 0 ? totalCostoVentas / 1000 : 40
-      const cVariableRedondeado = Number(cVariableEstimadoBruto.toFixed(2))
-
-      setCostosFijos(cFijosRedondeado)
-      setCostoVariable(cVariableRedondeado)
-
-      // 3. Establecer un precio de venta sugerido por encima del costo variable para evitar margen negativo por defecto
-      const precioSugeridoBruto = cVariableRedondeado > 0 ? cVariableRedondeado * 1.35 : 100
-      setPrecioVenta(Number(precioSugeridoBruto.toFixed(2)))
-    }
-
-    // Limpiar cálculos previos al cambiar de año
-    setUnidadesEquilibrio(null)
-    setVentasEquilibrio(null)
-    setDatosGrafico([])
-  }, [base])
 
   const handleCalcular = () => {
     const resultado = calcularPuntoEquilibrio(costosFijos, precioVenta, costoVariable)
@@ -76,11 +68,9 @@ export default function EquilibrioIntegrado() {
     <div className={view.viewContainer}>
       <h1>Análisis de Punto de Equilibrio</h1>
       <p>
-        {empresa?.nombreEmpresa} · Cálculos interactivos a partir de los costos fijos y variables de los estados financieros.
+        {nombreEmpresa} · Cálculos interactivos a partir de los costos fijos y variables de los estados financieros.
       </p>
 
-      {cargando && <p role="status">Cargando datos contables…</p>}
-      {error && <p role="alert">{error}</p>}
 
       {base && (
         <>
@@ -90,7 +80,6 @@ export default function EquilibrioIntegrado() {
             <select
               className="form-select mt-1"
               style={{ maxWidth: '200px' }}
-              disabled={cargando}
               value={base.anio}
               onChange={(e) => void cargar(Number(e.target.value))}
             >
@@ -189,7 +178,7 @@ export default function EquilibrioIntegrado() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
                   <XAxis dataKey="unidades" name="Unidades" stroke="var(--text-secondary)" />
                   <YAxis stroke="var(--text-secondary)" />
-                  <Tooltip formatter={(value: any) =>`$${Number(value || 0).toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+                  <Tooltip formatter={(value) =>`$${Number(value || 0).toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                   <Legend />
                   <Line type="monotone" dataKey="costosFijos" name="Costos Fijos" stroke="var(--text-secondary)" strokeDasharray="5 5" strokeWidth={2} />
                   <Line type="monotone" dataKey="costosTotales" name="Costos Totales" stroke="var(--text-tertiary)" strokeWidth={2} />
