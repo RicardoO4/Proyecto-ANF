@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { Modal } from 'react-bootstrap'
+import SelectorCuenta from './SelectorCuenta'
 import { validarPartida, type CuentaContable, type PartidaContable, type PeriodoContable } from '@/lib/contabilidad'
 import buttons from '@/styles/shared/Button.module.css'
 import styles from '@/styles/contabilidad/Contabilidad.module.css'
@@ -16,6 +17,7 @@ export default function PartidaForm({ periodo, cuentas, partida, tipoInicial='OP
   let totales = { debe: 0, haber: 0, diferencia: 0 }
   try { totales = validarPartida(lineas) } catch { /* Las filas incompletas se validan al guardar. */ }
   const setLinea = (index: number, field: 'cuentaId' | 'debe' | 'haber', value: string) => setLineas(previous => previous.map((l,i) => i === index ? { ...l, [field]: field === 'cuentaId' ? Number(value) : value } : l))
+  const cuentasDisponibles = cuentas.filter(c => c.activa && (tipo==='APERTURA'?['1','2','3'].includes(c.codigo[0])&&!c.codigo.startsWith('3204'):c.imputable&&!c.codigo.startsWith('3204')))
   return <Modal show onHide={busy ? undefined : onClose} size="xl" centered backdrop="static">
     <form onSubmit={async event => {
       event.preventDefault(); setError('')
@@ -36,9 +38,7 @@ export default function PartidaForm({ periodo, cuentas, partida, tipoInicial='OP
         <label className={styles.fullLabel}>Concepto<textarea className="form-control" required minLength={3} maxLength={500} value={descripcion} onChange={e => setDescripcion(e.target.value)} /></label>
         <p className={styles.muted}>Se guardará como borrador. Al contabilizarlo, las líneas serán inmutables y el Debe deberá coincidir exactamente con el Haber.</p>
         <div className={styles.scroll}><table className={styles.table}><thead><tr><th>Cuenta ANF</th><th>Debe</th><th>Haber</th><th>Acción</th></tr></thead><tbody>
-          {lineas.map((l,i) => <tr key={l.key}><td><select aria-label={`Cuenta de línea ${i+1}`} className="form-select" required value={l.cuentaId || ''} onChange={e => setLinea(i,'cuentaId',e.target.value)}>
-            <option value="">Seleccione cuenta</option>{cuentas.filter(c => c.activa && (tipo==='APERTURA'?['1','2','3'].includes(c.codigo[0])&&!c.codigo.startsWith('3204'):c.imputable&&!c.codigo.startsWith('3204'))).map(c => <option key={c.id} value={c.id}>{c.codigo} · {c.nombre}</option>)}
-          </select></td><td><input aria-label={`Debe de línea ${i+1}`} className="form-control" type="number" min="0" step="0.01" required value={l.debe} onChange={e => setLinea(i,'debe',e.target.value)} /></td>
+          {lineas.map((l,i) => <tr key={l.key}><td><SelectorCuenta cuentas={cuentasDisponibles} cuentaId={l.cuentaId} linea={i+1} disabled={busy} onChange={value => setLinea(i,'cuentaId',value)} /></td><td><input aria-label={`Debe de línea ${i+1}`} className="form-control" type="number" min="0" step="0.01" required value={l.debe} onChange={e => setLinea(i,'debe',e.target.value)} /></td>
           <td><input aria-label={`Haber de línea ${i+1}`} className="form-control" type="number" min="0" step="0.01" required value={l.haber} onChange={e => setLinea(i,'haber',e.target.value)} /></td>
           <td><button type="button" className={buttons.btnSecondary} disabled={lineas.length <= 2 || busy} onClick={() => setLineas(previous => previous.filter((_,index) => index !== i))}>Quitar</button></td></tr>)}
         </tbody><tfoot><tr><th>Total</th><td>{totales.debe.toFixed(2)}</td><td>{totales.haber.toFixed(2)}</td><td>Diferencia: {totales.diferencia.toFixed(2)}</td></tr></tfoot></table></div>
