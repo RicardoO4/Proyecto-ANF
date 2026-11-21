@@ -2,6 +2,8 @@
 import { generarReporteInterno } from '@/lib/analisis'
 import { handle } from '@/lib/errors'
 import { NextResponse } from 'next/server'
+import { obtenerPeriodosFinancieros } from '@/lib/periodosFinancierosServidor'
+import { describirPeriodo } from '@/lib/periodoFinanciero'
 
 export async function GET(req: Request) {
   return handle(req, async () => {
@@ -13,6 +15,8 @@ export async function GET(req: Request) {
       return NextResponse.json([], { status: 200 })
     }
     const reporte = await generarReporteInterno(empresaId, anio1, anio2)
-    return NextResponse.json(reporte)
+    const contables = await obtenerPeriodosFinancieros(empresaId)
+    const periodos = [anio1,anio2].map(anio => describirPeriodo(anio,contables.find(p => p.anio === anio)))
+    return NextResponse.json({...reporte, periodos, comparacionParcial:periodos.some(p => !p.completo)})
   })
 }

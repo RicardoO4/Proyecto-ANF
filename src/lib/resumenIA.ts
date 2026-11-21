@@ -1,5 +1,8 @@
 import { REBAJAS_DEVOLUCIONES } from '@/lib/accountCodes'
 import { pronosticarVentas } from '@/lib/pronosticos'
+import { obtenerVentasProyeccion } from './ventasProyeccionServidor'
+import { obtenerPeriodosFinancieros } from './periodosFinancierosServidor'
+import { describirPeriodo } from './periodoFinanciero'
 import { obtenerBaseFinanciera } from '@/lib/baseFinanciera'
 import { getEmpresaPrincipal } from '@/lib/empresaPrincipal'
 import { generarProforma } from '@/lib/proforma'
@@ -85,6 +88,8 @@ async function comparativo(d: Datos): Promise<Preparado> {
   const anio1 = numero(d, 'anio1', { min: 1900, entero: true })
   const anio2 = numero(d, 'anio2', { min: 1900, entero: true })
   const rep = await generarReporteInterno(empresaId, anio1, anio2)
+  const periodosContables = await obtenerPeriodosFinancieros(empresaId)
+  const periodos = [anio1,anio2].map(anio => describirPeriodo(anio,periodosContables.find(p => p.anio === anio)))
   if (rep.analisisHorizontal.length === 0) {
     throw new NotFoundException(`No hay estados financieros de ${anio1} y ${anio2} para comparar.`)
   }
@@ -130,6 +135,7 @@ async function comparativo(d: Datos): Promise<Preparado> {
 
   const mensaje = [
     `Análisis comparativo (horizontal y vertical) entre ${anio1} y ${anio2}.`,
+    `Estado de los períodos: ${JSON.stringify(periodos)}. Si hay ejercicios provisionales, identifica el análisis como preliminar; no interpretes diferencias de resultados contra años completos como crecimiento anual ni anualices importes.`,
     `Totales:\n${totales.map((t) => `- ${t}`).join('\n')}`,
     `Cuentas de balance con mayor cambio:\n${top(esBalance, 6).join('\n')}`,
     ...(lineas.some(esResultados)
@@ -315,9 +321,8 @@ async function pronostico(d: Datos): Promise<Preparado> {
     const periodicidad = d.periodicidad === 'anual' ? 'anual' : d.periodicidad === 'mensual' ? 'mensual' : null
     if (!periodicidad) throw new BadRequestException('Periodicidad inválida.')
     const periodos = numero(d, 'periodos', { min: 1, entero: true })
-    const { data, error } = await supabaseAdmin.from('venta').select('*').eq('empresa_id', empresa.empresaId).order('fecha_venta')
-    if (error) throw error
-    const p = pronosticarVentas((data ?? []) as VentaRow[], periodicidad, periodos)
+    const {ventas} = await obtenerVentasProyeccion(empresa.empresaId,periodicidad)
+    const p = pronosticarVentas(ventas, periodicidad, periodos)
     const datosClave = p.proyecciones.map(f => ({ etiqueta: f.periodo, valor: `Promedio móvil ${dinero(f.movil)}; logarítmica ${dinero(f.logaritmica)}; cuadrática ${dinero(f.cuadratica)}` }))
     return { titulo: 'Pronóstico de ventas', clave: `pronostico|${empresa.empresaId}|${periodicidad}|${periodos}`, datosClave, mensaje: `Pronóstico ${periodicidad}. Histórico real: ${p.historico.map(f => `${f.periodo}: ${dinero(f.monto)}`).join('; ')}. Resultados: ${datosClave.map(f => `${f.etiqueta}: ${f.valor}`).join('; ')}. Compara los tres métodos y advierte sobre extrapolación con pocos datos. No confundir años con meses.` }
   }

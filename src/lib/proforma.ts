@@ -2,6 +2,7 @@ import { REBAJAS_DEVOLUCIONES } from '@/lib/accountCodes'
 import type { BaseFinanciera } from '@/lib/baseFinanciera'
 export interface SupuestosProforma { ventasProyectadas: number; retencion: number; porcentajeVariableGastos: number }
 export function generarProforma(base: BaseFinanciera, supuestos: SupuestosProforma) {
+  if (base.periodo && !base.periodo.completo) throw new Error('La proyección anual requiere un año base completo. Puede analizar este ejercicio en ANF como preliminar.')
   if (!base.tieneBalance || !base.tieneResultados || !(base.ventas > 0)) throw new Error('Se necesitan Balance General y Estado de Resultados con ventas netas positivas.')
   if (!Object.values(supuestos).every(Number.isFinite) || supuestos.ventasProyectadas <= 0 || supuestos.retencion < 0 || supuestos.retencion > 100 || supuestos.porcentajeVariableGastos < 0 || supuestos.porcentajeVariableGastos > 100) throw new Error('Ventas positivas y porcentajes entre 0 y 100 son obligatorios.')
   if (Math.abs(base.activos - base.pasivos - base.patrimonio) > 0.05) throw new Error('El balance de origen no cuadra. Corrija la carga antes de proyectar.')

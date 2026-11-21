@@ -3,7 +3,7 @@ import { useRef, useState } from 'react'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import { apiClient, getErrorMessage } from '@/services/api'
 import type { BaseFinanciera } from '@/lib/baseFinanciera'
-export function useBaseFinanciera() {
+export function useBaseFinanciera(soloCompletos = false) {
   const [base, setBase] = useState<BaseFinanciera | null>(null)
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(true)
@@ -12,7 +12,7 @@ export function useBaseFinanciera() {
     const id = ++secuencia.current
     setCargando(true)
     try {
-      const respuesta = await apiClient.get<BaseFinanciera>('/analisis/base-financiera', { params: { anio } })
+      const respuesta = await apiClient.get<BaseFinanciera>('/analisis/base-financiera', { params: { anio, soloCompletos: soloCompletos ? '1' : undefined } })
       if (id !== secuencia.current) return
       setBase(respuesta.data); setError('')
     } catch (e) { if (id === secuencia.current) { setBase(null); setError(getErrorMessage(e)) } }

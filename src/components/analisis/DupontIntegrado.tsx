@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
 import { useBaseFinanciera } from '@/hooks/useBaseFinanciera'
+import AvisoPeriodoFinanciero from '@/components/shared/AvisoPeriodoFinanciero'
 import { descomponerDupont } from '@/lib/rentabilidad'
 import BotonResumenIA from '@/components/shared/BotonResumenIA'
 import view from '@/styles/shared/View.module.css'
@@ -20,6 +21,7 @@ export default function DupontIntegrado() {
   })
   return <div className={view.viewContainer}><h1>DuPont y sensibilidad</h1><p>{empresa?.nombreEmpresa} · Datos de los estados financieros cargados. Activos y patrimonio promedios: mismo criterio que Ratios y Evolución.</p>
     {cargando && <p role="status">Cargando…</p>}{error && <p role="alert">{error}</p>}
+    {!cargando && <AvisoPeriodoFinanciero periodo={base?.periodo} />}
     {base && <><label>Año<select className="form-select mb-3" disabled={cargando} value={base.anio} onChange={e => void cargar(Number(e.target.value))}>{base.anios.map(a => <option key={a}>{a}</option>)}</select></label>
       {!base.tieneResultados && <p role="alert">No hay Estado de Resultados. Cargue ventas y costos para obtener la descomposición DuPont.</p>}
       {d && base.tieneResultados && !cargando && <><table className={view.table}><thead><tr><th>Margen neto</th><th>Rotación de activos</th><th>Multiplicador de capital</th><th>ROE</th></tr></thead><tbody><tr><td>{porcentaje(d.margen)}</td><td>{d.rotacion?.toFixed(4) ?? 'No calculable'} veces</td><td>{significativo ? d.multiplicador?.toFixed(4) : 'No significativo'} veces</td><td>{significativo ? porcentaje(d.roe) : 'No significativo: patrimonio no positivo'}</td></tr></tbody></table>

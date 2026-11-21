@@ -10,7 +10,7 @@
 //              anioPresupuesto, ventasPropuestas }
 import { NextResponse } from 'next/server'
 import { BadRequestException, NotFoundException, handle } from '@/lib/errors'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+import { obtenerVentasProyeccion } from '@/lib/ventasProyeccionServidor'
 import { crecimientoPromedio, redondear } from '@/lib/presupuesto'
 
 export async function GET(req: Request) {
@@ -20,11 +20,7 @@ export async function GET(req: Request) {
       throw new BadRequestException("El parámetro 'empresaId' es obligatorio.")
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('venta')
-      .select('fecha_venta, monto_venta, observacion')
-      .eq('empresa_id', empresaId)
-    if (error) throw error
+    const {ventas: data, excluidos} = await obtenerVentasProyeccion(empresaId,'anual')
 
     // Agrupa por año (las fechas vienen como 'YYYY-MM-DD'; se lee el año del texto
     // para no depender de la zona horaria).
@@ -41,7 +37,7 @@ export async function GET(req: Request) {
 
     if (historico.length === 0) {
       throw new NotFoundException(
-        'La empresa no tiene ventas históricas. Cárguelas en Proyecciones o escriba las unidades a mano.',
+        'No hay años completos disponibles para proponer ventas anuales. Los ejercicios provisionales y años con meses faltantes se excluyen.',
       )
     }
 
@@ -49,6 +45,7 @@ export async function GET(req: Request) {
     const crecimientoPorcentaje = crecimientoPromedio(historico)
     return NextResponse.json({
       historico,
+      excluidos,
       crecimientoPorcentaje,
       anioPresupuesto: ultimo.anio + 1,
       ventasPropuestas: redondear(ultimo.monto * (1 + crecimientoPorcentaje / 100)),

@@ -1,4 +1,5 @@
 'use client'
+import PeriodosPreliminares from '@/components/shared/PeriodosPreliminares'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -122,6 +123,7 @@ const PaginaEvolucionRatios = () => {
       <div className={viewStyles.viewHeader}>
         <h2 className={viewStyles.viewTitle}>Evolución de Ratios Financieros</h2>
       </div>
+      <PeriodosPreliminares />
 
       {/* --- 5. Usa el FilterBar (CSS Modules) --- */}
       <div className={styles.filterBar}>

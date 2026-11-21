@@ -1,7 +1,8 @@
 import { supabaseAdmin } from './supabase/admin'
 import { NotFoundException } from './errors'
 import { resumirBaseFinanciera, type EstadoDisponible, type SaldosFinancieros } from './resumenFinanciero'
-import { resumirDashboard, type DashboardFinanciero, type PeriodoDashboard } from './dashboard'
+import { resumirDashboard, type DashboardFinanciero } from './dashboard'
+import { obtenerPeriodosFinancieros } from './periodosFinancierosServidor'
 import type { EmpresaPrincipal } from './empresaPrincipal'
 
 interface LineaDashboard {
@@ -41,11 +42,10 @@ export async function obtenerDashboard(empresa: EmpresaPrincipal, anio?: number)
     }
   }
   const [periodos] = await Promise.all([
-    supabaseAdmin.from('cont_periodo').select('anio,origen,estado,version,version_publicada').eq('empresa_id', empresa.empresaId).in('anio', necesarios),
+    obtenerPeriodosFinancieros(empresa.empresaId),
     cargarLineas(),
   ])
-  if (periodos.error && !['42P01','PGRST205'].includes(periodos.error.code)) throw periodos.error
-  const contables = (periodos.data ?? []) as PeriodoDashboard[]
+  const contables = periodos
   const resumen = (valor: number) => resumirDashboard(resumirBaseFinanciera(empresa.empresaId, valor, disponibles,
     mapas.get(`${valor}:BALANCE_GENERAL`) ?? new Map(), mapas.get(`${valor}:ESTADO_RESULTADOS`) ?? new Map(), mapas.get(`${valor - 1}:BALANCE_GENERAL`) ?? new Map()), contables.find(periodo => periodo.anio === valor))
   return { empresa, anios, seleccionado: resumen(seleccionado), anterior: anios.includes(seleccionado - 1) ? resumen(seleccionado - 1) : null, historico: ventana.map(resumen) }

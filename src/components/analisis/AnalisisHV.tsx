@@ -11,6 +11,8 @@ import EmpresaFija from '@/components/shared/EmpresaFija'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import BotonResumenIA from '@/components/shared/BotonResumenIA'
 import { ACTIVO_TOTAL, VENTAS_NETAS, sumByPrefix } from '@/lib/accountCodes'
+import type { PeriodoFinanciero } from '@/lib/periodoFinanciero'
+import AvisoPeriodoFinanciero from '@/components/shared/AvisoPeriodoFinanciero'
 
 interface LineaAnalisisHorizontal {
   codigoCuenta: string
@@ -32,6 +34,8 @@ interface LineaAnalisisVertical {
 }
 
 interface ReporteInterno {
+  periodos?: PeriodoFinanciero[]
+  comparacionParcial?: boolean
   analisisHorizontal: LineaAnalisisHorizontal[]
   analisisVertical: LineaAnalisisVertical[]
 }
@@ -243,6 +247,8 @@ const AnalisisHV = () => {
       </div>
 
       {/* Botones de vista */}
+      {reporte?.periodos?.map(p => <AvisoPeriodoFinanciero key={p.anio} periodo={p} />)}
+      {reporte?.comparacionParcial && <p role="note">La comparación incluye un ejercicio preliminar. Las variaciones entre resultados parciales y anuales no representan crecimiento anual comparable.</p>}
       {reporte && (
         <div className={styles.toggleBar}>
           <button

@@ -1,4 +1,5 @@
 'use client'
+import PeriodosPreliminares from '@/components/shared/PeriodosPreliminares'
 
 import React, { useState, useEffect, useCallback } from 'react'
 import SubMenu from '@/components/shared/SubMenu'
@@ -265,6 +266,7 @@ export const Ratio = () => {
   return (
     <div style={{ padding: '20px' }}>
       <SubMenu links={sectoresSubMenuLinks} />
+      <PeriodosPreliminares />
 
       <div className={recalculoStyles.toolbar}>
         <ActualizarIndicadores disabled={loading || !empresa} cargando={recalculando} onActualizar={forzar => void recalcularTodos(forzar)} />

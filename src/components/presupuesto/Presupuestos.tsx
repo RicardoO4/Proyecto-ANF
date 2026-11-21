@@ -46,6 +46,7 @@ const CLAVE_BORRADOR = CLAVE_BORRADOR_PRESUPUESTO
 type Pestana = 'supuestos' | 'cedulas' | 'caja'
 
 interface Sugerencia {
+  excluidos: {anio:number;motivo:string}[]
   historico: { anio: number; monto: number }[]
   crecimientoPorcentaje: number
   anioPresupuesto: number
@@ -145,6 +146,7 @@ const Presupuestos = () => {
       </div>
       {sugerencia && (
         <>
+          {sugerencia.excluidos?.length > 0 && <p>Años excluidos de la propuesta anual: {sugerencia.excluidos.map(f => `${f.anio} (${f.motivo.toLowerCase()})`).join(', ')}.</p>}
           <div className={styles.campos}>
             <div className={styles.campo}>
               <label>Crecimiento anual (%)</label>

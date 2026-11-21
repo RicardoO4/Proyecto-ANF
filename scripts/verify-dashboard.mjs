@@ -43,7 +43,7 @@ test('Estado contable distingue histórico, final, provisional y cambios aún no
   assert.equal(resumirDashboard(base(), periodo).cambiosPendientes, true)
   assert.equal(resumirDashboard(base(), {...periodo, estado:'CERRADO', version_publicada:5}).estado, 'FINAL')
   assert.equal(resumirDashboard(base(), {...periodo, origen:'HISTORICO'}).estado, 'HISTORICO')
-  assert.equal(resumirDashboard(base()).estado, 'IMPORTADO')
+  assert.equal(resumirDashboard({...base(), anio:2025}).estado, 'IMPORTADO')
 })
 
 test('Comparaciones evitan porcentajes con pérdidas, bases cero y ejercicios no comparables', () => {

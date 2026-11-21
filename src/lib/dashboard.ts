@@ -1,18 +1,20 @@
 import type { BaseFinanciera } from './baseFinanciera'
 import { sumByPrefix } from './accountCodes'
 import { gradoEndeudamiento, liquidezCorriente, margenNeto, roa } from './ratioFormulas'
+import { describirPeriodo, type PeriodoContableFinanciero } from './periodoFinanciero'
 
-export interface PeriodoDashboard { anio: number; origen: string; estado: string; version: number; version_publicada: number | null }
+export type PeriodoDashboard = PeriodoContableFinanciero
 export type EstadoDashboard = 'HISTORICO' | 'FINAL' | 'PROVISIONAL' | 'IMPORTADO'
 
 export function resumirDashboard(base: BaseFinanciera, periodo?: PeriodoDashboard) {
   const tieneBalance = base.tieneBalance && base.balance.length > 0
   const tieneResultados = base.tieneResultados && base.resultados.length > 0
-  const estado: EstadoDashboard = !periodo ? 'IMPORTADO' : periodo.origen === 'HISTORICO' ? 'HISTORICO' : periodo.estado === 'CERRADO' ? 'FINAL' : 'PROVISIONAL'
+  const meta = base.periodo ?? describirPeriodo(base.anio, periodo)
+  const estado: EstadoDashboard = meta.estado
   const saldos = new Map(base.balance.map(linea => [linea.codigo, linea]))
   const pasivoCorriente = sumByPrefix(saldos, '21')
   return {
-    anio: base.anio, estado, tieneBalance, tieneResultados,
+    anio: base.anio, estado, tieneBalance, tieneResultados, periodo: meta,
     cambiosPendientes: periodo?.origen === 'CONTABILIDAD' && periodo.version !== periodo.version_publicada,
     ventas: tieneResultados ? base.ventas : null,
     ingresos: tieneResultados ? base.ingresos : null,

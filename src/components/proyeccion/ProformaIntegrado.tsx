@@ -8,7 +8,7 @@ import styles from '@/styles/proyeccion/Proyecciones.module.css'
 import { imprimirReporte } from '@/lib/imprimirReporte'
 const dinero = (v: number) => v.toLocaleString('es-SV', { style: 'currency', currency: 'USD' })
 export default function ProformaIntegrado() {
-  const { base, empresa, error, cargando, cargar } = useBaseFinanciera()
+  const { base, empresa, error, cargando, cargar } = useBaseFinanciera(true)
   const [crecimiento, setCrecimiento] = useState(10)
   const [retencion, setRetencion] = useState(100)
   const [variable, setVariable] = useState(0)
@@ -31,6 +31,7 @@ export default function ProformaIntegrado() {
   }
   return <div className={view.viewContainer}>
     <h1>Estados Proforma y financiamiento externo</h1><p>{empresa?.nombreEmpresa}</p>
+    <p>La proyección anual utiliza un año base completo. Los ejercicios abiertos siguen disponibles en el análisis financiero como preliminares.</p>
     {cargando && <p role="status">Cargando estados financieros…</p>}
     {(error || calculo.error) && <p role="alert" className="text-danger">{error || calculo.error}</p>}
     {base && <>

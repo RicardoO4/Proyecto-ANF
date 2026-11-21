@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { ArrowClockwise, ArrowUpRight, Bank, CashStack, Cart3, ExclamationTriangle, GraphUpArrow, InfoCircle } from 'react-bootstrap-icons'
+import { ArrowClockwise, ArrowUpRight, Bank, CashStack, Cart3, ExclamationTriangle, GraphUpArrow } from 'react-bootstrap-icons'
 import { useAuth } from '@/context/AuthContext'
 import { puedeVerPagina } from '@/lib/accesos'
 import { compararDashboard, type DashboardFinanciero, type ResumenDashboard } from '@/lib/dashboard'
 import { apiClient, getErrorMessage } from '@/services/api'
 import buttons from '@/styles/shared/Button.module.css'
 import styles from '@/styles/analisis/DashboardFinanciero.module.css'
+import AvisoPeriodoFinanciero from '@/components/shared/AvisoPeriodoFinanciero'
 
 const Graficas = dynamic(() => import('./GraficasDashboard'), { ssr: false, loading: () => <div className={styles.loading} aria-label="Cargando gráfica" /> })
 const dinero = (valor: number | null) => valor === null ? 'Sin información' : (Math.abs(valor) < 0.005 ? 0 : valor).toLocaleString('es-SV', { style: 'currency', currency: 'USD' })
@@ -76,8 +77,7 @@ export default function DashboardGeneral() {
     {cargando ? <div aria-busy="true"><p className={styles.subtitle} role="status">Cargando resumen financiero…</p><div className={styles.cards}>{[0,1,2,3].map(valor => <div key={valor} className={styles.loading} />)}</div></div> :
       error ? <div className={styles.empty} role="alert"><h2>No se pudo cargar el resumen</h2><p>{error}</p><button type="button" className={buttons.btnSecondary} onClick={() => setIntento(valor => valor + 1)}>Volver a intentar</button></div> :
       !actual ? <div className={styles.empty}><h2>Tu resumen financiero comienza con los estados de la empresa</h2><p>Cuando haya un balance general o un estado de resultados publicado en ANF, podrás consultar aquí sus cifras.</p>{puede('/estados-financieros') && <Link className={buttons.btnPrimary} href="/estados-financieros">Consultar estados financieros <ArrowUpRight aria-hidden="true" /></Link>}</div> : <>
-        {actual.estado === 'PROVISIONAL' && <div className={styles.notice}><InfoCircle size={16} aria-hidden="true" /><p><strong>{actual.anio} es un ejercicio en curso.</strong> Las cifras corresponden a los estados enviados a ANF y pueden cambiar. Los años completos se muestran como referencia, sin variaciones porcentuales contra este ejercicio.</p></div>}
-        {actual.cambiosPendientes && <div className={styles.notice}><InfoCircle size={16} aria-hidden="true" /><p>Hay movimientos contables pendientes de envío. Este resumen muestra la última información publicada en ANF.</p></div>}
+        <AvisoPeriodoFinanciero periodo={actual.periodo} />
         {(!actual.tieneBalance || !actual.tieneResultados) && <div className={styles.notice}><ExclamationTriangle size={16} aria-hidden="true" /><p>Falta información del {!actual.tieneBalance && !actual.tieneResultados ? 'balance general y del estado de resultados' : !actual.tieneBalance ? 'balance general' : 'estado de resultados'} de {actual.anio}. Las cifras que dependen de ella aparecen como “Sin información”.</p></div>}
         {actual.diferenciaBalance !== null && actual.diferenciaBalance !== 0 && <div className={styles.notice}><ExclamationTriangle size={16} aria-hidden="true" /><p>El balance general presenta una diferencia de <strong>{dinero(actual.diferenciaBalance)}</strong> entre activos y la suma de pasivos y patrimonio.</p></div>}
         <section className={styles.cards} aria-label="Cifras principales">

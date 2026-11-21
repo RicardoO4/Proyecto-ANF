@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useBaseFinanciera } from '@/hooks/useBaseFinanciera'
+import AvisoPeriodoFinanciero from '@/components/shared/AvisoPeriodoFinanciero'
 import type { BaseFinanciera } from '@/lib/baseFinanciera'
 import { calcularPuntoEquilibrio, type DatosEquilibrio } from '@/lib/equilibrio'
 import BotonResumenIA from '@/components/shared/BotonResumenIA'
@@ -70,6 +71,7 @@ function CalculadoraEquilibrio({ base, nombreEmpresa, cargar }: {
       <p>
         {nombreEmpresa} · Cálculos interactivos a partir de los costos fijos y variables de los estados financieros.
       </p>
+      <AvisoPeriodoFinanciero periodo={base.periodo} />
 
 
       {base && (
