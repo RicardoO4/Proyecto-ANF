@@ -13,11 +13,12 @@ import { categoriasRatio } from '@/services/ratioService'
 import { parametroSectorService } from '@/services/ratioService'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import BotonResumenIA from '@/components/shared/BotonResumenIA'
+import ActualizarIndicadores from './ActualizarIndicadores'
+import recalculoStyles from '@/styles/ratio/ActualizarIndicadores.module.css'
 import { apiClient, getErrorMessage } from '@/services/api'
 import type { RatioResponseDTO, CategoriaRatioResponseDTO, ParametroSectorResponseDTO, EmpresaResponseDTO } from '@/types'
 
 export const Ratio = () => {
-  const [forzarRecalculo, setForzarRecalculo] = useState(false)
   // --- Estados para los datos ---
   const [ratios, setRatios] = useState<RatioResponseDTO[]>([])
   const [categorias, setCategorias] = useState<CategoriaRatioResponseDTO[]>([])
@@ -248,10 +249,10 @@ export const Ratio = () => {
   const anioResumen = ratiosConValor.length > 0 ? Math.max(...ratiosConValor.map((r) => Number(r.anio_ratio))) : 0
   const empresaResumen = ratiosConValor[0]?.empresa?.empresa_id ?? 0
 
-  const recalcularTodos = async () => {
+  const recalcularTodos = async (forzar = false) => {
     setRecalculando(true)
     try {
-      const { data } = await apiClient.post<{ calculados: number; omitidos: number; avisos: string[] }>('/ratios/recalcular', { forzar: forzarRecalculo }, { timeout: 300_000 })
+      const { data } = await apiClient.post<{ calculados: number; omitidos: number; avisos: string[] }>('/ratios/recalcular', { forzar }, { timeout: 300_000 })
       setAvisosRecalculo(data.avisos)
       if (data.calculados || data.avisos.length) await fetchData(filtroEmpresa ?? '')
       if (data.avisos.length) Notifier.warning('Recálculo terminado con avisos. Revise el detalle.')
@@ -265,11 +266,8 @@ export const Ratio = () => {
     <div style={{ padding: '20px' }}>
       <SubMenu links={sectoresSubMenuLinks} />
 
-      <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-        <button className="btn btn-secondary me-3" disabled={loading || recalculando || !empresa} onClick={() => void recalcularTodos()}>
-          {recalculando ? 'Verificando y actualizando…' : 'Actualizar indicadores'}
-        </button>
-        <label className="me-3"><input type="checkbox" className="me-2" checked={forzarRecalculo} disabled={recalculando} onChange={e => setForzarRecalculo(e.target.checked)} />Forzar recálculo completo</label>
+      <div className={recalculoStyles.toolbar}>
+        <ActualizarIndicadores disabled={loading || !empresa} cargando={recalculando} onActualizar={forzar => void recalcularTodos(forzar)} />
         <BotonResumenIA
           key={JSON.stringify(ratios)}
           tipo="ratios"

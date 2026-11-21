@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
-import SubMenu from '@/components/shared/SubMenu'
-import { proyeccionesSubMenuLinks } from '@/config/menuConfig'
 import EmpresaFija from '@/components/shared/EmpresaFija'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import viewStyles from '@/styles/shared/View.module.css'
@@ -58,7 +56,6 @@ export const Proyecciones = () => {
 
   return (
     <div className={viewStyles.viewContainer}>
-      <SubMenu links={proyeccionesSubMenuLinks} />
 
       <h1 className={viewStyles.viewTitle}>Proyección de Ventas</h1>
       <p className="mb-4">

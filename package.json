@@ -38,7 +38,8 @@
     "db:export": "node scripts/exportar-anf-local.mjs",
     "verify:contabilidad": "node --import ./scripts/register-ts.mjs --test scripts/verify-contabilidad.mjs scripts/verify-contabilidad-api.mjs",
     "verify:contabilidad-local": "node scripts/verify-contabilidad-local.mjs",
-    "e2e:contabilidad": "node scripts/e2e-contabilidad.mjs"
+    "e2e:contabilidad": "node scripts/e2e-contabilidad.mjs",
+    "e2e:proyecciones": "node scripts/e2e-proyecciones.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

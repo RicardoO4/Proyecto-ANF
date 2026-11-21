@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import SubMenu from '@/components/shared/SubMenu'
-import { proyeccionesSubMenuLinks } from '@/config/menuConfig'
 import EmpresaFija from '@/components/shared/EmpresaFija'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import { ventaHistoricaService, type VentaHistorica } from '@/services/ventaHistoricaService'
@@ -135,7 +133,6 @@ export const HistorialVentas = () => {
 
   return (
     <>
-      <SubMenu links={proyeccionesSubMenuLinks} />
       <div className={viewStyles.viewContainer}>
         <div className={`${viewStyles.viewHeader} justify-content-between`}>
           <h1 className={viewStyles.viewTitle}>Historial de Ventas</h1>

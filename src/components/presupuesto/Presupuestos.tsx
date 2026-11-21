@@ -16,11 +16,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import SubMenu from '@/components/shared/SubMenu'
 import EmpresaFija from '@/components/shared/EmpresaFija'
 import BotonResumenIA from '@/components/shared/BotonResumenIA'
 import DocumentosGuardados from '@/components/shared/DocumentosGuardados'
-import { proyeccionesSubMenuLinks } from '@/config/menuConfig'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import { apiClient, getErrorMessage } from '@/services/api'
 import { Notifier } from '@/utils/Notifier'
@@ -205,7 +203,6 @@ const Presupuestos = () => {
 
   return (
     <div>
-      <SubMenu links={proyeccionesSubMenuLinks} />
 
       <div className={viewStyles.viewContainer} style={{ marginTop: 16 }}>
         <div className={viewStyles.viewHeader}>

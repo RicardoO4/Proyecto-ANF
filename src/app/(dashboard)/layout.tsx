@@ -29,7 +29,7 @@ function DashboardInner({ children }: { children: ReactNode }) {
   if (isRestoring || !isAuthenticated) return null
 
   if (user && !puedeVerPagina(pathname, user)) return <MainLayout><p role="alert">No tiene permiso para acceder a este módulo.</p><Link href={user.rol==='CONTADOR'?'/contabilidad':'/dashboard'}>Volver al inicio</Link></MainLayout>
-  return <MainLayout key={pathname.startsWith('/contabilidad')?'contabilidad':pathname}>{children}</MainLayout>
+  return <MainLayout key={pathname.startsWith('/contabilidad')?'contabilidad':pathname.startsWith('/proyecciones')?'proyecciones':pathname}>{children}</MainLayout>
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {

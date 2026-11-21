@@ -31,7 +31,7 @@ export default function PronosticoIntegrado() {
     {error && <p role="alert" className="text-danger">{error}</p>}
     {resultado && <><p>Periodicidad del resultado: <strong>{resultado.periodicidad}</strong>. Con pocos periodos históricos, la extrapolación puede ser inestable. Las predicciones negativas se limitan a cero.</p>
       <ResponsiveContainer width="100%" height={350}><LineChart data={datos}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="periodo" /><YAxis /><Tooltip /><Legend /><Line dataKey="historico" name="Histórico" stroke="#4ebe96" /><Line dataKey="movil" name="Promedio móvil" stroke="#f6b14b" /><Line dataKey="logaritmica" name="Logarítmica" stroke="#9583ff" /><Line dataKey="cuadratica" name="Cuadrática" stroke="#e06c5a" /></LineChart></ResponsiveContainer>
-      <table className={view.table}><thead><tr><th>Periodo</th><th>Promedio móvil</th><th>Logarítmica</th><th>Cuadrática</th></tr></thead><tbody>{resultado.proyecciones.map(p => <tr key={p.periodo}><td>{p.periodo}</td><td>${p.movil.toFixed(2)}</td><td>${p.logaritmica.toFixed(2)}</td><td>${p.cuadratica.toFixed(2)}</td></tr>)}</tbody></table>
+      <div className="table-responsive"><table className={view.table}><thead><tr><th>Periodo</th><th>Promedio móvil</th><th>Logarítmica</th><th>Cuadrática</th></tr></thead><tbody>{resultado.proyecciones.map(p => <tr key={p.periodo}><td>{p.periodo}</td><td>${p.movil.toFixed(2)}</td><td>${p.logaritmica.toFixed(2)}</td><td>${p.cuadratica.toFixed(2)}</td></tr>)}</tbody></table></div>
       <BotonResumenIA tipo="pronostico" datos={{ empresaId: resultado.empresaId, periodicidad: resultado.periodicidad, periodos: resultado.proyecciones.length }} />
     </>}
   </div>

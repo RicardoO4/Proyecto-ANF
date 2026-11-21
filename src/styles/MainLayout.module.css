@@ -24,6 +24,10 @@
   margin: 0 auto;
 }
 
+.mainContent:has([data-projection-navigation]) {
+  overflow: visible;
+}
+
 .mobileToggle {
   display: none;
   align-items: center;

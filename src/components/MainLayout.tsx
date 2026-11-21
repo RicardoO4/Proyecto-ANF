@@ -10,7 +10,7 @@ const MainLayout = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const handleResize = () => {
-      setSidebarOpen(window.innerWidth >= 768)
+      setSidebarOpen(window.matchMedia('(min-width: 768px)').matches)
     }
     window.addEventListener('resize', handleResize)
     handleResize() // Llama una vez al inicio
