@@ -18,6 +18,7 @@ type Regla = { prefijo: string; opcion: number | null; soloEscritura: boolean; s
 
 // Longest prefix wins. opcion = id_opcion required (null = only a session).
 const REGLAS: Regla[] = [
+  { prefijo: '/api/v1/dashboard', opcion: 0, soloEscritura: false },
   { prefijo: '/api/v1/contabilidad', opcion: 8, soloEscritura: false },
   { prefijo: '/api/v1/usuarios', opcion: 4, soloEscritura: false, soloAdmin: true },
   { prefijo: '/api/v1/empresas/principal', opcion: null, soloEscritura: false },
