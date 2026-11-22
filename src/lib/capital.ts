@@ -113,6 +113,9 @@ export interface FlujosProyecto {
   inversion: number[]
   capitalTrabajo: number[]
   valorRescate: number[]
+  /** Entradas y salidas separadas, positivas, para B/C (incluyen año 0). */
+  entradasEfectivo: number[]
+  salidasEfectivo: number[]
   flujoNeto: number[]
 }
 
@@ -131,6 +134,12 @@ export function flujosProyecto(p: ProyectoInversion, impuestoPct: number): Flujo
   const inversion = ceros.map((_, t) => (t === 0 ? -r2(p.inversionInicial) : 0))
   const capitalTrabajo = ceros.map((_, t) => (t === 0 ? -r2(p.capitalTrabajo) : t === n ? r2(p.capitalTrabajo) : 0))
   const valorRescate = ceros.map((_, t) => (t === n ? r2(p.valorRescate) : 0))
+  const entradasEfectivo = ceros.map((_, t) => r2(
+    (t > 0 ? en(ingresos, t - 1) : 0) + en(valorRescate, t) + Math.max(0, en(capitalTrabajo, t)),
+  ))
+  const salidasEfectivo = ceros.map((_, t) => r2(
+    -en(inversion, t) + Math.max(0, -en(capitalTrabajo, t)) + (t > 0 ? en(costos, t - 1) + en(impuesto, t - 1) : 0),
+  ))
   const flujoNeto = ceros.map((_, t) =>
     r2(en(inversion, t) + en(capitalTrabajo, t) + en(valorRescate, t) + (t > 0 ? en(flujoOperativo, t - 1) : 0)),
   )
@@ -146,6 +155,8 @@ export function flujosProyecto(p: ProyectoInversion, impuestoPct: number): Flujo
     inversion,
     capitalTrabajo,
     valorRescate,
+    entradasEfectivo,
+    salidasEfectivo,
     flujoNeto,
   }
 }
@@ -167,7 +178,42 @@ export interface ResultadoTIR {
   aviso: string | null
 }
 
-/** Busca las tasas en que el VAN cambia de signo entre −99% y 1000%, y las afina por bisección. */
+/** Aísla raíces reales por intervalos monótonos, incluyendo raíces tangentes. */
+function raicesPolinomio(coeficientes: number[], minimo: number, maximo: number): number[] {
+  const c = [...coeficientes]
+  while (c.length > 1 && c.at(-1) === 0) c.pop()
+  if (c.length < 2) return []
+  const escala = Math.max(...c.map(Math.abs))
+  const normalizados = c.map(v => v / escala)
+  const evaluar = (x: number) => normalizados.reduceRight((s, v) => s * x + v, 0)
+  const esRaiz = (x: number) => {
+    const magnitud = normalizados.reduceRight((s, v) => s * Math.abs(x) + Math.abs(v), 0)
+    return Math.abs(evaluar(x)) <= 1e-12 * magnitud
+  }
+  if (c.length === 2) {
+    const raiz = -c[0] / c[1]
+    return raiz >= minimo && raiz <= maximo ? [raiz] : []
+  }
+  const derivada = normalizados.slice(1).map((v, i) => v * (i + 1))
+  const puntos = [minimo, ...raicesPolinomio(derivada, minimo, maximo), maximo]
+  const raices = puntos.filter(esRaiz)
+  for (let i = 1; i < puntos.length; i++) {
+    let lo = puntos[i - 1], hi = puntos[i]
+    if (esRaiz(lo) || esRaiz(hi)) continue
+    let vlo = evaluar(lo)
+    if ((vlo < 0) === (evaluar(hi) < 0)) continue
+    for (let j = 0; j < 100; j++) {
+      const mid = (lo + hi) / 2, vm = evaluar(mid)
+      if (vm === 0) { lo = mid; hi = mid; break }
+      if ((vlo < 0) !== (vm < 0)) hi = mid
+      else { lo = mid; vlo = vm }
+    }
+    raices.push((lo + hi) / 2)
+  }
+  return raices.sort((a, b) => a - b).filter((v, i, lista) => i === 0 || Math.abs(v - lista[i - 1]) > 1e-9 * Math.max(1, Math.abs(v)))
+}
+
+/** Tasas entre −99% y 1000%. VAN = Σ flujo[t] × x^t, x = 1/(1+tasa). */
 export function tir(flujos: number[]): ResultadoTIR {
   const positivos = flujos.some((f) => f > 0)
   const negativos = flujos.some((f) => f < 0)
@@ -175,34 +221,10 @@ export function tir(flujos: number[]): ResultadoTIR {
     return { valor: null, aviso: 'No existe TIR: los flujos no cambian de signo.' }
   }
 
-  const raices: number[] = []
-  const paso = 0.5 // en puntos porcentuales
-  let a = -99
-  let va = van(flujos, a)
-  for (let b = a + paso; b <= 1000; b += paso) {
-    const vb = van(flujos, b)
-    if (va === 0) raices.push(a)
-    else if (va * vb < 0) {
-      let lo = a
-      let hi = b
-      let vlo = va
-      for (let i = 0; i < 80; i++) {
-        const mid = (lo + hi) / 2
-        const vm = van(flujos, mid)
-        if (vlo * vm <= 0) hi = mid
-        else {
-          lo = mid
-          vlo = vm
-        }
-      }
-      raices.push((lo + hi) / 2)
-    }
-    a = b
-    va = vb
-  }
+  const raices = raicesPolinomio(flujos, 1 / 11, 100).map(x => (1 / x - 1) * 100).sort((a, b) => a - b)
 
   if (raices.length === 0) {
-    return { valor: null, aviso: 'No existe TIR en el rango de −99% a 1000%.' }
+    return { valor: null, aviso: 'No se encontró TIR en el rango de −99% a 1000%.' }
   }
   return {
     valor: redondear(raices[0], 4),
@@ -213,14 +235,17 @@ export function tir(flujos: number[]): ResultadoTIR {
   }
 }
 
-/** Valor presente de las entradas ÷ valor presente de las salidas (en valor absoluto). */
-export function relacionBC(flujos: number[], tasaPct: number): number | null {
+/** Entradas/salidas brutas separadas. Sin salidas explícitas admite una serie de cobros y pagos con signo. */
+export function relacionBC(flujos: number[], tasaPct: number, salidasEfectivo?: number[]): number | null {
   const k = tasaPct / 100
   let entradas = 0
   let salidas = 0
   flujos.forEach((f, t) => {
     const vp = f / Math.pow(1 + k, t)
-    if (vp >= 0) entradas += vp
+    if (salidasEfectivo) {
+      entradas += vp
+      salidas += en(salidasEfectivo, t) / Math.pow(1 + k, t)
+    } else if (vp >= 0) entradas += vp
     else salidas += -vp
   })
   return salidas === 0 ? null : redondear(entradas / salidas, 4)
@@ -271,7 +296,7 @@ export function evaluarProyecto(p: ProyectoInversion, s: SupuestosCapital): Eval
   const fn = flujos.flujoNeto
   const vanValor = redondear(van(fn, s.tmar), 2)
   const tirValor = tir(fn)
-  const bc = relacionBC(fn, s.tmar)
+  const bc = relacionBC(flujos.entradasEfectivo, s.tmar, flujos.salidasEfectivo)
   return {
     nombre: p.nombre?.trim() || 'Proyecto',
     flujos,

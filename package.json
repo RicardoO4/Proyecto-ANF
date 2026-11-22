@@ -16,6 +16,7 @@
     "verify:servicios": "node --import ./scripts/register-ts.mjs scripts/verify-servicios.mjs",
     "verify:presupuesto": "node --no-warnings scripts/verify-presupuesto.mts",
     "verify:capital": "node --no-warnings scripts/verify-capital.mts",
+    "verify:matematicas": "node --import ./scripts/register-ts.mjs --test scripts/verify-correcciones-matematicas.mjs",
     "e2e:integracion": "node --import ./scripts/register-ts.mjs scripts/e2e-integracion.mjs",
     "e2e:browser": "node scripts/e2e-browser.mjs",
     "verify:cache-ia": "node --import ./scripts/register-ts.mjs --test scripts/verify-cache-ia.mjs",

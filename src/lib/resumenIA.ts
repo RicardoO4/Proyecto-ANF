@@ -1,4 +1,5 @@
 import { REBAJAS_DEVOLUCIONES } from '@/lib/accountCodes'
+import { formatearPorcentajeAnalisis } from '@/lib/porcentajesAnalisis'
 import { pronosticarVentas } from '@/lib/pronosticos'
 import { obtenerVentasProyeccion } from './ventasProyeccionServidor'
 import { obtenerPeriodosFinancieros } from './periodosFinancierosServidor'
@@ -110,7 +111,7 @@ async function comparativo(d: Datos): Promise<Preparado> {
       .slice(0, n)
       .map(
         (l) =>
-          `- ${l.nombreCuenta}: ${dinero(l.saldoAnio1)} → ${dinero(l.saldoAnio2)} (${l.variacionAbsoluta >= 0 ? '+' : ''}${dinero(l.variacionAbsoluta)}, ${pct(l.variacionRelativa)}; pesa ${pct(l.porcentajeVerticalAnio2)} en ${anio2})`,
+          `- ${l.nombreCuenta}: ${dinero(l.saldoAnio1)} → ${dinero(l.saldoAnio2)} (${l.variacionAbsoluta >= 0 ? '+' : ''}${dinero(l.variacionAbsoluta)}, variación relativa: ${formatearPorcentajeAnalisis(l.variacionRelativa)}; porcentaje vertical: ${formatearPorcentajeAnalisis(l.porcentajeVerticalAnio2)} en ${anio2})`,
       )
   const esBalance = (l: LineaAnalisisDTO) => (l.tipoReporte ?? 'BALANCE_GENERAL') === 'BALANCE_GENERAL'
   const esResultados = (l: LineaAnalisisDTO) => l.tipoReporte === 'ESTADO_RESULTADOS'
@@ -464,7 +465,7 @@ function capital(d: Datos): Preparado {
     titulo: 'Presupuesto de capital',
     clave: `capital|${s.tmar}|${s.impuesto}`,
     mensaje: [
-      `Evaluación de ${c.evaluaciones.length} proyecto(s) de inversión con TMAR ${pct(s.tmar)} e ISR ${pct(s.impuesto)}. Flujo neto = utilidad después de impuestos + depreciación (año 0 = inversión + capital de trabajo).`,
+      `Evaluación de ${c.evaluaciones.length} proyecto(s) de inversión con TMAR ${pct(s.tmar)} e ISR ${pct(s.impuesto)}. Flujo neto = utilidad después de impuestos + depreciación (año 0 = inversión + capital de trabajo). B/C = valor presente de entradas brutas / valor presente de todas las salidas, incluidos inversión, capital de trabajo, costos e impuestos.`,
       ...datosClave.map((x) => `- ${x.etiqueta}: ${x.valor}`),
       `Mayor VAN: ${mejor ?? 'ninguno positivo'}. Mayor TIR: ${mejorTir ?? 'ninguna'}.${c.conflicto ? ' VAN y TIR recomiendan proyectos distintos.' : ''}`,
       ...avisos,

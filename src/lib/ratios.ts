@@ -74,7 +74,7 @@ interface BaseRecalculo {
 interface LoteRatios { empresaId: number; datos: BaseRecalculo; filas: FilaCalculada[] }
 const loteRatios = new AsyncLocalStorage<LoteRatios>()
 // Increment when formulas, account-code rules or interpretations change.
-export const VERSION_CALCULO_RATIOS = '2026-11-20.1'
+export const VERSION_CALCULO_RATIOS = '2026-11-22.1'
 
 /**
  * SUM(saldo) filtered by empresa, year, report type and account codes.
@@ -349,7 +349,7 @@ export function calcularLiquidez(id: number) {
       return {
         valor,
         cumple,
-        interpretacion: `La empresa dispone de ${f2(activoCorriente)} USD de activo corriente por cada dólar de deuda a corto plazo. Este valor se encuentra ${posicion} del benchmark del sector, que es de ${f2(ref)}.`,
+      interpretacion: `La empresa dispone de ${f2(valor)} USD de activo corriente por cada dólar de deuda a corto plazo. Este valor se encuentra ${posicion} del benchmark del sector, que es de ${f2(ref)}.`,
       }
     },
   )

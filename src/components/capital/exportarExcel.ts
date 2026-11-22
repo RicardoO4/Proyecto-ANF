@@ -51,6 +51,8 @@ export async function exportarCapitalExcel(s: SupuestosCapital, c: ComparacionCa
       ['Inversión inicial', ...f.inversion],
       ['Capital de trabajo', ...f.capitalTrabajo],
       ['Valor de rescate', ...f.valorRescate],
+      ['Entradas de efectivo para B/C', ...f.entradasEfectivo],
+      ['Salidas de efectivo para B/C', ...f.salidasEfectivo],
       ['Flujo neto de efectivo', ...f.flujoNeto],
     ]
     const hoja = XLSX.utils.aoa_to_sheet(filas)

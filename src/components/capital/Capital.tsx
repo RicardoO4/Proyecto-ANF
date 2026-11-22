@@ -202,6 +202,7 @@ const Capital = () => {
           recuperación. Los flujos se calculan con ingresos, costos, depreciación e impuesto sobre la renta. Los cambios se
           guardan como borrador en este navegador; use Guardar para conservarlos en la base de datos.
         </p>
+        <p>La relación B/C compara el valor presente de todas las entradas con el de todas las salidas de efectivo, incluidos inversión, costos e impuestos. La depreciación interviene en el cálculo del impuesto, pero no es una salida de efectivo.</p>
 
         <div className={styles.barra}>
           <div className={styles.campo} style={{ width: 160 }}>

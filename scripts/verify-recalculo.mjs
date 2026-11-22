@@ -48,6 +48,10 @@ test('ratios: primer cálculo en cuatro RPC; segundo solo verifica y no escribe'
   preparar(1); llamadas = []
   const a = await recalcularRatios(1, 2090)
   assert.equal(a.calculados, 23); assert.deepEqual(a.fallos, [])
+  const liquidez = empresas.get(1).ratios.find(r => r.categoriaRatio.nombre_tipo === 'Razón de circulante o liquidez corriente')
+  assert.equal(liquidez.valor_calculado, 3)
+  assert.match(liquidez.interpretacion, /3\.00 USD de activo corriente por cada dólar/)
+  assert.doesNotMatch(liquidez.interpretacion, /600\.00 USD/)
   assert.equal(llamadas.length, 4)
   llamadas = []
   const b = await recalcularRatios(1, 2090)

@@ -13,6 +13,7 @@ import BotonResumenIA from '@/components/shared/BotonResumenIA'
 import { ACTIVO_TOTAL, VENTAS_NETAS, sumByPrefix } from '@/lib/accountCodes'
 import type { PeriodoFinanciero } from '@/lib/periodoFinanciero'
 import AvisoPeriodoFinanciero from '@/components/shared/AvisoPeriodoFinanciero'
+import { formatearPorcentajeAnalisis as formatPercent } from '@/lib/porcentajesAnalisis'
 
 interface LineaAnalisisHorizontal {
   codigoCuenta: string
@@ -20,14 +21,14 @@ interface LineaAnalisisHorizontal {
   saldoAnio1: number
   saldoAnio2: number
   variacionAbsoluta: number
-  variacionRelativa: number
+  variacionRelativa: number | null
 }
 
 interface LineaAnalisisVertical {
   codigoCuenta: string
   nombreCuenta: string
-  porcentajeVerticalAnio1: number
-  porcentajeVerticalAnio2: number
+  porcentajeVerticalAnio1: number | null
+  porcentajeVerticalAnio2: number | null
   saldoAnio1: number
   saldoAnio2: number
   tipoReporte?: 'BALANCE_GENERAL' | 'ESTADO_RESULTADOS'
@@ -46,13 +47,6 @@ const formatNumber = (num: number) => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
-}
-
-// Función para formatear porcentajes
-const formatPercent = (num: number) => {
-  if (typeof num !== 'number') return 'N/A'
-  // .toFixed(2) es correcto para porcentajes
-  return `${num.toFixed(2)}%`
 }
 
 const AnalisisHV = () => {

@@ -1,6 +1,7 @@
 // Analysis logic — faithful port of AnalisisService.
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { saldoPromedio, utilidadEjercicio } from '@/lib/rentabilidad'
+import { porcentajeAnalisis } from '@/lib/porcentajesAnalisis'
 import type { LineaAnalisisDTO, ReporteInternoDTO } from '@/types'
 import {
   ACTIVO_CORRIENTE,
@@ -101,9 +102,9 @@ function buildVertical(
       saldoAnio1: saldo1,
       saldoAnio2: saldo2,
       variacionAbsoluta: saldo2 - saldo1,
-      variacionRelativa: saldo1 !== 0 ? ((saldo2 - saldo1) / saldo1) * 100.0 : 0.0,
-      porcentajeVerticalAnio1: base1 !== 0 ? (saldo1 / base1) * 100.0 : 0.0,
-      porcentajeVerticalAnio2: base2 !== 0 ? (saldo2 / base2) * 100.0 : 0.0,
+      variacionRelativa: porcentajeAnalisis(saldo2 - saldo1, saldo1),
+      porcentajeVerticalAnio1: porcentajeAnalisis(saldo1, base1),
+      porcentajeVerticalAnio2: porcentajeAnalisis(saldo2, base2),
       tipoReporte,
     })
   }
@@ -152,7 +153,7 @@ export async function generarReporteInterno(
     const saldo1 = d1?.saldo ?? 0
     const saldo2 = d2?.saldo ?? 0
     const variacionAbsoluta = saldo2 - saldo1
-    const variacionRelativa = saldo1 !== 0 ? (variacionAbsoluta / saldo1) * 100.0 : 0.0
+    const variacionRelativa = porcentajeAnalisis(variacionAbsoluta, saldo1)
     const esBalance = bal1.has(codigo) || bal2.has(codigo)
     const tipoReporte = esBalance ? TIPO_REPORTE.BALANCE : TIPO_REPORTE.RESULTADOS
     const base1 = esBalance ? baseBal1 : baseRes1
@@ -164,8 +165,8 @@ export async function generarReporteInterno(
       saldoAnio2: saldo2,
       variacionAbsoluta,
       variacionRelativa,
-      porcentajeVerticalAnio1: base1 !== 0 ? (saldo1 / base1) * 100.0 : 0.0,
-      porcentajeVerticalAnio2: base2 !== 0 ? (saldo2 / base2) * 100.0 : 0.0,
+      porcentajeVerticalAnio1: porcentajeAnalisis(saldo1, base1),
+      porcentajeVerticalAnio2: porcentajeAnalisis(saldo2, base2),
       tipoReporte,
     })
   }

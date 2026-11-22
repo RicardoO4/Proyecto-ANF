@@ -184,10 +184,18 @@ export interface CedulaProduccion {
 export function cedulaProduccion(s: SupuestosPresupuesto): CedulaProduccion {
   const ventas = s.ventas.unidades
   const ventaSiguiente = (m: number) => (m === N_MESES - 1 ? s.ventas.unidadesEneroSiguiente : en(ventas, m + 1))
-  const inventarioFinal = mensual((m) => r2(ventaSiguiente(m) * (s.inventarioProducto.porcentajeFinal / 100)))
-  const inventarioInicial = mensual((m) => (m === 0 ? s.inventarioProducto.inicialUnidades : en(inventarioFinal, m - 1)))
+  const inventarioFinal: Mensual = []
+  const inventarioInicial: Mensual = []
+  const aProducir: Mensual = []
+  for (let m = 0; m < N_MESES; m++) {
+    const inicial = m === 0 ? s.inventarioProducto.inicialUnidades : inventarioFinal[m - 1]
+    const deseado = r2(ventaSiguiente(m) * (s.inventarioProducto.porcentajeFinal / 100))
+    const produccion = r2(Math.max(0, en(ventas, m) + deseado - inicial))
+    inventarioInicial.push(inicial)
+    aProducir.push(produccion)
+    inventarioFinal.push(r2(inicial + produccion - en(ventas, m)))
+  }
   const totalNecesario = mensual((m) => r2(en(ventas, m) + en(inventarioFinal, m)))
-  const aProducir = mensual((m) => r2(Math.max(0, en(totalNecesario, m) - en(inventarioInicial, m))))
   return { ventas: [...ventas], inventarioFinal, totalNecesario, inventarioInicial, aProducir }
 }
 
@@ -209,10 +217,18 @@ export function cedulaMateriaPrima(s: SupuestosPresupuesto, produccion: CedulaPr
   // Para diciembre se estima la producción de enero siguiente con sus ventas.
   const necesidadSiguiente = (m: number) =>
     m === N_MESES - 1 ? s.ventas.unidadesEneroSiguiente * mpU : en(necesidad, m + 1)
-  const inventarioFinal = mensual((m) => r2(necesidadSiguiente(m) * (s.materiaPrima.porcentajeFinal / 100)))
-  const inventarioInicial = mensual((m) => (m === 0 ? s.materiaPrima.inicialUnidades : en(inventarioFinal, m - 1)))
+  const inventarioFinal: Mensual = []
+  const inventarioInicial: Mensual = []
+  const aComprar: Mensual = []
+  for (let m = 0; m < N_MESES; m++) {
+    const inicial = m === 0 ? s.materiaPrima.inicialUnidades : inventarioFinal[m - 1]
+    const deseado = r2(necesidadSiguiente(m) * (s.materiaPrima.porcentajeFinal / 100))
+    const compra = r2(Math.max(0, en(necesidad, m) + deseado - inicial))
+    inventarioInicial.push(inicial)
+    aComprar.push(compra)
+    inventarioFinal.push(r2(inicial + compra - en(necesidad, m)))
+  }
   const totalNecesario = mensual((m) => r2(en(necesidad, m) + en(inventarioFinal, m)))
-  const aComprar = mensual((m) => r2(Math.max(0, en(totalNecesario, m) - en(inventarioInicial, m))))
   const compras = mensual((m) => r2(en(aComprar, m) * s.materiaPrima.costoUnitario))
   return {
     aProducir: [...produccion.aProducir],

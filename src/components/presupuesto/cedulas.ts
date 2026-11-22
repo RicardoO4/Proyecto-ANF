@@ -25,7 +25,7 @@ export function cedulasOperacion(p: PresupuestoMaestro): Cedula[] {
       titulo: 'Cédula 2 · Presupuesto de producción (unidades)',
       filas: [
         { etiqueta: 'Unidades a vender', valores: p.produccion.ventas, formato: 'unidades' },
-        { etiqueta: '+ Inventario final deseado', valores: p.produccion.inventarioFinal, formato: 'unidades', total: 'ultimo' },
+          { etiqueta: '+ Inventario final efectivo', valores: p.produccion.inventarioFinal, formato: 'unidades', total: 'ultimo' },
         { etiqueta: '= Total necesario', valores: p.produccion.totalNecesario, formato: 'unidades' },
         { etiqueta: '− Inventario inicial', valores: p.produccion.inventarioInicial, formato: 'unidades', total: 'ninguno' },
         { etiqueta: '= Unidades a producir', valores: p.produccion.aProducir, formato: 'unidades', destacada: true },
@@ -37,7 +37,7 @@ export function cedulasOperacion(p: PresupuestoMaestro): Cedula[] {
       filas: [
         { etiqueta: 'Unidades a producir', valores: p.materiaPrima.aProducir, formato: 'unidades' },
         { etiqueta: 'MP necesaria (unidades)', valores: p.materiaPrima.necesidad, formato: 'unidades' },
-        { etiqueta: '+ Inventario final de MP', valores: p.materiaPrima.inventarioFinal, formato: 'unidades', total: 'ultimo' },
+          { etiqueta: '+ Inventario final efectivo de MP', valores: p.materiaPrima.inventarioFinal, formato: 'unidades', total: 'ultimo' },
         { etiqueta: '= Total MP necesaria', valores: p.materiaPrima.totalNecesario, formato: 'unidades' },
         { etiqueta: '− Inventario inicial de MP', valores: p.materiaPrima.inventarioInicial, formato: 'unidades', total: 'ninguno' },
         { etiqueta: '= MP a comprar (unidades)', valores: p.materiaPrima.aComprar, formato: 'unidades' },

@@ -12,6 +12,7 @@ globalThis.fetch = async (input, init = {}) => {
   assert.equal(url.hostname, 'excel-test.invalid')
   const nombre = url.pathname.split('/').at(-1)
   const json = valor => new Response(JSON.stringify(valor), { headers: { 'Content-Type': 'application/json' } })
+  if (nombre === 'cont_periodo') return json([])
   const anio = Number((url.searchParams.get('estado_financiero.anio') ?? url.searchParams.get('anio') ?? `eq.${actual.anio}`).replace('eq.', ''))
   if (nombre === 'estado_financiero') {
     if (init.method === 'HEAD') return new Response(null, { headers: { 'Content-Range': `0-0/${anio === actual.anio ? 1 : 0}` } })

@@ -25,9 +25,9 @@ export function calcularPuntoEquilibrio(
   const datosGrafico = [];
   const limiteMaximo = Math.max(1, unidadesEquilibrio * 2);
   for (let i = 0; i <= 10; i++) {
-    const q = i * limiteMaximo / 10;
+    const q = Number((i * limiteMaximo / 10).toFixed(2));
     datosGrafico.push({
-      unidades: Math.round(q),
+      unidades: q,
       ventasTotales: Number((q * precioVenta).toFixed(2)),
       costosTotales: Number((costosFijos + q * costoVariable).toFixed(2)),
       costosFijos: costosFijos,

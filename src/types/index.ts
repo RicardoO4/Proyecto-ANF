@@ -300,9 +300,9 @@ export interface LineaAnalisisDTO {
   saldoAnio1: number;
   saldoAnio2: number;
   variacionAbsoluta: number;
-  variacionRelativa: number;
-  porcentajeVerticalAnio1: number;
-  porcentajeVerticalAnio2: number;
+  variacionRelativa: number | null;
+  porcentajeVerticalAnio1: number | null;
+  porcentajeVerticalAnio2: number | null;
   /** Módulo B (B3): which report this line belongs to. */
   tipoReporte?: 'BALANCE_GENERAL' | 'ESTADO_RESULTADOS';
 }
