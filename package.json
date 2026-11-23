@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "verify:ratios": "node --no-warnings scripts/verify-ratios.mts",
+    "verify:inventario": "node --no-warnings scripts/verify-inventario.mts",
     "seed:ratios": "node scripts/seed-ratios.mjs",
     "e2e:au1": "node scripts/e2e-au1.mjs",
     "plantillas": "node scripts/generar-plantillas.mjs",

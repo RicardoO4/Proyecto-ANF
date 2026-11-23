@@ -17,6 +17,7 @@ import BotonResumenIA from '@/components/shared/BotonResumenIA'
 import ActualizarIndicadores from './ActualizarIndicadores'
 import recalculoStyles from '@/styles/ratio/ActualizarIndicadores.module.css'
 import { apiClient, getErrorMessage } from '@/services/api'
+import { INFO_CATEGORIA } from '@/lib/ratioMetadatos'
 import type { RatioResponseDTO, CategoriaRatioResponseDTO, ParametroSectorResponseDTO, EmpresaResponseDTO } from '@/types'
 
 export const Ratio = () => {
@@ -76,22 +77,49 @@ export const Ratio = () => {
     ? [{ empresaId: empresa.empresaId, nombreEmpresa: empresa.nombreEmpresa } as EmpresaResponseDTO]
     : []
 
-  // --- Definición de las columnas para la tabla (versión original) ---
+  const etiquetaUnidad = (categoria?: string | null) => {
+    const unidad = categoria ? INFO_CATEGORIA[categoria]?.unidad : undefined
+    if (unidad === 'porcentaje') return '%'
+    if (unidad === 'dias') return 'días'
+    return unidad ?? 'N/A'
+  }
+
+  const valorEnUnidad = (valor: number | null | undefined, categoria?: string | null) => {
+    if (valor == null) return 'Sin cálculo'
+    const porcentaje = categoria ? INFO_CATEGORIA[categoria]?.unidad === 'porcentaje' : false
+    return (Number(valor) * (porcentaje ? 100 : 1)).toFixed(4)
+  }
+
   const columnas = [
     { Header: 'ID', accessor: 'id_ratio' },
     {
-      Header: 'EMPRESA',
-      accessor: (row: RatioResponseDTO) => (row.empresa ? row.empresa.nombre_empresa : 'N/A'),
+      Header: 'INDICADOR',
+      accessor: (row: RatioResponseDTO) => row.categoriaRatio?.nombre_categoria ?? 'N/A',
     },
     {
-      Header: 'CATEGORÍA',
-      accessor: (row: RatioResponseDTO) => (row.categoriaRatio ? row.categoriaRatio.nombre_categoria : 'N/A'),
+      Header: 'VALOR CALCULADO',
+      accessor: (row: RatioResponseDTO) =>
+        valorEnUnidad(row.valor_calculado, row.categoriaRatio?.nombre_categoria),
     },
     {
-      Header: 'PARÁMETRO',
-      accessor: (row: RatioResponseDTO) => (row.parametroSector ? row.parametroSector.nombreRatio : 'N/A'),
+      Header: 'UNIDAD',
+      accessor: (row: RatioResponseDTO) => etiquetaUnidad(row.categoriaRatio?.nombre_categoria),
     },
-    { Header: 'AÑO', accessor: 'anio_ratio' },
+    {
+      Header: 'REFERENCIA SECTORIAL',
+      accessor: (row: RatioResponseDTO) =>
+        row.parametroSector?.valor_referencia != null
+          ? valorEnUnidad(row.parametroSector.valor_referencia, row.categoriaRatio?.nombre_categoria)
+          : 'Sin referencia sectorial (cálculo realizado)',
+    },
+    {
+      Header: 'AÑO REFERENCIA',
+      accessor: (row: RatioResponseDTO) => row.parametroSector?.anio_referencia ?? 'N/A',
+    },
+    {
+      Header: 'AÑO CÁLCULO',
+      accessor: (row: RatioResponseDTO) => row.anio_ratio ?? 'N/A',
+    },
     { Header: 'PERÍODO', accessor: 'periodo_ratio' },
   ]
 

@@ -59,7 +59,6 @@ export const ParametroSector = () => {
     { Header: 'Sector', accessor: 'nombreSector' },
     { Header: 'Valor', accessor: 'valorReferencia' },
     { Header: 'Año', accessor: 'anioReferencia' },
-    { Header: 'Fuente', accessor: 'fuente' },
   ]
 
   const handleNuevo = () => {

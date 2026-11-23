@@ -1,4 +1,5 @@
 import { BadRequestException } from '@/lib/errors'
+import { anioVenta, esVentaContableAnual, origenVenta } from '@/lib/origenVentas'
 import { proyeccionLogaritmica, proyeccionPromedioMovil } from '@/lib/proyeccion'
 import type { VentaRow } from '@/types'
 import { seleccionarVentasMensuales } from './fuenteVentasMensuales'
@@ -42,11 +43,12 @@ export function proyeccionCuadratica(ventas: number[], periodos: number): number
 export function prepararSerieVentas(ventas: VentaRow[], periodicidad: 'anual' | 'mensual') {
   ventas = seleccionarHistorico(ventas, periodicidad).ventas
   const periodos = new Map<string, number>()
-  const anuales = ventas.filter(v => v.observacion?.startsWith('Generado desde estados financieros '))
-  const detalle = ventas.filter(v => !v.observacion?.startsWith('Generado desde estados financieros '))
-  // En anual se prefiere el total contable del año; no se suma otra vez su detalle.
-  const aniosContables = new Set(anuales.map(v => v.fecha_venta.slice(0, 4)))
-  const filas = periodicidad === 'anual' ? [...anuales, ...detalle.filter(v => !aniosContables.has(v.fecha_venta.slice(0, 4)))] : detalle
+  const anuales = ventas.filter(esVentaContableAnual)
+  const mensuales = ventas.filter(v => origenVenta(v) === 'MENSUAL_REAL')
+  const aniosContables = new Set(anuales.map(v => String(anioVenta(v))))
+  const filas = periodicidad === 'anual'
+    ? [...anuales, ...mensuales.filter(v => !aniosContables.has(String(anioVenta(v))))]
+    : mensuales
   for (const venta of filas) {
     const clave = venta.fecha_venta.slice(0, periodicidad === 'anual' ? 4 : 7)
     const monto = Number(venta.monto_venta)

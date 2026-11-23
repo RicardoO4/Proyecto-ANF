@@ -1,0 +1,68 @@
+.page {
+  padding: 20px;
+}
+
+.empresa {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 8px;
+}
+
+.empresa label {
+  font-weight: 600;
+}
+
+.empresa select {
+  min-width: 260px;
+  padding: 8px 10px;
+}
+
+.acciones {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  margin: 16px 0;
+}
+
+.acciones label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.acciones input {
+  padding: 8px 10px;
+  min-width: 140px;
+}
+
+.acciones button {
+  padding: 9px 16px;
+}
+
+.supuestos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 16px 0;
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: var(--surface-card, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.supuestos span {
+  font-size: 0.95rem;
+}
+
+.seccion {
+  margin-top: 28px;
+}
+
+.aviso {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: rgba(255, 193, 7, 0.12);
+  margin: 12px 0;
+}

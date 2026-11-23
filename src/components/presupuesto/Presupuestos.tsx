@@ -3,7 +3,7 @@
 // Presupuestos de operación y de caja (Módulo E, E1-E2).
 // Los supuestos se guardan como borrador en el navegador del usuario
 // (localStorage) y se pueden descargar en Excel; no se escribe en la base.
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bar,
   CartesianGrid,
@@ -78,12 +78,18 @@ const dinero = (v: number) => `$${formatear(v)}`
 
 const Presupuestos = () => {
   const [supuestos, setSupuestos] = useState<SupuestosPresupuesto>(leerBorrador)
+  const supuestosRef = useRef(supuestos)
   const [pestana, setPestana] = useState<Pestana>('supuestos')
   const [sugerencia, setSugerencia] = useState<Sugerencia | null>(null)
   const [cargandoSugerencia, setCargandoSugerencia] = useState(false)
   const [crecimiento, setCrecimiento] = useState(0)
   const [pesos, setPesos] = useState<number[]>(() => Array.from({ length: N_MESES }, () => 100 / N_MESES))
   const { empresa, error: errorEmpresa } = useEmpresaPrincipal()
+  const empresaId = empresa?.empresaId
+
+  useEffect(() => {
+    supuestosRef.current = supuestos
+  }, [supuestos])
 
   const cambiar = (s: SupuestosPresupuesto) => {
     setSupuestos(s)
@@ -101,12 +107,41 @@ const Presupuestos = () => {
       const resp = await apiClient.get<Sugerencia>('/presupuestos/sugerencia', { params: { empresaId: empresa.empresaId } })
       setSugerencia(resp.data)
       setCrecimiento(resp.data.crecimientoPorcentaje)
+      const anioPorDefecto = supuestosEjemplo(new Date().getFullYear() + 1).anio
+      if (supuestos.anio === anioPorDefecto && resp.data.anioPresupuesto !== supuestos.anio) {
+        const actualizado = { ...supuestos, anio: resp.data.anioPresupuesto }
+        setSupuestos(actualizado)
+        guardarBorrador(actualizado)
+      }
     } catch (err) {
       Notifier.error(getErrorMessage(err, 'No se pudieron leer las ventas históricas.'))
     } finally {
       setCargandoSugerencia(false)
     }
   }
+
+  useEffect(() => {
+    if (!empresaId) return
+    let activo = true
+    apiClient
+      .get<Sugerencia>('/presupuestos/sugerencia', { params: { empresaId } })
+      .then((resp) => {
+        if (!activo) return
+        setSugerencia(resp.data)
+        setCrecimiento(resp.data.crecimientoPorcentaje)
+        const actuales = supuestosRef.current
+        const anioPorDefecto = supuestosEjemplo(new Date().getFullYear() + 1).anio
+        if (actuales.anio === anioPorDefecto && resp.data.anioPresupuesto !== actuales.anio) {
+          const actualizado = { ...actuales, anio: resp.data.anioPresupuesto }
+          setSupuestos(actualizado)
+          guardarBorrador(actualizado)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      activo = false
+    }
+  }, [empresaId])
 
   const ventasPropuestas = sugerencia ? (sugerencia.historico.at(-1)?.monto ?? 0) * (1 + crecimiento / 100) : 0
   const sumaPesos = Math.round(pesos.reduce((s, p) => s + p, 0) * 100) / 100

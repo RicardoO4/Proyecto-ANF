@@ -36,6 +36,7 @@ const REGLAS: Regla[] = [
   { prefijo: '/api/v1/presupuestos', opcion: 6, soloEscritura: true },
   { prefijo: '/api/v1/evaluaciones-capital', opcion: 6, soloEscritura: true },
   { prefijo: '/api/v1/estados-financieros', opcion: 7, soloEscritura: true },
+  { prefijo: '/api/v1/inventario', opcion: 12, soloEscritura: true },
 ].sort((a, b) => b.prefijo.length - a.prefijo.length)
 
 const CACHE_MS = 60_000

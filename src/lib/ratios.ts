@@ -349,7 +349,7 @@ export function calcularLiquidez(id: number) {
       return {
         valor,
         cumple,
-      interpretacion: `La empresa dispone de ${f2(valor)} USD de activo corriente por cada dólar de deuda a corto plazo. Este valor se encuentra ${posicion} del benchmark del sector, que es de ${f2(ref)}.`,
+        interpretacion: `La empresa dispone de ${f2(valor)} USD de activo corriente por cada dólar de deuda a corto plazo. Este valor se encuentra ${posicion} del benchmark del sector, que es de ${f2(ref)}.`,
       }
     },
   )

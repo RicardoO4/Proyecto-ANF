@@ -10,7 +10,7 @@ Actualizado: 19 de noviembre de 2026. Referencia: `plan_reigenieria.md`. Cambios
 | A5–A8 | Identificadores del dashboard corregidos y control de acceso directo por módulo. API valida sesión y permisos de escritura; inventarios exige permiso también para lectura. |
 | B1–B5 | Códigos centralizados y análisis por tipo de reporte. Evolución ROA/ROE usa promedios, igual que C. Un ER con ingresos cero conserva sus gastos. |
 | C1–C3 | Calculadores existentes conservados. ROE/DuPont no significativos se distinguen del retorno cero. |
-| C4 | Productos persistidos por empresa; clasificación ABC por consumo anual; EOQ, reorden, existencias y aviso de reposición. Acceso desde Ratios. |
+| C4 | Productos persistidos por empresa; clasificación ABC por consumo anual; EOQ, reorden, existencias y aviso de reposición. Acceso desde Inventario (opción 12); la vista legacy de Ratios queda sin enlace y solo como respaldo. |
 | AU1 | Prepara indicadores de años nuevos, actualiza el siguiente año, limita concurrencia, registra fallos, invalida valores anteriores y devuelve avisos en la carga. |
 | D1 | Histórico real anual/mensual, promedio móvil, regresión logarítmica y cuadrática. Rechaza huecos y evita duplicar total anual con detalle. |
 | D3 | DuPont desde estados reales, selección de año y sensibilidad interactiva. Patrimonio no positivo se informa como N/M. |
@@ -32,7 +32,8 @@ Para actualizar registros históricos con los criterios nuevos, entrar a Ratios 
 - ROA/ROE usan promedio entre cierre actual y previo. Sin balance previo, cierre actual. Patrimonio de cierre/promedio no positivo implica ROE no significativo.
 - Rebajas y devoluciones se almacenan positivas y se descuentan de los ingresos. Excel, evolución de B, rentabilidad de C, base financiera de D y resumen para IA comparten ese criterio. Se corrigió una suma incorrecta que sobreestimaba la utilidad en presencia de devoluciones; los indicadores históricos guardados necesitan recalcularse.
 - Los totales de la carga de estados son anuales. La proyección mensual exige doce meses reales consecutivos; no interpola meses faltantes.
-- ABC: el artículo que cruza 80% o 95% permanece en la clase de origen. Demanda cero es C. Mantenimiento es costo por unidad/año. Demanda diaria usa los días de operación ingresados.
+- ABC: acumulado incluido el artículo; `≤80%` → A, `≤95%` → B, resto → C. Demanda cero es C. EOQ usa `h` como tasa sobre el costo unitario. Reorden no incluye stock de seguridad y usa `dias_anio`.
+- C4 es la fuente oficial de ABC/EOQ; la vista `/inventarios` de Ratios queda sin enlace y su tabla `inventario_producto` se conserva sin migrar (2 filas).
 - Proforma: ingresos/costo de ventas proporcionales; fracción variable de gastos operativos configurable; demás gastos fijos. Activos corrientes sin caja y proveedores proporcionales; otros saldos constantes. Las pérdidas reducen completas el patrimonio. FER positivo agrega financiamiento y negativo se incorpora al efectivo. La pantalla informa estas hipótesis.
 - Las series cortas pueden producir extrapolaciones inestables: los pronósticos no son certezas.
 

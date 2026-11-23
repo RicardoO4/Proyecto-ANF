@@ -8,6 +8,7 @@ import tabStyles from '@/styles/proyeccion/Proyecciones.module.css'
 import { CargaMasivaVentas } from '@/components/proyeccion/CargaMasivaVentas'
 import { CargaManualVentas } from '@/components/proyeccion/CargaManualVentas'
 import { ventaHistoricaService, type VentaHistorica } from '@/services/ventaHistoricaService'
+import { formatMoney } from '@/lib/formatoMonetario'
 import { Notifier } from '@/utils/Notifier'
 import Link from 'next/link'
 import BotonResumenIA from '@/components/shared/BotonResumenIA'
@@ -284,13 +285,13 @@ export const Proyecciones = () => {
                       {p.mesLabel}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      ${p.minimosCuadrados.toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatMoney(p.minimosCuadrados)}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      ${p.incrementoPorcentual.toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatMoney(p.incrementoPorcentual)}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      ${p.incrementoAbsoluto.toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatMoney(p.incrementoAbsoluto)}
                     </td>
                   </tr>
                 ))}

@@ -102,7 +102,7 @@ export default function DupontIntegrado() {
 
               {significativo && (
                 <>
-                  <h2>Escenario de sensibilidad</h2>
+                  <h2>Escenario de sensibilidad por factor</h2>
                   <p>Cambios relativos de cada factor; los escenarios no modifican los estados originales.</p>
 
                   {[
@@ -152,6 +152,15 @@ export default function DupontIntegrado() {
                         stroke="#f6b14b"
                         strokeWidth={2}
                         strokeDasharray="6 4"
+                        dot={{ r: 3 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="rotacion"
+                        name="Sensibilidad Rotación"
+                        stroke="#38bdf8"
+                        strokeWidth={2}
+                        strokeDasharray="4 4"
                         dot={{ r: 3 }}
                       />
                       <Line

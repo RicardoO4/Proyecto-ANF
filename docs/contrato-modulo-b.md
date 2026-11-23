@@ -39,7 +39,7 @@ import type { TipoReporte } from '@/lib/accountCodes'
 
 Ventas netas = `5101.01 - 5101.02`. El motor resta el saldo recibido de rebajas/devoluciones; evitar invertirlo de nuevo al cargar. Para utilidad real se necesitan **todos los movimientos pertinentes de ingresos (5) y costos/gastos (4)** del ejercicio; estas seis referencias no garantizan un ER completo. La utilidad neta es grupo 5 menos grupo 4.
 
-Sin líneas de ER, el vertical de resultados está vacío y la evolución de ROE/ROA usa `3204` del BG como resultado del ejercicio. Con cualquier línea de ER, pasa a calcular la utilidad desde ER, aunque esté incompleto: validar la carga antes de publicarla. Una cuenta ausente aporta cero; no hace desaparecer por sí sola la sección. Si ventas netas es cero, los porcentajes verticales de ER son cero. ROE con patrimonio menor o igual a cero devuelve `null` y se presenta como N/M.
+Sin líneas de ER, el vertical de resultados está vacío y la evolución de ROE/ROA usa `3204` del BG como resultado del ejercicio. Con cualquier línea de ER, pasa a calcular la utilidad desde ER, aunque esté incompleto: validar la carga antes de publicarla. Una cuenta ausente aporta cero; no hace desaparecer por sí sola la sección. Si ventas netas es cero, los porcentajes verticales de ER son cero. ROE con patrimonio negativo conserva el valor numérico calculado y su interpretación lo marca como referencial y no comparable; con patrimonio cero devuelve `0` con la misma advertencia. No se presenta como N/M.
 
 ## Plantilla actual y trabajo de A
 
@@ -73,4 +73,4 @@ Comparativo 2023/2024: 21 líneas de BG, Caja 2024 = 0.67%, ninguna línea de ER
 
 C debe revisar los cambios locales de `src/lib/ratios.ts` antes de integrar: códigos y tipos centralizados, sumas por prefijo y embeds de tablas `categoria_ratio(...)` / `parametro_sector(...)`, luego mapeados a camelCase. Los calculadores existentes persisten mediante PUT; no se ejecutaron escrituras en esta sesión. Sus nombres de categoría deben coincidir exactamente.
 
-La BD almacena `valor_calculado` y `diferencia_vs_sector` en `NUMERIC(15,2)`: conserva dos decimales aunque la fórmula calcule más. No se modificó el esquema. Los ratios nuevos, DuPont y el recálculo automático pertenecen a C; los otros integrantes pueden consumir las mismas constantes y estados anuales.
+En la entrega de B la BD almacenaba `valor_calculado` y `diferencia_vs_sector` en `NUMERIC(15,2)`. El Módulo C amplió después esas columnas (y `parametro_sector.valor_referencia`) a `NUMERIC(15,4)` en `003_seed_ratios.sql`, ya aplicado en la BD; ver `plan-pruebas-modulo-c.md` §6. Los ratios nuevos, DuPont y el recálculo automático pertenecen a C; los otros integrantes pueden consumir las mismas constantes y estados anuales.

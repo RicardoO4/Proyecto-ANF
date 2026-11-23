@@ -48,17 +48,17 @@
 //    el código no está en el catálogo. clasificarCuenta() solo orienta
 //    por grupo; no verifica que un código exista ni convierte un BC.
 //
-// 5) VALORES DE ACEPTACIÓN (Inv ABC, verificados en BD) — sirven para
+// 5) VALORES DE ACEPTACIÓN (Inv ABC, verificados contra BC y BD) — sirven para
 //    probar que una carga nueva quedó bien:
 //
 //    | Prueba                  | 2023        | 2024        | 2025        |
 //    |-------------------------|-------------|-------------|-------------|
-//    | Total Activo (prefijo 1)| 5297318.03  | 5632723.49  | 5951250.73  |
-//    | Líneas de balance       | 21          | 21          | 21          |
-//    | Caja vertical           | —           | 0.67%       | —           |
-//    | Liquidez corriente      | 0.36        | 0.38        | 0.41        |
+//    | Total Activo (prefijo 1)| 5960622.79  | 5713020.77  | 6096672.29  |
+//    | Líneas de ER            | 18          | 18          | 18          |
+//    | Liquidez corriente      | 0.3569      | 0.3978      | 0.4059      |
 //
-//    (ER: hoy Inv ABC NO tiene datos de resultados cargados.)
+//    La fuente correcta es la balanza de comprobación (BC) de cada año; los
+//    archivos balance_general_sistema_* archivados están desactualizados.
 // ================================================================
 
 // ------------------------- TIPO REPORTE -------------------------

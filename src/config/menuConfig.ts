@@ -3,11 +3,11 @@ import {
   House,
   Building,
   PeopleFill,
-  Diagram3,
   BarChart,
   FileEarmarkText,
   JournalCheck,
   GraphUpArrow,
+  BoxSeam,
 } from 'react-bootstrap-icons'
 import type { Icon as IconType } from 'react-bootstrap-icons'
 
@@ -16,12 +16,12 @@ export const mainLinks: { idOp: number; to: string; label: string; icon: IconTyp
   { idOp: 0, to: '/dashboard', label: 'Dashboard', icon: House },
   { idOp: 1, to: '/empresas', label: 'Empresas', icon: Building },
   { idOp: 2, to: '/analisis', label: 'Análisis y Reportes', icon: BarChart },
-  { idOp: 3, to: '/ratios', label: 'Ratios', icon: Diagram3 },
   { idOp: 4, to: '/usuarios', label: 'Usuarios', icon: PeopleFill },
   { idOp: 5, to: '/catalogo-cuentas', label: 'Catálogo de Cuentas', icon: JournalCheck },
   { idOp: 8, to: '/contabilidad', label: 'Contabilidad', icon: JournalCheck },
   { idOp: 6, to: '/proyecciones', label: 'Proyecciones', icon: GraphUpArrow },
   { idOp: 7, to: '/estados-financieros', label: 'Estados Financieros', icon: FileEarmarkText },
+  { idOp: 12, to: '/inventario', label: 'Inventario', icon: BoxSeam },
 ]
 
 /**
@@ -36,7 +36,6 @@ export const empresasSubMenuLinks = [
 
 export const sectoresSubMenuLinks = [
   { to: '/ratios', label: 'Ratio' },
-  { to: '/inventarios', label: 'Inventarios ABC / EOQ' },
   { to: '/categoria_ratio', label: 'Categoria' },
   { to: '/tipo_ratio', label: 'Tipo' },
   { to: '/parametro_sector', label: 'Parametro' },
@@ -75,4 +74,11 @@ export const proyeccionesSubMenuLinks = [
 export const estadosFinancierosSubMenuLinks = [
   { to: '/estados-financieros/cargar', label: 'Cargar Estados Financieros' },
   { to: '/estados-financieros/historial', label: 'Historial de Reportes' },
+]
+
+export const inventarioSubMenuLinks = [
+  { to: '/inventario/productos', label: 'Productos' },
+  { to: '/inventario/movimientos', label: 'Movimientos' },
+  { to: '/inventario/parametros', label: 'Parámetros' },
+  { to: '/inventario/modelos', label: 'Modelos ABC / EOQ / PR' },
 ]

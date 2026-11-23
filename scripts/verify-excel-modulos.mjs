@@ -28,6 +28,8 @@ globalThis.fetch = async (input, init = {}) => {
     const ratio = { id_ratio: 1, anio_ratio: actual.anio, empresa_id: 1, categoria_ratio: { nombre_tipo: 'Rendimiento sobre activos (ROA)' }, parametro_sector: null }
     return json(init.method === 'PATCH' ? { ...ratio, ...JSON.parse(init.body) } : ratio)
   }
+  if (nombre === 'cont_periodo') return json([])
+  if (nombre === 'cont_publicacion') return json([])
   if (nombre === 'empresa') return json({ empresa_id: 1, nombre_empresa: 'Prueba' })
   throw new Error(`Petición inesperada: ${nombre}`)
 }

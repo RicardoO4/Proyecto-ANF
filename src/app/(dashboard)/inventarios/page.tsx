@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { apiClient, getErrorMessage } from '@/services/api'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import type { ProductoInventario, analizarInventarios } from '@/lib/inventarios'
@@ -30,6 +31,10 @@ export default function InventariosPage() {
   return <div style={{ padding: '20px' }}>
     <SubMenu links={sectoresSubMenuLinks} ariaLabel="Navegación de Ratios" />
     <div className={view.viewContainer} style={{ marginTop: '2rem' }}>
+    <div className="alert alert-info" role="status">
+      Esta vista legacy se conserva solo como respaldo. El módulo oficial es{' '}
+      <Link href="/inventario/modelos">Inventario → Modelos ABC / EOQ / PR</Link>.
+    </div>
     <h1>Inventarios ABC, EOQ y punto de reorden</h1>
     <p>{empresa?.nombreEmpresa} · Clasificación por consumo anual en dinero: A hasta 80%, B hasta 95%, C restante. El artículo que cruza el umbral permanece en su clase.</p>
     {error && <p role="alert" className="text-danger">{error}</p>}

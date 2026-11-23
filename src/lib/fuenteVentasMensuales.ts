@@ -1,9 +1,10 @@
+import { esVentaContableAnual, esVentaDetalleSku } from './origenVentas'
+
 /** Selección temporal del escenario académico; no modifica ventas de inventarios. */
 export function seleccionarVentasMensuales<T extends { observacion?: string | null }>(ventas: T[]) {
   const escenario = ventas.filter(v => v.observacion?.startsWith('Escenario simulado mensual '))
   const detalle = ventas.filter(v =>
-    !v.observacion?.startsWith('Generado desde estados financieros ') &&
-    !/^INV \d{4} INV-/.test(v.observacion ?? ''),
+    !esVentaContableAnual(v) && !esVentaDetalleSku(v),
   )
   return { ventas: escenario.length ? escenario : detalle, escenarioSimulado: escenario.length > 0 }
 }

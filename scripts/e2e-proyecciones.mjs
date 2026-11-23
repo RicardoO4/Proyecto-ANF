@@ -94,6 +94,5 @@ try{
  assert.deepEqual(errors,[])
  console.log(`PASS: seis rutas con navegación compartida, menú visible al desplazar, opción activa en móvil y PDF A4 horizontal de ${pages} páginas con ${expectedRows} filas, cifras intactas y sin interfaz. Sin IA ni escrituras.`)
 }finally{
- if(ws?.readyState===WebSocket.OPEN){try{await command('Browser.close')}catch{}ws.close()}browser.kill()
+  if(ws?.readyState===WebSocket.OPEN){try{await command('Browser.close')}catch{}ws.close()}browser.kill()
 }
-

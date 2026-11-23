@@ -26,7 +26,7 @@ export const RatioDetailsModal = ({ show, onClose, ratio }: RatioDetailsModalPro
     }
 
     if (typeof value === 'number') {
-      return value.toFixed(2) // Formatea a 2 decimales
+      return value.toFixed(4) // Conserva la precisión NUMERIC(15,4)
     }
 
     return value as string
@@ -56,7 +56,13 @@ export const RatioDetailsModal = ({ show, onClose, ratio }: RatioDetailsModalPro
             </li>
             <li>
               <strong>Valor Promedio del Sector:</strong>
-              <span>{formatValue(ratio.valor_sector_promedio)}</span>
+              {ratio.parametroSector ? (
+                <span>{formatValue(ratio.valor_sector_promedio)}</span>
+              ) : (
+                <span className={detailsStyles.valueNotCalculated}>
+                  Sin referencia sectorial (cálculo realizado)
+                </span>
+              )}
             </li>
             <li>
               <strong>Diferencia vs. Sector:</strong>

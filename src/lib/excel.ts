@@ -12,6 +12,7 @@
 // col A = fecha (date), col B = monto, col C = observación.
 import * as XLSX from 'xlsx'
 import { BadRequestException, ValidationException } from '@/lib/errors'
+import { formatMoney } from '@/lib/formatoMonetario'
 import {
   ACTIVO_TOTAL,
   CUENTAS_ER_REQUERIDAS,
@@ -42,7 +43,7 @@ export interface UploadedVentas {
 function getWorkbook(buffer: ArrayBuffer): XLSX.WorkBook {
   try {
     return XLSX.read(new Uint8Array(buffer), { type: 'array', cellDates: true })
-  } catch (err) {
+  } catch {
     throw new BadRequestException(
       'El archivo debe ser un Excel válido (.xlsx).',
     )
@@ -449,7 +450,7 @@ function consolidar(
       )
     } else {
       errores.push(
-        `Hoja '${hoja}': la cuenta ${padre} (${saldoPadre.toFixed(2)}) es subtotal de ${hojas.join(', ')}, pero estas suman ${sumaHojas.toFixed(2)}. Cargue solo un nivel.`,
+        `Hoja '${hoja}': la cuenta ${padre} (${formatMoney(saldoPadre)}) es subtotal de ${hojas.join(', ')}, pero estas suman ${formatMoney(sumaHojas)}. Cargue solo un nivel.`,
       )
     }
   }
@@ -511,11 +512,11 @@ function validarCuadre(
     Math.abs(r.totalActivo - (pasivoMasPatrimonio + r.utilidadNeta)) <= TOLERANCIA
   if (!cuadra && cuadraConUtilidad) {
     avisos.push(
-      `El balance cuadra solo al sumar la utilidad del ejercicio (${r.utilidadNeta.toFixed(2)}); conviene registrarla en la cuenta ${RESULTADO_EJERCICIO}.`,
+      `El balance cuadra solo al sumar la utilidad del ejercicio (${formatMoney(r.utilidadNeta)}); conviene registrarla en la cuenta ${RESULTADO_EJERCICIO}.`,
     )
   } else if (!cuadra) {
     errores.push(
-      `El balance no cuadra: Activo ${r.totalActivo.toFixed(2)} ≠ Pasivo + Patrimonio ${pasivoMasPatrimonio.toFixed(2)} (diferencia ${(r.totalActivo - pasivoMasPatrimonio).toFixed(2)}).`,
+      `El balance no cuadra: Activo ${formatMoney(r.totalActivo)} ≠ Pasivo + Patrimonio ${formatMoney(pasivoMasPatrimonio)} (diferencia ${formatMoney(r.totalActivo - pasivoMasPatrimonio)}).`,
     )
   }
 
@@ -524,7 +525,7 @@ function validarCuadre(
     const saldo3204 = resultadoBalance.reduce((s, l) => s + l.saldo, 0)
     if (Math.abs(saldo3204 - r.utilidadNeta) > TOLERANCIA) {
       avisos.push(
-        `La utilidad del Estado de Resultados (${r.utilidadNeta.toFixed(2)}) no coincide con la cuenta ${RESULTADO_EJERCICIO} del balance (${saldo3204.toFixed(2)}).`,
+        `La utilidad del Estado de Resultados (${formatMoney(r.utilidadNeta)}) no coincide con la cuenta ${RESULTADO_EJERCICIO} del balance (${formatMoney(saldo3204)}).`,
       )
     }
   }
@@ -617,7 +618,7 @@ export function parseBalanzaComprobacion(wb: XLSX.WorkBook): UploadedCargaUnific
   const diferencia = filas.reduce((s, f) => s + f.saldo, 0)
   if (filas.length > 0 && Math.abs(diferencia) > TOLERANCIA) {
     errores.push(
-      `La balanza no cuadra: los saldos deudores y acreedores difieren en ${diferencia.toFixed(2)}. Los saldos acreedores deben ir en negativo o entre paréntesis.`,
+      `La balanza no cuadra: los saldos deudores y acreedores difieren en ${formatMoney(diferencia)}. Los saldos acreedores deben ir en negativo o entre paréntesis.`,
     )
   }
 
@@ -640,7 +641,7 @@ export function parseBalanzaComprobacion(wb: XLSX.WorkBook): UploadedCargaUnific
       const saldo = Math.round(utilidadNeta * 100) / 100
       balance.push({ codigoCuenta: RESULTADO_EJERCICIO, nombre: 'Resultado del ejercicio', saldo })
       avisos.push(
-        `La balanza es previa al cierre: se registró el ${saldo >= 0 ? 'resultado' : 'déficit'} del ejercicio (${saldo.toFixed(2)}) en la cuenta ${RESULTADO_EJERCICIO} del Balance General.`,
+        `La balanza es previa al cierre: se registró el ${saldo >= 0 ? 'resultado' : 'déficit'} del ejercicio (${formatMoney(saldo)}) en la cuenta ${RESULTADO_EJERCICIO} del Balance General.`,
       )
     }
     validarCuadre(balance, resultados, errores, avisos)

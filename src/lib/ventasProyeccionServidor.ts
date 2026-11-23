@@ -1,5 +1,6 @@
 import { supabaseAdmin } from './supabase/admin'
 import { obtenerPeriodosFinancieros } from './periodosFinancierosServidor'
+import { origenVenta } from './origenVentas'
 import { seleccionarVentasCompletas } from './ventasAnuales'
 import type { VentaRow } from '@/types'
 
@@ -11,5 +12,8 @@ export async function obtenerVentasProyeccion(empresaId: number, periodicidad: '
     ventas.push(...(data ?? []) as VentaRow[])
     if ((data?.length ?? 0) < 1000) break
   }
-  return periodicidad === 'mensual' ? {ventas,excluidos:[]} : seleccionarVentasCompletas(ventas,await obtenerPeriodosFinancieros(empresaId))
+  if (periodicidad === 'mensual') {
+    return {ventas: ventas.filter(v => origenVenta(v) === 'MENSUAL_REAL'), excluidos: []}
+  }
+  return seleccionarVentasCompletas(ventas,await obtenerPeriodosFinancieros(empresaId))
 }

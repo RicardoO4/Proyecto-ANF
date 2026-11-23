@@ -3,10 +3,12 @@ import assert from 'node:assert/strict'
 import {describirPeriodo} from '../src/lib/periodoFinanciero.ts'
 import {seleccionarVentasCompletas} from '../src/lib/ventasAnuales.ts'
 import {generarProforma} from '../src/lib/proforma.ts'
+import {prepararSerieVentas} from '../src/lib/pronosticos.ts'
 
 const anio = new Date().getFullYear()
 const abierto = {id:1,anio,origen:'CONTABILIDAD',estado:'REVISION',version:2,version_publicada:1,fechaCorte:`${anio}-03-31`}
 const anual = (year,monto=1000) => ({id_venta:year,empresa_id:2,fecha_venta:`${year}-12-31`,monto_venta:monto,observacion:`Generado desde estados financieros ${year}`})
+const sku = (year,monto=100) => ({...anual(year,monto),id_venta:year+9000,fecha_venta:`${year}-06-30`,observacion:`INV ${year} INV-001`})
 
 test('Publicaciones parciales conservan su corte aunque existan movimientos pendientes', () => {
   const p=describirPeriodo(anio,abierto,anio)
@@ -26,6 +28,13 @@ test('Detalle mensual solo se utiliza como año completo si contiene sus doce me
   const meses=Array.from({length:12},(_,i)=>({...anual(anio-1),fecha_venta:`${anio-1}-${String(i+1).padStart(2,'0')}-01`,observacion:null}))
   assert.equal(seleccionarVentasCompletas(meses,[],anio).ventas.length,12)
   assert.equal(seleccionarVentasCompletas(meses.slice(1),[],anio).ventas.length,0)
+})
+test('El detalle SKU no duplica totales contables ni contamina series mensuales', () => {
+  const r=seleccionarVentasCompletas([anual(anio-1,1000),sku(anio-1,50)],[],anio)
+  assert.deepEqual(r.ventas.map(v=>v.id_venta),[anio-1])
+  const mensuales=Array.from({length:3},(_,i)=>({...anual(anio-2,100+i),id_venta:100+i,fecha_venta:`${anio-2}-0${i+1}-28`,observacion:null}))
+  const serie=prepararSerieVentas([...mensuales,sku(anio-2,999)],'mensual')
+  assert.deepEqual(serie.map(f=>f.monto),[100,101,102])
 })
 test('Proforma impide presentar una base parcial como proyección del próximo año', () => {
   assert.throws(()=>generarProforma({periodo:describirPeriodo(anio,abierto,anio)},{}),/año base completo/)
