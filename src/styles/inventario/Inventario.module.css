@@ -32,7 +32,8 @@
   font-weight: 600;
 }
 
-.acciones input {
+.acciones input,
+.acciones select {
   padding: 8px 10px;
   min-width: 140px;
 }

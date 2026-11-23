@@ -15,16 +15,13 @@ import { formatMoney } from '@/lib/formatoMonetario'
 import { Notifier } from '@/utils/Notifier'
 import styles from '@/styles/inventario/Inventario.module.css'
 
-const ANIO_MINIMO = 1900
-const ANIO_MAXIMO = 2100
-
 export const ModelosInventario = () => {
   const [empresaId, setEmpresaId] = useState<number | null>(null)
   const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) => setEmpresaId(e.empresaId))
-  const anioActual = new Date().getFullYear()
   const [anio, setAnio] = useState<number | null>(null)
   const [revision, setRevision] = useState(0)
-  const [anioInput, setAnioInput] = useState(String(anioActual))
+  const [anioInput, setAnioInput] = useState('')
+  const [aniosDisponibles, setAniosDisponibles] = useState<number[]>([])
   const [modelos, setModelos] = useState<ModelosInventarioResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -35,7 +32,8 @@ export const ModelosInventario = () => {
       .getModelos(empresaId, anio)
       .then((data: ModelosInventarioResponse) => {
         if (!activo) return
-        setAnioInput(String(data.anio))
+        setAniosDisponibles(data.aniosDisponibles)
+        setAnioInput(data.aniosDisponibles.includes(data.anio) ? String(data.anio) : '')
         if (!data.tieneDemanda) {
           setModelos(null)
           setLoading(false)
@@ -46,6 +44,8 @@ export const ModelosInventario = () => {
       })
       .catch((err: unknown) => {
         if (activo) {
+          setAniosDisponibles([])
+          setAnioInput('')
           setModelos(null)
           setLoading(false)
           Notifier.error(getErrorMessage(err, 'No se pudieron calcular los modelos.'))
@@ -58,8 +58,8 @@ export const ModelosInventario = () => {
 
   const recalcular = () => {
     const valor = Number(anioInput)
-    if (!Number.isInteger(valor) || valor < ANIO_MINIMO || valor > ANIO_MAXIMO) {
-      Notifier.error(`Ingrese un año entre ${ANIO_MINIMO} y ${ANIO_MAXIMO}.`)
+    if (!aniosDisponibles.includes(valor)) {
+      Notifier.error('Seleccione un año con ventas registradas por producto.')
       return
     }
     setAnio(valor)
@@ -152,16 +152,25 @@ export const ModelosInventario = () => {
       <div className={styles.acciones}>
         <label>
           Año
-          <input
-            type="number"
-            min={ANIO_MINIMO}
-            max={ANIO_MAXIMO}
-            step={1}
+          <select
             value={anioInput}
             onChange={(e) => setAnioInput(e.target.value)}
-          />
+            disabled={loading || aniosDisponibles.length === 0}
+          >
+            {aniosDisponibles.length === 0 && (
+              <option value="">Sin años disponibles</option>
+            )}
+            {aniosDisponibles.map((anioDisponible) => (
+              <option key={anioDisponible} value={anioDisponible}>{anioDisponible}</option>
+            ))}
+          </select>
         </label>
-        <button type="button" className="btn-primary" onClick={recalcular}>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={recalcular}
+          disabled={loading || !aniosDisponibles.includes(Number(anioInput))}
+        >
           Calcular
         </button>
       </div>
@@ -169,7 +178,7 @@ export const ModelosInventario = () => {
       {loading ? (
         <p>Calculando modelos...</p>
       ) : !modelos ? (
-        <p className={styles.aviso}>No hay ventas con detalle por producto para {anioInput}. Las ventas mensuales agregadas y los totales contables no permiten calcular la demanda por SKU.</p>
+        <p className={styles.aviso}>No hay ventas con detalle por producto{anioInput ? ` para ${anioInput}` : ''}. Las ventas mensuales agregadas y los totales contables no permiten calcular la demanda por SKU.</p>
       ) : (
         <>
           <div className={styles.supuestos}>
