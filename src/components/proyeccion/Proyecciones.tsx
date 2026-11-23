@@ -5,7 +5,6 @@ import EmpresaFija from '@/components/shared/EmpresaFija'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import viewStyles from '@/styles/shared/View.module.css'
 import tabStyles from '@/styles/proyeccion/Proyecciones.module.css'
-import buttonStyles from '@/styles/shared/Button.module.css'
 import { CargaMasivaVentas } from '@/components/proyeccion/CargaMasivaVentas'
 import { CargaManualVentas } from '@/components/proyeccion/CargaManualVentas'
 import { ventaHistoricaService, type VentaHistorica } from '@/services/ventaHistoricaService'
@@ -14,6 +13,7 @@ import Link from 'next/link'
 import BotonResumenIA from '@/components/shared/BotonResumenIA'
 import { useDisponibilidadVentas } from '@/hooks/useDisponibilidadVentas'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { agruparVentasMensuales } from '@/lib/fuenteVentasMensuales'
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent'
 
 const NOMBRES_MESES = [
@@ -56,49 +56,22 @@ export const Proyecciones = () => {
 
   const [proyeccionesUnificadas, setProyeccionesUnificadas] = useState<ResultadoProyeccionUnificado[]>([])
   const [historicoVentas, setHistoricoVentas] = useState<{ mesLabel: string; historico: number }[]>([])
+  const [escenarioSimulado, setEscenarioSimulado] = useState(false)
   const [anioProyectado, setAnioProyectado] = useState<string>('2026')
 
   const cargarHistoricoBD = useCallback(async (empId: string) => {
     if (!empId) return
     try {
       const data = await ventaHistoricaService.getAllVentasPorEmpresa(parseInt(empId, 10))
-      const validos = (data || []).filter((v: VentaHistorica) => v.fechaVenta && Number(v.montoVenta) > 0)
-      
-      if (validos.length === 0) {
-        setHistoricoVentas([])
-        return
-      }
-
-      // 1. Filtrar explícitamente resúmenes o cierres anuales/semestrales por observación
-      const sinCierres = validos.filter((v) => {
-        const obs = (v.observacion || '').toLowerCase()
-        return !obs.includes('generado desde estados financieros') &&
-               !obs.includes('cierre') &&
-               !obs.includes('total anual')
-      })
-
-      const datasetBase = sinCierres.length > 0 ? sinCierres : validos
-
-      // 2. Si hay múltiples registros en un mes y uno de ellos es un total atípico enorme (> 3x la mediana), tomar el detalle mensual
-      const agrupados = new Map<string, number>()
-      for (const v of datasetBase) {
-        const partes = v.fechaVenta.split('T')[0].split('-')
-        if (partes.length >= 2) {
-          const key = `${partes[0]}-${partes[1].padStart(2, '0')}`
-          const montoNum = Number(v.montoVenta)
-          // Ignorar montos individuales mayores a $500,000 en datos mensuales
-          if (montoNum < 500000) {
-            agrupados.set(key, (agrupados.get(key) ?? 0) + montoNum)
-          }
-        }
-      }
-
-      const ordenados = [...agrupados.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1))
-      const ultimos12 = ordenados.slice(-12)
-
-      const mapeado = ultimos12.map(([key, monto]) => ({
-        mesLabel: formatearMesAnioKey(key),
-        historico: Number(monto.toFixed(2))
+      const serie = agruparVentasMensuales((data || []).map((v: VentaHistorica) => ({
+        fecha_venta: v.fechaVenta,
+        monto_venta: Number(v.montoVenta),
+        observacion: v.observacion,
+      })))
+      setEscenarioSimulado(serie.escenarioSimulado)
+      const mapeado = serie.historico.slice(-12).map(({periodo, monto}) => ({
+        mesLabel: formatearMesAnioKey(periodo),
+        historico: Number(monto.toFixed(2)),
       }))
 
       setHistoricoVentas(mapeado)
@@ -154,9 +127,10 @@ export const Proyecciones = () => {
   }, [cargarHistoricoBD])
 
   useEffect(() => {
-    if (empresaSeleccionada) {
-      void generarProyeccionAuto(empresaSeleccionada)
-    }
+    if (!empresaSeleccionada) return
+    const controlSolicitudes = secuencia
+    const timer = setTimeout(() => { void generarProyeccionAuto(empresaSeleccionada) }, 0)
+    return () => { clearTimeout(timer); controlSolicitudes.current++ }
   }, [empresaSeleccionada, generarProyeccionAuto])
 
   const datosGrafico = [
@@ -192,6 +166,7 @@ export const Proyecciones = () => {
   return (
     <div className={viewStyles.viewContainer}>
       <h1 className={viewStyles.viewTitle}>Proyección de Ventas Mensuales</h1>
+      {escenarioSimulado && <p role="status">Fuente: escenario simulado mensual para práctica académica. Las ventas de inventarios y los demás registros no se incluyen en esta proyección.</p>}
       <p className="mb-4">
         Este módulo presenta la proyección comparativa de ventas a 12 meses basada en datos históricos mediante tres métodos clásicos: <strong>Mínimos Cuadrados</strong>, <strong>Incremento Porcentual</strong> e <strong>Incremento Absoluto</strong>.
       </p>
@@ -339,7 +314,7 @@ export const Proyecciones = () => {
           <div className="alert alert-info mb-3">
             Meses registrados en BD: {disponibilidad.datos.total}. Para proyección mensual se requieren 12 meses.
             {!disponibilidad.datos.clasica && (
-              <> Utilice <Link href="/proyecciones/pronostico">el pronóstico de ventas anuales</Link>.</>
+              <> Utilice <Link href="/proyecciones/pronostico">los pronósticos avanzados con periodicidad anual</Link>.</>
             )}
           </div>
         )}

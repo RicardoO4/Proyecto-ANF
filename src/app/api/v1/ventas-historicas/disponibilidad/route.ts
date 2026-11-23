@@ -2,6 +2,7 @@ import { handle } from '@/lib/errors'
 import { getEmpresaPrincipal } from '@/lib/empresaPrincipal'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { disponibilidadMensual, esVentaAnual } from '@/lib/ventasMensuales'
+import { seleccionarVentasMensuales } from '@/lib/fuenteVentasMensuales'
 
 export async function GET(req: Request) {
   return handle(req, async () => {
@@ -9,6 +10,6 @@ export async function GET(req: Request) {
     const { data, error } = await supabaseAdmin.from('venta').select('fecha_venta, observacion').eq('empresa_id', empresaId)
     if (error) throw error
     const filas = data ?? []
-    return Response.json({ empresaId, ...disponibilidadMensual(filas.filter(v => !esVentaAnual(v.observacion)).map(v => v.fecha_venta)), totalesAnuales: filas.filter(v => esVentaAnual(v.observacion)).length })
+    return Response.json({ empresaId, ...disponibilidadMensual(seleccionarVentasMensuales(filas).ventas.map(v => v.fecha_venta)), totalesAnuales: filas.filter(v => esVentaAnual(v.observacion)).length })
   })
 }

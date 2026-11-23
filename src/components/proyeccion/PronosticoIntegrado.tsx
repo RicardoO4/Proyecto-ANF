@@ -42,10 +42,10 @@ export default function PronosticoIntegrado() {
 
   return (
     <div className={view.viewContainer}>
-      <h1>Pronóstico de Ventas Anuales</h1>
-      <p>{empresa?.nombreEmpresa} · Evaluación mediante <strong>Promedio Móvil</strong>, <strong>Regresión Logarítmica</strong> y <strong>Regresión Cuadrática</strong> basándose en el histórico contable real.</p>
+      <h1>Pronósticos de ventas: métodos avanzados</h1>
+      <p>{empresa?.nombreEmpresa} · Evaluación mensual o anual mediante <strong>Promedio Móvil</strong>, <strong>Regresión Logarítmica</strong> y <strong>Regresión Cuadrática</strong> a partir de datos registrados.</p>
       {disponibilidad.datos && (
-        <p>Totales anuales del balance: {disponibilidad.datos.totalesAnuales}. Meses reales: {disponibilidad.datos.total}. {periodicidad === 'mensual' && !disponibilidad.datos.avanzada && <>Se necesitan al menos tres periodos mensuales reales y consecutivos. <Link href="/proyecciones">Cargar ventas mensuales</Link>.</>}</p>
+        <p>Totales anuales del balance: {disponibilidad.datos.totalesAnuales}. Meses disponibles para proyección: {disponibilidad.datos.total}. {periodicidad === 'mensual' && !disponibilidad.datos.avanzada && <>Se necesitan al menos tres periodos mensuales registrados y consecutivos. <Link href="/proyecciones">Cargar ventas mensuales</Link>.</>}</p>
       )}
       <div className="row g-3 mb-4">
         <label className="col-md-4">Periodicidad
@@ -66,8 +66,9 @@ export default function PronosticoIntegrado() {
       {resultado && resultado.excluidos.length > 0 && <p role="status">Años excluidos: {resultado.excluidos.map(f => `${f.anio} (${f.motivo.toLowerCase()})`).join(', ')}.</p>}
       {resultado && (
         <>
+          {resultado.escenarioSimulado && <p role="status">Fuente: escenario simulado mensual. Se utilizan únicamente los registros «Escenario simulado mensual»; las demás ventas quedan fuera de este pronóstico. Son datos de práctica, no ventas reales.</p>}
           <p>Periodicidad del resultado: <strong>{resultado.periodicidad}</strong>. Con pocos periodos históricos, la extrapolación puede ser inestable. Las predicciones negativas se limitan a cero.</p>
-          <p className="text-muted small">Línea continua: ventas reales. Líneas discontinuas: estimaciones desde el último dato real.</p>
+          <p className="text-muted small">Línea continua: {resultado.escenarioSimulado ? 'histórico del escenario simulado' : 'ventas registradas'}. Líneas discontinuas: estimaciones desde el último dato histórico.</p>
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={datos} accessibilityLayer margin={{ top: 24, right: 12, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />

@@ -1,6 +1,15 @@
 import { BadRequestException } from '@/lib/errors'
 import { proyeccionLogaritmica, proyeccionPromedioMovil } from '@/lib/proyeccion'
 import type { VentaRow } from '@/types'
+import { seleccionarVentasMensuales } from './fuenteVentasMensuales'
+
+// El escenario académico constituye una serie independiente de las ventas
+// registradas por otros módulos. Nunca se mezclan ambas fuentes al pronosticar.
+function seleccionarHistorico(ventas: VentaRow[], periodicidad: 'anual' | 'mensual') {
+  return periodicidad === 'mensual'
+    ? seleccionarVentasMensuales(ventas)
+    : { ventas, escenarioSimulado: false }
+}
 
 export function proyeccionCuadratica(ventas: number[], periodos: number): number[] {
   if (ventas.length < 3 || !ventas.every(Number.isFinite)) throw new BadRequestException('La regresión cuadrática requiere tres periodos válidos.')
@@ -31,6 +40,7 @@ export function proyeccionCuadratica(ventas: number[], periodos: number): number
 }
 
 export function prepararSerieVentas(ventas: VentaRow[], periodicidad: 'anual' | 'mensual') {
+  ventas = seleccionarHistorico(ventas, periodicidad).ventas
   const periodos = new Map<string, number>()
   const anuales = ventas.filter(v => v.observacion?.startsWith('Generado desde estados financieros '))
   const detalle = ventas.filter(v => !v.observacion?.startsWith('Generado desde estados financieros '))
@@ -62,6 +72,7 @@ export function pronosticarVentas(ventas: VentaRow[], periodicidad: 'anual' | 'm
     const fecha = periodicidad === 'anual' ? String(Number(ultimo) + i + 1) : new Date(Date.UTC(Number(ultimo.slice(0, 4)), Number(ultimo.slice(5)) + i, 1)).toISOString().slice(0, 7)
     return { periodo: fecha, movil: Math.max(0, movil[i]), logaritmica: logaritmica[i], cuadratica: cuadratica[i] }
   })
-  return { periodicidad, historico, proyecciones }
+  const { escenarioSimulado } = seleccionarHistorico(ventas, periodicidad)
+  return { periodicidad, historico, proyecciones, escenarioSimulado }
 }
 export type PronosticoVentas = ReturnType<typeof pronosticarVentas>

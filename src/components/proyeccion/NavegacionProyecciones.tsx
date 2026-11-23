@@ -8,7 +8,7 @@ import styles from '@/styles/proyeccion/Proyecciones.module.css'
 const proyeccionesSubMenuLinks = [
   { label: 'Proyección de Ventas Mensuales', to: '/proyecciones' },
   { label: 'Ver Historial de Ventas', to: '/proyecciones/historial' },
-  { label: 'Pronóstico de Ventas Anuales', to: '/proyecciones/pronostico' },
+  { label: 'Pronósticos: métodos avanzados', to: '/proyecciones/pronostico' },
   { label: 'Estados Proforma', to: '/proyecciones/proforma' },
   { label: 'Presupuestos', to: '/proyecciones/presupuesto' },
   { label: 'Presupuesto de Capital', to: '/proyecciones/capital' },

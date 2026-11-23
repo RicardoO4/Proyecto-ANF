@@ -1,5 +1,6 @@
 import { REBAJAS_DEVOLUCIONES } from '@/lib/accountCodes'
 import { formatearPorcentajeAnalisis } from '@/lib/porcentajesAnalisis'
+import { agruparVentasMensuales } from '@/lib/fuenteVentasMensuales'
 import { pronosticarVentas } from '@/lib/pronosticos'
 import { obtenerVentasProyeccion } from './ventasProyeccionServidor'
 import { obtenerPeriodosFinancieros } from './periodosFinancierosServidor'
@@ -282,9 +283,8 @@ const METODOS: Record<MetodoProyeccion, string> = {
 
 async function proyeccion(d: Datos): Promise<Preparado> {
   const empresaId = numero(d, 'empresaId', { min: 1, entero: true })
-  const metodo = String(d.metodo ?? '') as MetodoProyeccion
-  if (!(metodo in METODOS)) throw new BadRequestException(`Método de proyección inválido: ${metodo}`)
-
+  const metodo = String(d.metodo ?? '')
+  if (metodo !== 'UNIFICADO_COMPARATIVO' && !(metodo in METODOS)) throw new BadRequestException(`Metodo de proyeccion invalido: ${metodo}`)
   const { data, error } = await supabaseAdmin
     .from('venta')
     .select('id_venta, fecha_venta, monto_venta, observacion, empresa_id')
@@ -292,25 +292,20 @@ async function proyeccion(d: Datos): Promise<Preparado> {
     .order('fecha_venta', { ascending: true })
   if (error) throw error
   const ventas = (data ?? []) as VentaRow[]
-  const proy = calcularProyeccion(empresaId, ventas, 12, metodo)
-  if (proy.length === 0) throw new NotFoundException('No se pudo generar la proyección.')
-
-  const historico = ventas.slice(-12).map((v) => `${v.fecha_venta}: ${dinero(Number(v.monto_venta))}`)
-  const primero = proy[0]
-  const ultimo = proy.at(-1)!
-  const cambioMensual = proy.length > 1 ? (ultimo.montoProyectado - primero.montoProyectado) / (proy.length - 1) : 0
-
-  const datosClave = [
-    { etiqueta: 'Método', valor: METODOS[metodo] },
-    { etiqueta: 'Registros históricos', valor: String(ventas.length) },
-    { etiqueta: `Proyección ${primero.fechaProyectada}`, valor: dinero(primero.montoProyectado) },
-    { etiqueta: `Proyección ${ultimo.fechaProyectada}`, valor: dinero(ultimo.montoProyectado) },
-    { etiqueta: 'Cambio promedio por mes proyectado', valor: dinero(cambioMensual) },
-  ]
+  const serie = agruparVentasMensuales(ventas)
+  const metodos: MetodoProyeccion[] = metodo === 'UNIFICADO_COMPARATIVO'
+    ? Object.keys(METODOS) as MetodoProyeccion[]
+    : [metodo as MetodoProyeccion]
+  const resultados = metodos.map(m => ({ metodo: m, filas: calcularProyeccion(empresaId, ventas, 12, m) }))
+  const historico = serie.historico.slice(-12).map(v => `${v.periodo}: ${dinero(v.monto)}`)
+  const datosClave = resultados.flatMap(r => [
+    { etiqueta: `${METODOS[r.metodo]} - ${r.filas[0].fechaProyectada}`, valor: dinero(r.filas[0].montoProyectado) },
+    { etiqueta: `${METODOS[r.metodo]} - ${r.filas.at(-1)!.fechaProyectada}`, valor: dinero(r.filas.at(-1)!.montoProyectado) },
+  ])
   return {
-    titulo: 'Proyección de ventas',
+    titulo: 'Proyeccion de ventas',
     clave: `proyeccion|${empresaId}|${metodo}`,
-    mensaje: `Proyección de ventas a 12 meses por ${METODOS[metodo]}.\nVentas históricas usadas (fecha: monto):\n${historico.map((h) => `- ${h}`).join('\n')}\nResultado:\n${datosClave.slice(2).map((x) => `- ${x.etiqueta}: ${x.valor}`).join('\n')}\nExplica la tendencia. Si los registros históricos son pocos o no son mensuales, advierte que la proyección es poco confiable.`,
+    mensaje: `Proyeccion de ventas a 12 meses. Fuente: ${serie.escenarioSimulado ? 'escenario simulado mensual para practica academica; no presentarlo como ventas reales' : 'ventas registradas'}. Historico mensual usado: ${historico.join('; ')}. Resultados calculados en el servidor: ${resultados.map(r => `${METODOS[r.metodo]}: ${r.filas.map(f => `${f.fechaProyectada}: ${dinero(f.montoProyectado)}`).join('; ')}`).join(' | ')}. Explica y compara los metodos disponibles. No confundir meses con anios. Las estimaciones no son ventas realizadas.`,
     datosClave,
   }
 }
@@ -325,7 +320,7 @@ async function pronostico(d: Datos): Promise<Preparado> {
     const {ventas} = await obtenerVentasProyeccion(empresa.empresaId,periodicidad)
     const p = pronosticarVentas(ventas, periodicidad, periodos)
     const datosClave = p.proyecciones.map(f => ({ etiqueta: f.periodo, valor: `Promedio móvil ${dinero(f.movil)}; logarítmica ${dinero(f.logaritmica)}; cuadrática ${dinero(f.cuadratica)}` }))
-    return { titulo: 'Pronóstico de ventas', clave: `pronostico|${empresa.empresaId}|${periodicidad}|${periodos}`, datosClave, mensaje: `Pronóstico ${periodicidad}. Histórico real: ${p.historico.map(f => `${f.periodo}: ${dinero(f.monto)}`).join('; ')}. Resultados: ${datosClave.map(f => `${f.etiqueta}: ${f.valor}`).join('; ')}. Compara los tres métodos y advierte sobre extrapolación con pocos datos. No confundir años con meses.` }
+    return { titulo: 'Pronóstico de ventas', clave: `pronostico|${empresa.empresaId}|${periodicidad}|${periodos}`, datosClave, mensaje: `Pronóstico ${periodicidad}. Fuente: ${p.escenarioSimulado ? 'escenario simulado mensual para práctica académica; no presentarlo como ventas reales ni mezclarlo con ventas de inventarios' : 'ventas registradas'}. Histórico: ${p.historico.map(f => `${f.periodo}: ${dinero(f.monto)}`).join('; ')}. Resultados: ${datosClave.map(f => `${f.etiqueta}: ${f.valor}`).join('; ')}. Compara los tres métodos y advierte sobre extrapolación con pocos datos. No confundir años con meses.` }
   }
   const ventas = listaNumeros(d, 'ventas', 3, 36)
   const periodos = Math.min(numero(d, 'periodos', { min: 1, entero: true }), 12)
