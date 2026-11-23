@@ -10,7 +10,7 @@ const proyeccionesSubMenuLinks = [
   { label: 'Ver Historial de Ventas', to: '/proyecciones/historial' },
   { label: 'Pronósticos: métodos avanzados', to: '/proyecciones/pronostico' },
   { label: 'Estados Proforma', to: '/proyecciones/proforma' },
-  { label: 'Presupuestos', to: '/proyecciones/presupuesto' },
+  { label: 'Presupuestos', to: '/proyecciones/presupuestos' },
   { label: 'Presupuesto de Capital', to: '/proyecciones/capital' },
 ]
 
