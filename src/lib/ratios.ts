@@ -3,8 +3,9 @@
 // financial statements by cuenta code, compute, compare against the sector
 // benchmark, generate the Spanish interpretation, persist and return.
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { InternalException, NotFoundException } from '@/lib/errors'
-import { formatMoney } from '@/lib/formatoMonetario'
+import { AsyncLocalStorage } from 'node:async_hooks'
+import { utilidadEjercicio } from '@/lib/rentabilidad'
+import { InternalException, NotFoundException, BusinessRuleException } from '@/lib/errors'
 import type { RatioResponseDTO } from '@/types'
 
 // ---------------------------------------------------------------
@@ -30,7 +31,7 @@ import {
   CUENTAS_POR_PAGAR,
   GASTOS_FINANCIEROS,
   RESULTADO_EJERCICIO,
-  TOTAL_INGRESOS,
+  INGRESOS_NETOS,
   TOTAL_COSTOS_GASTOS,
 } from '@/lib/accountCodes'
 import type { TipoReporte } from '@/lib/accountCodes'
@@ -62,6 +63,19 @@ type MetricInput = {
   codigos: PrefixCodes
 }
 
+// Isolated per request: a batch reuses one snapshot, never global financial data.
+interface FilaCalculada { id_ratio: number; valor_calculado: number | null; valor_sector_promedio: number | null; diferencia_vs_sector: number | null; cumple_sector: boolean | null; interpretacion: string }
+interface BaseRecalculo {
+  estados: { anio: number; tipo_reporte: string }[]
+  lineas: { anio: number; tipo_reporte: string; codigo: string; saldo: number }[]
+  ratios: RatioEntity[]
+  categorias: { nombre_tipo: string }[]
+}
+interface LoteRatios { empresaId: number; datos: BaseRecalculo; filas: FilaCalculada[] }
+const loteRatios = new AsyncLocalStorage<LoteRatios>()
+// Increment when formulas, account-code rules or interpretations change.
+export const VERSION_CALCULO_RATIOS = '2026-11-22.1'
+
 /**
  * SUM(saldo) filtered by empresa, year, report type and account codes.
  * Each code is a PREFIX: every line whose cue_cuenta_id starts with it is
@@ -71,6 +85,14 @@ type MetricInput = {
  */
 export async function sumSaldos(input: MetricInput): Promise<number> {
   const codigos = Array.isArray(input.codigos) ? input.codigos : [input.codigos]
+  const lote = loteRatios.getStore()
+  if (lote && lote.empresaId === input.empresaId) {
+    return codigos.reduce((total, entry) => {
+      const resta = entry.startsWith('-'), prefijo = resta ? entry.slice(1) : entry
+      const suma = lote.datos.lineas.filter(l => l.anio === input.anio && l.tipo_reporte === input.tipoReporte && l.codigo.startsWith(prefijo)).reduce((s, l) => s + Number(l.saldo), 0)
+      return total + (resta ? -suma : suma)
+    }, 0)
+  }
   let total = 0
   for (const entry of codigos) {
     const resta = entry.startsWith('-')
@@ -115,6 +137,8 @@ interface RatioEntity {
 }
 
 export async function loadRatio(id: number): Promise<RatioEntity> {
+  const precargado = loteRatios.getStore()?.datos.ratios.find(r => r.id_ratio === id)
+  if (precargado) return precargado
   const { data, error } = await supabaseAdmin
     .from('ratio')
     .select(
@@ -170,7 +194,7 @@ export async function calculateRatio(
     get: (codes: string | string[], tipoReporte: TipoReporte, anio?: number) => Promise<number>,
     tieneEstado: (anio: number, tipoReporte: TipoReporte) => Promise<boolean>,
   ) => Promise<{
-    valor: number
+    valor: number | null
     cumple: boolean
     interpretacion: string
   }>,
@@ -195,6 +219,8 @@ export async function calculateRatio(
         codigos,
       }),
     async (anio, tipoReporte) => {
+      const lote = loteRatios.getStore()
+      if (lote) return lote.datos.estados.some(e => e.anio === anio && e.tipo_reporte === tipoReporte)
       const { count, error } = await supabaseAdmin
         .from('estado_financiero')
         .select('id_estado_financiero', { count: 'exact', head: true })
@@ -207,19 +233,25 @@ export async function calculateRatio(
   )
 
   const valorSector = ratio.parametroSector?.valor_referencia
-  if (valorSector == null) {
-    throw new InternalException('El ratio no tiene un parámetro de sector asociado.')
+  if (valor !== null && !Number.isFinite(valor)) throw new InternalException("El indicador no tiene un valor finito.")
+  const diferencia = valorSector == null || valor === null ? null : round(valor - Number(valorSector), 4)
+
+  const lote = loteRatios.getStore()
+  if (lote) {
+    lote.filas.push({ id_ratio: id, valor_calculado: valor, valor_sector_promedio: valorSector == null ? null : Number(valorSector), diferencia_vs_sector: diferencia,
+      cumple_sector: valorSector == null || valor === null ? null : cumple,
+      interpretacion: (valorSector == null && valor !== null ? `Valor calculado: ${valor}. Sin referencia sectorial configurada para esta categoría.` : interpretacion).slice(0, 256) })
+    return Response.json({ id_ratio: id, valor_calculado: valor })
   }
-  const diferencia = round(valor - Number(valorSector), 4)
 
   const { data: updated, error } = await supabaseAdmin
     .from('ratio')
     .update({
       valor_calculado: valor,
-      valor_sector_promedio: Number(valorSector),
+      valor_sector_promedio: valorSector == null ? null : Number(valorSector),
       diferencia_vs_sector: diferencia,
-      cumple_sector: cumple,
-      interpretacion,
+      cumple_sector: valorSector == null || valor === null ? null : cumple,
+      interpretacion: (valorSector == null && valor !== null ? `Valor calculado: ${valor}. Sin referencia sectorial configurada para esta categoría.` : interpretacion).slice(0, 256),
     })
     .eq('id_ratio', id)
     .select()
@@ -231,6 +263,11 @@ export async function calculateRatio(
 }
 
 /** Full RatioResponseDTO mapper (empresa/categoria/parametro nested shapes). */
+export interface RelacionesRatio {
+  empresa: { empresa_id: number; nombre_empresa: string } | null
+  categoria: { id_categoria_ratio: number; nombre_tipo: string } | null
+  parametro: { id_parametro_sector: number; valor_referencia: number; anio_referencia: number | null; nombre_ratio: string } | null
+}
 export async function mapRatioResponse(row: {
   id_ratio: number
   anio_ratio: number | null
@@ -243,8 +280,10 @@ export async function mapRatioResponse(row: {
   empresa_id: number
   id_categoria_ratio: number | null
   id_parametro_sector: number | null
-}): Promise<RatioResponseDTO> {
-  const [empresaRes, categoriaRes, parametroRes] = await Promise.all([
+}, relaciones?: RelacionesRatio): Promise<RatioResponseDTO> {
+  const [empresaRes, categoriaRes, parametroRes] = relaciones
+    ? [{ data: relaciones.empresa }, { data: relaciones.categoria }, { data: relaciones.parametro }]
+    : await Promise.all([
     supabaseAdmin
       .from('empresa')
       .select('empresa_id, nombre_empresa')
@@ -310,7 +349,7 @@ export function calcularLiquidez(id: number) {
       return {
         valor,
         cumple,
-        interpretacion: `La empresa dispone de ${formatMoney(valor)} de activo corriente por cada ${formatMoney(1)} de pasivo corriente. Este valor se encuentra ${posicion} del benchmark del sector, que es de ${f2(ref)}.`,
+        interpretacion: `La empresa dispone de ${f2(valor)} USD de activo corriente por cada dólar de deuda a corto plazo. Este valor se encuentra ${posicion} del benchmark del sector, que es de ${f2(ref)}.`,
       }
     },
   )
@@ -333,10 +372,7 @@ export function calcularCapitalTrabajo(id: number) {
       return {
         valor,
         cumple,
-        interpretacion:
-          valor < 0
-            ? `La empresa presenta un capital de trabajo neto negativo equivalente al ${f2(Math.abs(valor) * 100)}% de sus activos totales; se encuentra ${posicion} del benchmark del sector (${f2(ref)}).`
-            : `La empresa genera ${f2(valor * 100)} centavos de capital de trabajo neto por cada dólar de activos totales, lo cual se encuentra ${posicion} del benchmark del sector (${f2(ref)}).`,
+        interpretacion: `La empresa genera ${f2(valor * 100)} centavos de capital de trabajo neto por cada dólar de activos totales, lo cual se encuentra ${posicion} del benchmark del sector (${f2(ref)}).`,
       }
     },
   )
@@ -435,7 +471,7 @@ export function calcularRotacionActivosTotales(id: number) {
       return {
         valor,
         cumple,
-        interpretacion: `Cada ${formatMoney(1)} invertido en activos genera ${formatMoney(valor)} de ventas, un desempeño ${posicion} del benchmark del sector de ${f2(ref)}.`,
+        interpretacion: `Cada dólar invertido en activos genera ${f2(valor)} dólares de ventas, un desempeño ${posicion} del benchmark del sector de ${f2(ref)}.`,
       }
     },
   )
@@ -456,7 +492,7 @@ export function calcularRotacionActivosFijos(id: number) {
       return {
         valor,
         cumple,
-        interpretacion: `Cada ${formatMoney(1)} invertido en activos fijos genera ${formatMoney(valor)} de ventas, un desempeño ${posicion} del benchmark del sector de ${f2(ref)}.`,
+        interpretacion: `Cada dólar invertido en activos fijos genera ${f2(valor)} dólares de ventas, un desempeño ${posicion} del benchmark del sector de ${f2(ref)}.`,
       }
     },
   )
@@ -502,10 +538,7 @@ export function calcularMargenOperativo(id: number) {
       return {
         valor,
         cumple,
-        interpretacion:
-          valor < 0
-            ? `Por cada dólar de ventas, la empresa incurre en una pérdida operativa de ${f2(Math.abs(valor) * 100)} centavos (margen de ${f2(valor * 100)}%); gestión ${posicion} frente al benchmark del sector (${f2(ref * 100)}%).`
-            : `Por cada dólar de ventas, la empresa genera ${f2(valor * 100)} centavos de utilidad operativa; una gestión ${posicion} en comparación con el benchmark del sector de ${f2(ref * 100)}%.`,
+        interpretacion: `Por cada dólar de ventas, la empresa genera ${f2(valor * 100)} centavos de utilidad operativa; una gestión ${posicion} en comparación con el benchmark del sector de ${f2(ref * 100)}%.`,
       }
     },
   )
@@ -591,7 +624,7 @@ export function calcularGradoPropiedad(id: number) {
       const cumple = patrimonio > 0 && valor >= ref
       const interpretacion =
         patrimonio < 0
-          ? `El patrimonio es negativo (${formatMoney(patrimonio)}): el capital propio no cubre las obligaciones; el valor negativo indica insolvencia técnica y no es comparable con el benchmark del sector.`
+          ? `El patrimonio es negativo (${f2(patrimonio)} USD): el capital propio no cubre las obligaciones y el indicador no admite una lectura normal de solvencia.`
           : `El ${f2(valor * 100)}% del activo total pertenece a los dueños; la empresa se ubica ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
       return { valor, cumple, interpretacion }
     },
@@ -616,8 +649,8 @@ export function calcularEndeudamientoPatrimonial(id: number) {
       const cumple = patrimonio > 0 && valor <= ref // menor es mejor
       const interpretacion =
         patrimonio < 0
-          ? `El patrimonio es negativo (${formatMoney(patrimonio)}): la razón pasivo/patrimonio toma valor ${f2(valor)} y refleja insolvencia técnica; no es comparable con el benchmark del sector.`
-          : `Por cada ${formatMoney(1)} de patrimonio la empresa debe ${formatMoney(valor)} a terceros; se ubica ${cumple ? 'por debajo' : 'por encima'} del benchmark del sector (${f2(ref)}).`
+          ? `El patrimonio es negativo (${f2(patrimonio)} USD), por lo que la razón pasivo/patrimonio no es interpretable: la empresa está técnicamente insolvente.`
+          : `Por cada dólar de patrimonio la empresa debe ${f2(valor)} dólares a terceros; se ubica ${cumple ? 'por debajo' : 'por encima'} del benchmark del sector (${f2(ref)}).`
       return { valor, cumple, interpretacion }
     },
   )
@@ -649,10 +682,7 @@ export function calcularCoberturaIntereses(id: number) {
       const valor = coberturaIntereses(ebit, gastosFinancieros)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
       const cumple = valor >= ref
-      const interpretacion =
-        valor < 0
-          ? `La utilidad operativa es negativa: no cubre el gasto financiero (cobertura de ${f2(valor)} veces); se ubica ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref)} veces).`
-          : `La empresa genera ${f2(valor)} veces su gasto financiero mediante su utilidad operativa; se ubica ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref)} veces).`
+      const interpretacion = `La empresa genera ${f2(valor)} veces su gasto financiero mediante su utilidad operativa; se ubica ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref)} veces).`
       return { valor, cumple, interpretacion }
     },
   )
@@ -666,23 +696,20 @@ export function calcularMargenNeto(id: number) {
   return calculateRatio(
     id,
     'Índice de margen neto',
-    async (get) => {
+    async (get, tieneEstado) => {
       const ratio = await loadRatio(id)
       const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
-      const totalIngresos = await get(TOTAL_INGRESOS, TIPO_REPORTE.RESULTADOS)
+      const totalIngresos = await get(INGRESOS_NETOS, TIPO_REPORTE.RESULTADOS)
       const totalCostosGastos = await get(TOTAL_COSTOS_GASTOS, TIPO_REPORTE.RESULTADOS)
       const utilidadNeta =
-        totalIngresos > 0 ? totalIngresos - totalCostosGastos : await get(RESULTADO_EJERCICIO, TIPO_REPORTE.BALANCE)
+        utilidadEjercicio(await tieneEstado(ratio.anio_ratio!, TIPO_REPORTE.RESULTADOS), totalIngresos, totalCostosGastos, await get(RESULTADO_EJERCICIO, TIPO_REPORTE.BALANCE))
       if (ventasNetas === 0) {
         throw new InternalException('Las Ventas Netas son cero o no se encuentran registradas en el Estado de Resultados.')
       }
       const valor = margenNeto(utilidadNeta, ventasNetas)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
       const cumple = valor >= ref
-      const interpretacion =
-        valor < 0
-          ? `Por cada dólar de ventas, la empresa pierde ${f2(Math.abs(valor) * 100)} centavos (margen neto de ${f2(valor * 100)}%); un margen ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
-          : `Por cada dólar de ventas, la empresa retiene ${f2(valor * 100)} centavos como utilidad neta (${f2(valor * 100)}%); un margen ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
+      const interpretacion = `Por cada dólar de ventas, la empresa retiene ${f2(valor * 100)} centavos como utilidad neta (${f2(valor * 100)}%); un margen ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
       return { valor, cumple, interpretacion }
     },
   )
@@ -695,10 +722,10 @@ export function calcularROA(id: number) {
     async (get, tieneEstado) => {
       const ratio = await loadRatio(id)
       const anio = ratio.anio_ratio!
-      const totalIngresos = await get(TOTAL_INGRESOS, TIPO_REPORTE.RESULTADOS)
+      const totalIngresos = await get(INGRESOS_NETOS, TIPO_REPORTE.RESULTADOS)
       const totalCostosGastos = await get(TOTAL_COSTOS_GASTOS, TIPO_REPORTE.RESULTADOS)
       const utilidadNeta =
-        totalIngresos > 0 ? totalIngresos - totalCostosGastos : await get(RESULTADO_EJERCICIO, TIPO_REPORTE.BALANCE)
+        utilidadEjercicio(await tieneEstado(ratio.anio_ratio!, TIPO_REPORTE.RESULTADOS), totalIngresos, totalCostosGastos, await get(RESULTADO_EJERCICIO, TIPO_REPORTE.BALANCE))
       const activosActual = await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE)
       const activosAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
         ? await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE, anio - 1)
@@ -710,10 +737,7 @@ export function calcularROA(id: number) {
       const valor = roa(utilidadNeta, promedioActivos)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
       const cumple = valor >= ref
-      const interpretacion =
-        valor < 0
-          ? `Cada dólar invertido en activos generó una pérdida equivalente a ${f2(Math.abs(valor) * 100)} centavos (ROA de ${f2(valor * 100)}%), situándose ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
-          : `Cada dólar invertido en activos generó ${f2(valor * 100)} centavos de utilidad neta (${f2(valor * 100)}% de ROA), situándose ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
+      const interpretacion = `Cada dólar invertido en activos generó ${f2(valor * 100)} centavos de utilidad neta (${f2(valor * 100)}% de ROA), situándose ${cumple ? 'por encima' : 'por debajo'} del benchmark del sector (${f2(ref * 100)}%).`
       return { valor, cumple, interpretacion }
     },
   )
@@ -726,23 +750,22 @@ export function calcularROE(id: number) {
     async (get, tieneEstado) => {
       const ratio = await loadRatio(id)
       const anio = ratio.anio_ratio!
-      const totalIngresos = await get(TOTAL_INGRESOS, TIPO_REPORTE.RESULTADOS)
+      const totalIngresos = await get(INGRESOS_NETOS, TIPO_REPORTE.RESULTADOS)
       const totalCostosGastos = await get(TOTAL_COSTOS_GASTOS, TIPO_REPORTE.RESULTADOS)
       const utilidadNeta =
-        totalIngresos > 0 ? totalIngresos - totalCostosGastos : await get(RESULTADO_EJERCICIO, TIPO_REPORTE.BALANCE)
+        utilidadEjercicio(await tieneEstado(ratio.anio_ratio!, TIPO_REPORTE.RESULTADOS), totalIngresos, totalCostosGastos, await get(RESULTADO_EJERCICIO, TIPO_REPORTE.BALANCE))
       const patrimonioActual = await get(PATRIMONIO_TOTAL, TIPO_REPORTE.BALANCE)
       const patrimonioAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
         ? await get(PATRIMONIO_TOTAL, TIPO_REPORTE.BALANCE, anio - 1)
         : null
       const promedioPatrimonio = promedioSaldo(patrimonioActual, patrimonioAnterior)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
-      if (patrimonioActual <= 0) {
-        const valor = patrimonioActual !== 0 ? roe(utilidadNeta, patrimonioActual) : 0
-        const situacion = patrimonioActual === 0 ? 'cero' : 'negativo'
+      if (patrimonioActual <= 0 || promedioPatrimonio <= 0) {
+        const valor = null
         return {
           valor,
           cumple: false,
-          interpretacion: `El patrimonio es ${situacion} (${formatMoney(patrimonioActual)}): el valor de ${f2(valor * 100)}% es referencial y no representa un rendimiento comparable.`,
+          interpretacion: 'ROE no significativo: el patrimonio de cierre o promedio no es positivo.',
         }
       }
       const valor = roe(utilidadNeta, promedioPatrimonio)
@@ -760,10 +783,10 @@ export function calcularAnalisisDuPont(id: number) {
     async (get, tieneEstado) => {
       const ratio = await loadRatio(id)
       const anio = ratio.anio_ratio!
-      const totalIngresos = await get(TOTAL_INGRESOS, TIPO_REPORTE.RESULTADOS)
+      const totalIngresos = await get(INGRESOS_NETOS, TIPO_REPORTE.RESULTADOS)
       const totalCostosGastos = await get(TOTAL_COSTOS_GASTOS, TIPO_REPORTE.RESULTADOS)
       const utilidadNeta =
-        totalIngresos > 0 ? totalIngresos - totalCostosGastos : await get(RESULTADO_EJERCICIO, TIPO_REPORTE.BALANCE)
+        utilidadEjercicio(await tieneEstado(ratio.anio_ratio!, TIPO_REPORTE.RESULTADOS), totalIngresos, totalCostosGastos, await get(RESULTADO_EJERCICIO, TIPO_REPORTE.BALANCE))
       const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
       const activosActual = await get(ACTIVOS_TOTALES, TIPO_REPORTE.BALANCE)
       const activosAnterior = (await tieneEstado(anio - 1, TIPO_REPORTE.BALANCE))
@@ -776,20 +799,16 @@ export function calcularAnalisisDuPont(id: number) {
         : null
       const promedioPatrimonio = promedioSaldo(patrimonioActual, patrimonioAnterior)
 
-      if (promedioPatrimonio <= 0) {
-        return {
-          valor: 0,
-          cumple: false,
-          interpretacion: `El patrimonio promedio es cero o negativo (${formatMoney(promedioPatrimonio)}): la empresa se encuentra en quiebra técnica y el análisis DuPont no es interpretable normalmente.`,
-        }
+      if (ventasNetas <= 0 || promedioActivos <= 0 || patrimonioActual <= 0 || promedioPatrimonio <= 0) {
+        return { valor: null, cumple: false, interpretacion: 'DuPont no significativo: se requieren ventas, activos y patrimonio positivos.' }
       }
       const mNeto = ventasNetas !== 0 ? utilidadNeta / ventasNetas : 0
       const rotAct = promedioActivos !== 0 ? ventasNetas / promedioActivos : 0
-      const multCap = promedioActivos / promedioPatrimonio
-      const valor = analisisDuPont(mNeto, rotAct, multCap)
+      const multCap = promedioPatrimonio > 0 ? promedioActivos / promedioPatrimonio : 0
+      const valor = patrimonioActual > 0 && promedioPatrimonio > 0 ? analisisDuPont(mNeto, rotAct, multCap) : null
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
-      const cumple = valor >= ref
-      const interpretacion = `DuPont: Margen Neto ${f2(mNeto * 100)}% × Rotación ${f2(rotAct)}x × Multiplicador Capital ${f2(multCap)}x = ROE ${f2(valor * 100)}%; frente al benchmark de ${f2(ref * 100)}%.`
+      const cumple = valor !== null && valor >= ref
+      const interpretacion = `DuPont: Margen Neto ${f2(mNeto * 100)}% × Rotación ${f2(rotAct)}x × Multiplicador Capital ${f2(multCap)}x = ROE ${valor === null ? "no significativo" : f2(valor * 100) + "%"}; frente al benchmark de ${f2(ref * 100)}%.`
       return { valor, cumple, interpretacion }
     },
   )
@@ -936,11 +955,9 @@ export function calcularCicloConversionEfectivo(id: number) {
 // AU1 — recálculo automático tras una carga de estados financieros.
 //
 // Firma acordada con el Módulo A: `recalcularRatios(empresaId, anio)`.
-// Solo recalcula las filas de `ratio` que YA existen para esa empresa y
-// año (el catálogo se crea con el seed 003 o desde la UI). Es silencioso
-// por diseño: un ratio que no se puede calcular —por ejemplo uno de
-// rentabilidad sin Estado de Resultados cargado— no debe hacer fallar la
-// carga que lo disparó.
+// Prepara filas faltantes, omite años vigentes y calcula sobre una sola base.
+// Los fallos se guardan como pendientes y no se marcan como actualizados.
+// Un fallo de ratios no cancela la carga: A informa sus avisos al usuario.
 // ---------------------------------------------------------------
 
 const CALCULADORES: Record<string, (id: number) => Promise<Response>> = {
@@ -972,37 +989,66 @@ const CALCULADORES: Record<string, (id: number) => Promise<Response>> = {
   'Ciclo de conversión de efectivo': calcularCicloConversionEfectivo,
 }
 
-export async function recalcularRatios(empresaId: number, anio: number): Promise<void> {
-  const { data, error } = await supabaseAdmin
-    .from('ratio')
-    .select('id_ratio, categoria_ratio(nombre_tipo)')
-    .eq('empresa_id', empresaId)
-    .eq('anio_ratio', anio)
+export const CATEGORIAS_CALCULABLES = Object.keys(CALCULADORES)
+
+export interface ResultadoRecalculo {
+  calculados: number
+  omitidos: number
+  actualizado: boolean
+  fallos: { id: number; categoria: string; mensaje: string }[]
+  avisos: string[]
+}
+
+async function consultarRecalculo(empresaId: number, anio: number) {
+  const { data, error } = await supabaseAdmin.rpc('consultar_recalculo_ratios', { p_empresa_id: empresaId, p_anio: anio, p_version: VERSION_CALCULO_RATIOS })
+  if (error?.code === 'PGRST202') throw new BusinessRuleException('Falta ejecutar la migración recalculo_ratios_incremental.sql en Supabase.')
   if (error) throw error
+  if (!data) throw new InternalException('No se pudo verificar la vigencia de los indicadores.')
+  return data as { vigente: boolean; huella: string; datos: BaseRecalculo }
+}
 
-  const filas = (data ?? []) as unknown as {
-    id_ratio: number
-    categoria_ratio: { nombre_tipo: string } | null
-  }[]
-
-  // Cada calculador lee y actualiza solo su fila de `ratio`, así que se
-  // corren en paralelo (en serie eran ~2 s por ratio).
-  // allSettled evita que un ratio detenga a los demás: la fila que falla
-  // conserva su valor anterior. Los fallos se agrupan al final para que AU1
-  // los registre en consola sin afectar la respuesta 201 de la carga.
-  const resultados = await Promise.allSettled(
-    filas.map((fila) => {
-      const nombre = fila.categoria_ratio?.nombre_tipo
-      const calcular = nombre ? CALCULADORES[nombre] : undefined
-      return calcular ? calcular(fila.id_ratio) : Promise.resolve()
-    }),
-  )
-  const errores = resultados
-    .filter((resultado): resultado is PromiseRejectedResult => resultado.status === 'rejected')
-    .map((resultado) =>
-      resultado.reason instanceof Error ? resultado.reason.message : String(resultado.reason),
-    )
-  if (errores.length > 0) {
-    throw new Error(`${errores.length} ratio(s) no se pudieron recalcular: ${errores.join(' | ')}`)
+export async function recalcularRatios(empresaId: number, anio: number, forzar = false): Promise<ResultadoRecalculo> {
+  const resultado: ResultadoRecalculo = { calculados: 0, omitidos: 0, actualizado: false, fallos: [], avisos: [] }
+  let base = await consultarRecalculo(empresaId, anio)
+  if (!base.datos.estados.some(e => e.anio === anio)) return resultado
+  if (base.vigente && !forzar) {
+    resultado.omitidos = base.datos.ratios.filter(r => CALCULADORES[r.categoriaRatio?.nombre_tipo ?? '']).length
+    resultado.actualizado = true
+    return resultado
   }
+  const crear = await supabaseAdmin.rpc('asegurar_ratios_anio', { p_empresa_id: empresaId, p_anio: anio, p_categorias: Object.keys(CALCULADORES) })
+  if (crear.error) throw new BusinessRuleException('No se pudieron preparar los indicadores. Verifique la migración 008 y el catálogo de categorías.')
+  base = await consultarRecalculo(empresaId, anio)
+  // Another request may have completed the same year while this one prepared it.
+  if (base.vigente && !forzar) {
+    resultado.omitidos = base.datos.ratios.filter(r => CALCULADORES[r.categoriaRatio?.nombre_tipo ?? '']).length
+    resultado.actualizado = true
+    return resultado
+  }
+  const lote: LoteRatios = { empresaId, datos: base.datos, filas: [] }
+  await loteRatios.run(lote, async () => {
+    for (const fila of base.datos.ratios) {
+      const categoria = fila.categoriaRatio?.nombre_tipo ?? 'Sin categoría'
+      const calcular = CALCULADORES[categoria]
+      if (!calcular) continue
+      try {
+        await calcular(fila.id_ratio)
+        resultado.calculados++
+      } catch (error) {
+        const mensaje = error instanceof Error ? error.message : 'Error al calcular el indicador.'
+        resultado.fallos.push({ id: fila.id_ratio, categoria, mensaje })
+        lote.filas.push({ id_ratio: fila.id_ratio, valor_calculado: null, valor_sector_promedio: null, diferencia_vs_sector: null, cumple_sector: null, interpretacion: `Pendiente de recálculo: ${mensaje}`.slice(0, 256) })
+      }
+    }
+  })
+  const faltantes = Object.keys(CALCULADORES).filter(c => !base.datos.ratios.some(r => r.categoriaRatio?.nombre_tipo === c))
+  if (faltantes.length) resultado.avisos.push(`Faltan categorías de indicadores: ${faltantes.join(', ')}.`)
+  const { error } = await supabaseAdmin.rpc('guardar_recalculo_ratios', {
+    p_empresa_id: empresaId, p_anio: anio, p_version: VERSION_CALCULO_RATIOS, p_huella: base.huella,
+    p_filas: lote.filas, p_completo: !resultado.fallos.length && !faltantes.length,
+  })
+  if (error?.code === 'ANF03') throw new BusinessRuleException(error.message)
+  if (error) throw error
+  resultado.avisos.push(...resultado.fallos.map(f => `${anio} · ${f.categoria}: ${f.mensaje}`))
+  return resultado
 }

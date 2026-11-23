@@ -57,13 +57,13 @@ ALTER TABLE venta_detalle         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE parametro_inventario  ENABLE ROW LEVEL SECURITY;
 
 INSERT INTO opcion_form (id_opcion, des_opcion, num_form)
-VALUES ('8', 'GESTION INVENTARIO', 8)
+VALUES ('12', 'GESTION INVENTARIO', 12)
 ON CONFLICT (id_opcion) DO NOTHING;
 
-UPDATE opcion_form SET des_opcion = 'GESTION INVENTARIO' WHERE id_opcion = '8';
+UPDATE opcion_form SET des_opcion = 'GESTION INVENTARIO' WHERE id_opcion = '12';
 
 INSERT INTO acceso_usuario (usuario_id, id_opcion)
-SELECT us.usuario_id, '8'
+SELECT us.usuario_id, '12'
 FROM usuario us
 WHERE us.rol = 'ADMIN'
 ON CONFLICT (usuario_id, id_opcion) DO NOTHING;

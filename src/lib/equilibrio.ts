@@ -14,7 +14,7 @@ export function calcularPuntoEquilibrio(
   precioVenta: number,
   costoVariable: number
 ): DatosEquilibrio | null {
-  if (precioVenta <= costoVariable || precioVenta === 0) {
+  if (![costosFijos, precioVenta, costoVariable].every(Number.isFinite) || costosFijos < 0 || costoVariable < 0 || precioVenta <= costoVariable || precioVenta <= 0) {
     return null; 
   }
 
@@ -23,10 +23,9 @@ export function calcularPuntoEquilibrio(
   const ventasEquilibrio = unidadesEquilibrio * precioVenta;
 
   const datosGrafico = [];
-  const paso = unidadesEquilibrio / 5; // Generamos 10 puntos en el gráfico
-  const limiteMaximo = unidadesEquilibrio * 2; // Dibujar hasta el doble del equilibrio
-
-  for (let q = 0; q <= limiteMaximo; q += paso) {
+  const limiteMaximo = Math.max(1, unidadesEquilibrio * 2);
+  for (let i = 0; i <= 10; i++) {
+    const q = i * limiteMaximo / 10;
     datosGrafico.push({
       unidades: Math.round(q),
       ventasTotales: Number((q * precioVenta).toFixed(2)),

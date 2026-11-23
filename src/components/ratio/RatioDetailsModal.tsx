@@ -56,7 +56,13 @@ export const RatioDetailsModal = ({ show, onClose, ratio }: RatioDetailsModalPro
             </li>
             <li>
               <strong>Valor Promedio del Sector:</strong>
-              <span>{formatValue(ratio.valor_sector_promedio)}</span>
+              {ratio.parametroSector ? (
+                <span>{formatValue(ratio.valor_sector_promedio)}</span>
+              ) : (
+                <span className={detailsStyles.valueNotCalculated}>
+                  Sin referencia sectorial (cálculo realizado)
+                </span>
+              )}
             </li>
             <li>
               <strong>Diferencia vs. Sector:</strong>

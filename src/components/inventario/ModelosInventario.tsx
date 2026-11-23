@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import SubMenu from '@/components/shared/SubMenu'
 import EmpresaFija from '@/components/shared/EmpresaFija'
 import Tabla from '@/components/shared/Tabla'
@@ -26,7 +26,6 @@ export const ModelosInventario = () => {
   const [anioInput, setAnioInput] = useState(String(anioActual))
   const [modelos, setModelos] = useState<ModelosInventarioResponse | null>(null)
   const [loading, setLoading] = useState(true)
-  const empresaInicializadaRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (empresaId == null) return
@@ -36,22 +35,15 @@ export const ModelosInventario = () => {
       .then((data: ModelosInventarioResponse) => {
         if (!activo) return
         if (data.aniosDisponibles.length === 0) {
-          empresaInicializadaRef.current = empresaId
           setModelos(null)
           setLoading(false)
           return
         }
-        if (
-          empresaInicializadaRef.current !== empresaId &&
-          !data.aniosDisponibles.includes(data.anio)
-        ) {
-          empresaInicializadaRef.current = empresaId
-          const ultimoAnio = data.aniosDisponibles[0]
-          setAnio(ultimoAnio)
-          setAnioInput(String(ultimoAnio))
+        if (data.anio !== anio) {
+          setAnio(data.anio)
+          setAnioInput(String(data.anio))
           return
         }
-        empresaInicializadaRef.current = empresaId
         setModelos(data)
         setLoading(false)
       })
@@ -80,7 +72,7 @@ export const ModelosInventario = () => {
     { Header: 'SKU', accessor: 'codigoSku' },
     { Header: 'Producto', accessor: 'nombre' },
     {
-      Header: 'Demanda anual',
+      Header: 'Demanda anual (unidades)',
       accessor: (f: ModelosInventarioResponse['abc'][number]) => Number(f.demandaAnual).toFixed(0),
     },
     {
@@ -102,11 +94,11 @@ export const ModelosInventario = () => {
     { Header: 'SKU', accessor: 'codigoSku' },
     { Header: 'Producto', accessor: 'nombre' },
     {
-      Header: 'Demanda',
+      Header: 'Demanda (unidades)',
       accessor: (f: ModelosInventarioResponse['eoq'][number]) => Number(f.demandaAnual).toFixed(0),
     },
     {
-      Header: 'H unitario ($)',
+      Header: 'h unitario ($/unidad·año)',
       accessor: (f: ModelosInventarioResponse['eoq'][number]) => formatMoney(f.costoMantenimiento),
     },
     {
@@ -123,12 +115,12 @@ export const ModelosInventario = () => {
     { Header: 'SKU', accessor: 'codigoSku' },
     { Header: 'Producto', accessor: 'nombre' },
     {
-      Header: 'Consumo diario',
+      Header: 'Consumo diario (unidades/día)',
       accessor: (f: ModelosInventarioResponse['reorden'][number]) =>
         Number(f.consumoDiario).toFixed(2),
     },
     {
-      Header: 'Lead time',
+      Header: 'Lead time (días)',
       accessor: (f: ModelosInventarioResponse['reorden'][number]) => String(f.leadTimeDias),
     },
     {
@@ -140,7 +132,7 @@ export const ModelosInventario = () => {
       accessor: (f: ModelosInventarioResponse['reorden'][number]) => String(Math.round(Number(f.stockActual))),
     },
     {
-      Header: 'Reposición sugerida',
+      Header: 'Reposición sugerida (unidades)',
       accessor: (f: ModelosInventarioResponse['reorden'][number]) =>
         Number(f.reposicionSugerida).toFixed(2),
     },
@@ -183,9 +175,9 @@ export const ModelosInventario = () => {
         <>
           <div className={styles.supuestos}>
             <span><strong>Año:</strong> {modelos.anio}</span>
-            <span><strong>S ($):</strong> {formatMoney(modelos.supuestos.costoPedido)}</span>
+            <span><strong>S ($/pedido):</strong> {formatMoney(modelos.supuestos.costoPedido)}</span>
             <span>
-              <strong>h:</strong> {Number(modelos.supuestos.tasaMantenimiento).toFixed(4)}
+              <strong>h (tasa anual):</strong> {Number(modelos.supuestos.tasaMantenimiento).toFixed(4)}
             </span>
             <span><strong>Lead time:</strong> {modelos.supuestos.leadTimeDias} días</span>
             <span><strong>Días/año:</strong> {modelos.supuestos.diasAnio}</span>
@@ -194,6 +186,13 @@ export const ModelosInventario = () => {
               {Number(modelos.supuestos.corteB).toFixed(2)}
             </span>
           </div>
+          <p className={styles.aviso}>
+            Nota: la demanda corresponde a las unidades del año seleccionado; el costo unitario y el
+            stock son un snapshot único calibrado a 2025. S es el costo por pedido, h la tasa anual de
+            mantenimiento sobre el costo unitario; el acumulado ABC incluye el artículo y usa ≤80%
+            para A y ≤95% para B. Resultados redondeados a 2 decimales; no se afirma precisión
+            decimal exacta.
+          </p>
 
           <div className={styles.seccion}>
             <Tabla titulo="Clasificación ABC" columnas={columnasABC} datos={modelos.abc} />

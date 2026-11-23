@@ -122,6 +122,8 @@ export const GASTOS_OPERATIVOS = [GASTOS_ADMINISTRATIVOS, GASTOS_VENTA]
 export const GASTOS_FINANCIEROS = '4201'
 /** Derivado: suma de todo 5xxx (ingresos) */
 export const TOTAL_INGRESOS = '5'
+/** Las rebajas se almacenan positivas dentro de 5: quitar su suma y restarlas. */
+export const INGRESOS_NETOS = [TOTAL_INGRESOS, `-${REBAJAS_DEVOLUCIONES}`, `-${REBAJAS_DEVOLUCIONES}`]
 /** Derivado: suma de todo 4xxx (costos y gastos) */
 export const TOTAL_COSTOS_GASTOS = '4'
 /**

@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { List, BoxArrowRight } from 'react-bootstrap-icons'
 import { useAuth } from '@/context/AuthContext'
 import { mainLinks } from '@/config/menuConfig'
+import { contabilidadLinks } from '@/config/contabilidadMenu'
+import { puedeVerPagina } from '@/lib/accesos'
 
 const SideBar = ({ sidebarOpen, toggleSidebar }: { sidebarOpen: boolean; toggleSidebar: () => void }) => {
   const pathname = usePathname()
@@ -15,7 +17,10 @@ const SideBar = ({ sidebarOpen, toggleSidebar }: { sidebarOpen: boolean; toggleS
   if (!user) return null // o un loader
 
   // Filtrar las opciones visibles según los accesos del usuario
-  const visibleLinks = mainLinks.filter((link) => user.accesos.includes(link.idOp))
+  const contable=pathname.startsWith('/contabilidad')||user.rol==='CONTADOR'
+  const visibleLinks = contable
+    ? contabilidadLinks.filter(link=>puedeVerPagina(link.to,user))
+    : mainLinks.filter(link=>(user.rol==='ADMIN'||user.accesos.includes(link.idOp))&&puedeVerPagina(link.to,user))
 
   const handleLogout = () => {
     logout()
@@ -25,11 +30,11 @@ const SideBar = ({ sidebarOpen, toggleSidebar }: { sidebarOpen: boolean; toggleS
   return (
     <aside
       className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : styles.sidebarCollapsed}`}
-      aria-label="Menú lateral principal"
+      aria-label={contable?'Menú de contabilidad':'Menú de análisis financiero'}
     >
       <header className={styles.sidebarHeader}>
-        <Link href="/dashboard" className={styles.sidebarLogoLink}>
-          <span className={styles.sidebarLogo}>Finanzas</span>
+        <Link href={contable?'/contabilidad':'/dashboard'} className={styles.sidebarLogoLink}>
+          <span className={styles.sidebarLogo}>{contable?'Contabilidad':'Finanzas'}</span>
         </Link>
         <button
           type="button"
@@ -45,7 +50,7 @@ const SideBar = ({ sidebarOpen, toggleSidebar }: { sidebarOpen: boolean; toggleS
       <nav className={styles.sidebarNav}>
         <ul className={styles.navList}>
           {visibleLinks.map(({ to, label, icon: Icon }, i) => {
-            const isActive = pathname.startsWith(to)
+            const isActive = to==='/contabilidad'?pathname===to:pathname===to||pathname.startsWith(to+'/')
             return (
               <li key={i} className={styles.navItem}>
                 <Link
@@ -64,6 +69,7 @@ const SideBar = ({ sidebarOpen, toggleSidebar }: { sidebarOpen: boolean; toggleS
       </nav>
 
       <div className={styles.sidebarFooter}>
+        {contable&&user.rol!=='CONTADOR'&&<Link href="/dashboard" className={styles.bottomBtn} title="Ir al análisis financiero"><span className={styles.menuLabel}>← Análisis financiero</span></Link>}
         <button
           type="button"
           className={styles.bottomBtn}

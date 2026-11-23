@@ -37,7 +37,8 @@ export const TipoRatio = () => {
 
   // Se ejecuta una vez cuando el componente se monta
   useEffect(() => {
-    fetchTiposRatio()
+    const timer = setTimeout(() => void fetchTiposRatio(), 0)
+    return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -135,7 +136,7 @@ export const TipoRatio = () => {
             titulo="Gestión de Tipos de Ratio"
             textoBotonNuevo="Nuevo Tipo"
             columnas={columnas}
-            datos={tiposRatioState as unknown as Record<string, unknown>[]}
+            datos={tiposRatioState}
             enEditar={handleEditar}
             enEliminar={handleEliminar}
             onNuevoClick={handleNuevoRatio}

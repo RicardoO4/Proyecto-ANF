@@ -20,9 +20,10 @@ export const mainLinks: { idOp: number; to: string; label: string; icon: IconTyp
   { idOp: 3, to: '/ratios', label: 'Ratios', icon: Diagram3 },
   { idOp: 4, to: '/usuarios', label: 'Usuarios', icon: PeopleFill },
   { idOp: 5, to: '/catalogo-cuentas', label: 'Catálogo de Cuentas', icon: JournalCheck },
+  { idOp: 8, to: '/contabilidad', label: 'Contabilidad', icon: JournalCheck },
   { idOp: 6, to: '/proyecciones', label: 'Proyecciones', icon: GraphUpArrow },
   { idOp: 7, to: '/estados-financieros', label: 'Estados Financieros', icon: FileEarmarkText },
-  { idOp: 8, to: '/inventario', label: 'Inventario', icon: BoxSeam },
+  { idOp: 12, to: '/inventario', label: 'Inventario', icon: BoxSeam },
 ]
 
 /**
@@ -64,6 +65,8 @@ export const proyeccionesSubMenuLinks = [
   { to: '/proyecciones/historial', label: 'Ver Historial de Ventas' },
   { to: '/proyecciones/pronostico', label: 'Pronóstico de Ventas' },
   { to: '/proyecciones/proforma', label: 'Estados Proforma' },
+  { to: '/proyecciones/presupuestos', label: 'Presupuestos' },
+  { to: '/proyecciones/capital', label: 'Presupuesto de Capital' },
 ]
 
 /**

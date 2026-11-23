@@ -22,7 +22,7 @@ import {
   RESULTADO_EJERCICIO,
   TIPO_REPORTE,
   TOTAL_COSTOS_GASTOS,
-  TOTAL_INGRESOS,
+  INGRESOS_NETOS,
   VENTAS_NETAS,
   clasificarCuenta,
   sumByPrefix,
@@ -167,21 +167,25 @@ export function parseVentas(buffer: ArrayBuffer): UploadedVentas {
     const montoCell = ventasSheet[XLSX.utils.encode_cell({ r, c: 1 })]
     const obsCell = ventasSheet[XLSX.utils.encode_cell({ r, c: 2 })]
 
+    if ([fechaCell, montoCell, obsCell].every(c => c?.v == null || String(c.v).trim() === '')) continue
+
     // col A must be a date
     let fecha: Date | null = null
     if (fechaCell?.v instanceof Date) {
-      fecha = fechaCell.v
+      const d = fechaCell.v
+      fecha = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
     } else if (typeof fechaCell?.v === 'string' && fechaCell.v.trim() !== '') {
-      const parsed = new Date(fechaCell.v)
-      if (!Number.isNaN(parsed.getTime())) fecha = parsed
+      const texto = fechaCell.v.trim()
+      const parsed = new Date(texto + 'T00:00:00Z')
+      if (/^\d{4}-\d{2}-\d{2}$/.test(texto) && Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === texto) fecha = parsed
     }
-    if (!fecha) continue
+    if (!fecha || !Number.isFinite(fecha.getTime())) throw new BadRequestException(`Fila ${r + 1}: fecha de venta inválida.`)
 
     const monto =
       typeof montoCell?.v === 'number' && Number.isFinite(montoCell.v)
         ? (montoCell.v as number)
         : null
-    if (monto === null) continue // non-numeric rows are skipped silently
+    if (monto === null || monto < 0) throw new BadRequestException(`Fila ${r + 1}: el monto debe ser numérico y mayor o igual a cero.`)
 
     const observacion =
       typeof obsCell?.v === 'string' && (obsCell.v as string).trim() !== ''
@@ -482,8 +486,7 @@ export function resumirCarga(balance: LineaCarga[], resultados: LineaCarga[]): R
   const res = toMap(resultados)
   // Rebajas y devoluciones (5101.02) vienen en positivo pero restan del
   // ingreso: sacarlas de la suma del grupo 5 y restarlas una vez.
-  const rebajas = sumByPrefix(res, REBAJAS_DEVOLUCIONES)
-  const totalIngresos = sumByPrefix(res, TOTAL_INGRESOS) - 2 * rebajas
+  const totalIngresos = sumByPrefix(res, INGRESOS_NETOS)
   const totalCostosGastos = sumByPrefix(res, TOTAL_COSTOS_GASTOS)
   return {
     totalActivo: sumByPrefix(bal, ACTIVO_TOTAL),

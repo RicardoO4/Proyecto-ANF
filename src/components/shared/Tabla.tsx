@@ -5,25 +5,25 @@ import { FaEdit, FaEye, FaTrash, FaCalculator, FaPlus } from 'react-icons/fa'
 import '@/styles/shared/table.css'
 import type { ReactNode } from 'react'
 
-export interface Columna {
+export interface Columna<T = Record<string, unknown>> {
   Header: string
-  accessor: string | ((fila: any) => ReactNode)
+  accessor: string | ((fila: T) => ReactNode)
 }
 
-interface TablaProps {
+interface TablaProps<T extends object> {
   titulo: string
   textoBotonNuevo?: string
   onNuevoClick?: () => void
-  columnas: Columna[]
+  columnas: Columna<T>[]
   // eslint-disable-next-line no-unused-vars
-  datos: any[]
-  enEditar?: (fila: any) => void
-  enVer?: (fila: any) => void
-  enEliminar?: (fila: any) => void
-  enCalcular?: (fila: any) => void
+  datos: T[]
+  enEditar?: (fila: T) => void
+  enVer?: (fila: T) => void
+  enEliminar?: (fila: T) => void
+  enCalcular?: (fila: T) => void
 }
 
-const Tabla = ({
+const Tabla = <T extends object,>({
   titulo,
   textoBotonNuevo = 'Nuevo',
   onNuevoClick,
@@ -33,7 +33,7 @@ const Tabla = ({
   enVer,
   enEliminar,
   enCalcular,
-}: TablaProps) => {
+}: TablaProps<T>) => {
   // Determinar si hay alguna acción disponible
   const tieneAcciones = enEditar || enVer || enEliminar || enCalcular
 
@@ -69,7 +69,7 @@ const Tabla = ({
                       {/* ✅ Soporte para accessor tipo función o string */}
                       {typeof columna.accessor === 'function'
                         ? columna.accessor(fila)
-                        : (fila as any)[columna.accessor as string]}
+                        : (fila as Record<string, ReactNode>)[columna.accessor]}
                     </td>
                   ))}
 

@@ -1,0 +1,209 @@
+/* Asistente Financiero IA (Módulo E) */
+
+.intro {
+  margin: 0 0 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 760px;
+}
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+
+.formControl {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 180px;
+}
+
+.formControl label {
+  color: var(--fey-graphite);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.formControl select {
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-small);
+  background-color: var(--surface-input);
+  color: var(--fey-white);
+  font-family: var(--font-calibre);
+  font-size: 13px;
+}
+
+.formControl select:focus {
+  outline: none;
+  border-color: var(--fey-signal);
+  box-shadow: var(--shadow-focus);
+}
+
+.acciones {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mensaje {
+  padding: 18px;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-card);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* --- Resultado --- */
+
+.resumenCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background-color: var(--surface-elevated);
+  margin-bottom: 20px;
+}
+
+.estado {
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.estadoSaludable {
+  color: var(--accent-positive);
+  border: 1px solid var(--accent-positive);
+}
+
+.estadoAtencion {
+  color: var(--fey-ember);
+  border: 1px solid var(--fey-ember);
+}
+
+.estadoRiesgo {
+  color: var(--accent-negative);
+  border: 1px solid var(--accent-negative);
+}
+
+.resumenTexto {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.seccionTitulo {
+  margin: 24px 0 12px;
+  color: var(--fey-white);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  padding: 16px 18px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  background-color: var(--surface-elevated);
+}
+
+.card h4 {
+  margin: 0 0 8px;
+  color: var(--fey-white);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.card p,
+.card li {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.card ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cardFuertes h4 {
+  color: var(--accent-positive);
+}
+
+.cardAlertas h4 {
+  color: var(--accent-negative);
+}
+
+.cardRecomendaciones h4 {
+  color: var(--fey-signal);
+}
+
+.glosario {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px 20px;
+  margin: 0;
+}
+
+.glosario dt {
+  color: var(--fey-white);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.glosario dd {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.datos {
+  margin-top: 24px;
+}
+
+.datos summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.cumple {
+  color: var(--accent-positive);
+}
+
+.noCumple {
+  color: var(--accent-negative);
+}
+
+.pie {
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.6;
+}

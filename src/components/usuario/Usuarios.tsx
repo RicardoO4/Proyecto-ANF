@@ -1,5 +1,6 @@
 'use client'
 
+import { isAxiosError } from 'axios'
 import React, { useState, useEffect } from 'react'
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
 import SubMenu from '@/components/shared/SubMenu'
@@ -10,6 +11,7 @@ import { UsuarioFormModal } from '@/components/usuario/UsuarioFormModal'
 import viewStyles from '@/styles/shared/View.module.css'
 import buttonStyles from '@/styles/shared/Button.module.css'
 import type { UsuarioResponseDTO } from '@/types'
+import { NOMBRES_ROLES } from '@/lib/roles'
 
 export const Usuarios = () => {
   const [usuarios, setUsuarios] = useState<UsuarioResponseDTO[]>([])
@@ -29,7 +31,8 @@ export const Usuarios = () => {
   }
 
   useEffect(() => {
-    fetchUsuarios()
+    const timer = setTimeout(() => void fetchUsuarios(), 0)
+    return () => clearTimeout(timer)
   }, [])
 
   const handleOpenCreateModal = () => {
@@ -58,7 +61,8 @@ export const Usuarios = () => {
       Notifier.success(`¡Usuario ${isEditing ? 'actualizado' : 'creado'} correctamente!`)
       handleCloseModal()
       fetchUsuarios()
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = isAxiosError<{ message?: string }>(error) ? error : undefined
       Notifier.dismiss(toastId)
       Notifier.error(err?.response?.data?.message || `Error al ${isEditing ? 'actualizar' : 'crear'} usuario.`)
     }
@@ -116,7 +120,7 @@ export const Usuarios = () => {
                     <td>{u.nombreUsuario}</td>
                     <td>{u.apellidoUsuario}</td>
                     <td>{u.userName}</td>
-                    <td>{u.rol}</td>
+                    <td>{NOMBRES_ROLES[u.rol] ?? u.rol}</td>
                     <td className="text-end">
                       <button
                         className={`${buttonStyles.btnIcon} ${buttonStyles.btnIconEdit} me-2`}
@@ -139,7 +143,7 @@ export const Usuarios = () => {
         )}
       </div>
 
-      <UsuarioFormModal show={isModalOpen} onClose={handleCloseModal} onSave={handleSave} initialData={editingUsuario} />
+      <UsuarioFormModal key={`${editingUsuario?.usuarioId ?? "nuevo"}-${isModalOpen}`} show={isModalOpen} onClose={handleCloseModal} onSave={handleSave} initialData={editingUsuario} />
     </>
   )
 }

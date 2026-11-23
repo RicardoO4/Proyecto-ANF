@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Modal } from 'react-bootstrap'
 import buttonStyles from '@/styles/shared/Button.module.css'
 import modalStyles from '@/styles/shared/Modal.module.css'
@@ -15,33 +15,10 @@ interface UsuarioFormModalProps {
 }
 
 export const UsuarioFormModal: React.FC<UsuarioFormModalProps> = ({ show, onClose, onSave, initialData }) => {
-  const [formData, setFormData] = useState({
-    nombreUsuario: '',
-    apellidoUsuario: '',
-    userName: '',
-    contrasena: '',
-    rol: '',
-  })
-
-  useEffect(() => {
-    if (initialData) {
-      setFormData({
-        nombreUsuario: initialData.nombreUsuario || '',
-        apellidoUsuario: initialData.apellidoUsuario || '',
-        userName: initialData.userName || '',
-        contrasena: '',
-        rol: initialData.rol || '',
-      })
-    } else {
-      setFormData({
-        nombreUsuario: '',
-        apellidoUsuario: '',
-        userName: '',
-        contrasena: '',
-        rol: '',
-      })
-    }
-  }, [initialData, show])
+  const [formData, setFormData] = useState(() => ({
+    nombreUsuario: initialData?.nombreUsuario ?? '', apellidoUsuario: initialData?.apellidoUsuario ?? '',
+    userName: initialData?.userName ?? '', contrasena: '', rol: initialData?.rol ?? '',
+  }))
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -123,9 +100,11 @@ export const UsuarioFormModal: React.FC<UsuarioFormModalProps> = ({ show, onClos
               required
             >
               <option value="">Seleccione...</option>
-              <option value="ADMIN">ADMIN</option>
-              <option value="USER">USER</option>
+              <option value="ADMIN">Administrador · ambas áreas</option>
+              <option value="CONTADOR">Contador · área contable</option>
+              <option value="ANALISTA">Analista financiero</option>
             </select>
+            <p className="form-text">El contador gestiona el ciclo contable completo. El analista financiero trabaja con los estados e indicadores. El administrador accede a ambas áreas y gestiona usuarios.</p>
           </div>
         </Modal.Body>
 

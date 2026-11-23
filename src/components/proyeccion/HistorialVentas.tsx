@@ -1,17 +1,15 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import SubMenu from '@/components/shared/SubMenu'
-import { proyeccionesSubMenuLinks } from '@/config/menuConfig'
 import EmpresaFija from '@/components/shared/EmpresaFija'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import { ventaHistoricaService, type VentaHistorica } from '@/services/ventaHistoricaService'
 import { Notifier } from '@/utils/Notifier'
-import { formatMoney } from '@/lib/formatoMonetario'
 import { VentaFormModal, type VentaFormData } from '@/components/proyeccion/VentaFormModal'
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa'
 import viewStyles from '@/styles/shared/View.module.css'
 import buttonStyles from '@/styles/shared/Button.module.css'
+import { esVentaAnual } from '@/lib/ventasMensuales'
 export const HistorialVentas = () => {
   const [selectedEmpresaId, setSelectedEmpresaId] = useState('')
   const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) =>
@@ -30,26 +28,18 @@ export const HistorialVentas = () => {
   // Cuando el usuario selecciona una empresa, buscamos todos sus registros de ventas
   // para extraer los años únicos en los que hay datos.
   useEffect(() => {
-    let cancelado = false
-    void Promise.resolve().then(() => {
-      if (!selectedEmpresaId) {
-        setAvailableYears([])
-        setVentas([])
-        setSelectedYear('')
-        return
-      }
-      // Llamamos al endpoint que trae TODAS las ventas para sacar los años
-      ventaHistoricaService
-        .getAllVentasPorEmpresa(parseInt(selectedEmpresaId, 10))
-        .then((data) => {
-          if (cancelado) return
-          const years = [...new Set(data.map((v) => new Date(v.fechaVenta).getFullYear()))]
-          setAvailableYears(years.sort((a, b) => b - a)) // Ordenar de más reciente a más antiguo
-        })
-    })
-    return () => {
-      cancelado = true
+    if (!selectedEmpresaId) {
+      const timer = setTimeout(() => { setAvailableYears([]); setVentas([]); setSelectedYear('') }, 0)
+      return () => clearTimeout(timer)
+      return
     }
+    // Llamamos al endpoint que trae TODAS las ventas para sacar los años
+    ventaHistoricaService
+      .getAllVentasPorEmpresa(parseInt(selectedEmpresaId, 10))
+      .then((data) => {
+        const years = [...new Set(data.map((v) => new Date(v.fechaVenta).getUTCFullYear()))]
+        setAvailableYears(years.sort((a, b) => b - a)) // Ordenar de más reciente a más antiguo
+      })
   }, [selectedEmpresaId])
 
   // Función para obtener las ventas de un año específico.
@@ -74,7 +64,8 @@ export const HistorialVentas = () => {
 
   // Este efecto se ejecuta cada vez que la función fetchVentasDelAnio cambia
   useEffect(() => {
-    void Promise.resolve().then(() => fetchVentasDelAnio())
+    const timer = setTimeout(() => fetchVentasDelAnio(), 0)
+    return () => clearTimeout(timer)
   }, [fetchVentasDelAnio])
 
   // Funciones para manejar la apertura de los modales
@@ -113,7 +104,7 @@ export const HistorialVentas = () => {
       }
       setIsModalOpen(false) // Cerramos el modal
       fetchVentasDelAnio() // Volvemos a cargar los datos para ver los cambios en la tabla
-    } catch {
+    } catch (error) {
       Notifier.dismiss(String(toastId))
       Notifier.error('Ocurrió un error al guardar los datos.')
     }
@@ -133,7 +124,7 @@ export const HistorialVentas = () => {
         Notifier.success('Venta eliminada.')
         // Actualizamos la lista en el frontend para no tener que recargar desde la API
         setVentas(ventas.filter((v) => v.id !== venta.id))
-      } catch {
+      } catch (error) {
         Notifier.dismiss(String(toastId))
         Notifier.error('Error al eliminar el registro.')
       }
@@ -142,7 +133,6 @@ export const HistorialVentas = () => {
 
   return (
     <>
-      <SubMenu links={proyeccionesSubMenuLinks} />
       <div className={viewStyles.viewContainer}>
         <div className={`${viewStyles.viewHeader} justify-content-between`}>
           <h1 className={viewStyles.viewTitle}>Historial de Ventas</h1>
@@ -195,7 +185,7 @@ export const HistorialVentas = () => {
                 <tr>
                   <th>ID</th>
                   <th>Fecha</th>
-                  <th className="text-end">Monto ($)</th>
+                  <th className="text-end">Monto</th>
                   <th>Observación</th>
                   <th className="text-end">Acciones</th>
                 </tr>
@@ -205,14 +195,17 @@ export const HistorialVentas = () => {
                   ventas.map((v) => (
                     <tr key={v.id}>
                       <td>{v.id}</td>
-                      <td>{new Date(v.fechaVenta).toLocaleDateString()}</td>
-                      <td className="text-end">{formatMoney(v.montoVenta)}</td>
+                      <td>{v.fechaVenta.slice(0, 10)}</td>
+                      <td className="text-end">
+                        {v.montoVenta.toLocaleString('es-SV', { style: 'currency', currency: 'USD' })}
+                      </td>
                       <td>{v.observacion || <span className="text-muted">N/A</span>}</td>
                       <td className={viewStyles.actionsCell}>
                         <button
                           className={`${buttonStyles.btnIcon} ${buttonStyles.btnIconEdit}`}
                           onClick={() => handleOpenEditModal(v)}
-                          title="Editar"
+                          title={esVentaAnual(v.observacion) ? 'Total anual: se actualiza desde el Excel contable' : 'Editar'}
+                          disabled={esVentaAnual(v.observacion)}
                         >
                           <FaEdit />
                         </button>
@@ -220,6 +213,7 @@ export const HistorialVentas = () => {
                           className={`${buttonStyles.btnIcon} ${buttonStyles.btnIconDelete}`}
                           onClick={() => handleDelete(v)}
                           title="Eliminar"
+                          disabled={esVentaAnual(v.observacion)}
                         >
                           <FaTrash />
                         </button>

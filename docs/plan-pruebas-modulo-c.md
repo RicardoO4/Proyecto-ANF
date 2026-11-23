@@ -1,3 +1,5 @@
+> Documento de la entrega original de C. Para la implementación actual de C4, AU1 y pruebas globales consultar [estado-reingenieria.md](estado-reingenieria.md). Las limitaciones y conteos siguientes describen aquella entrega.
+
 # Plan de pruebas — Módulo C (ratios avanzados, apalancamiento, rentabilidad, ciclos y AU1)
 
 Rama: `Modulo-C`
@@ -178,8 +180,10 @@ Comprobaciones por respuesta:
       valor negativo y explican que no es comparable; ROE conserva el valor
       numérico y lo describe como **referencial**, sin presentarlo como un
       rendimiento equivalente al de un patrimonio positivo.
-- [x] La liquidez muestra el cociente (por ejemplo `0.40`), no el saldo crudo
-      de activo corriente.
+- [x] La liquidez muestra el cociente en la interpretación persistida (por
+      ejemplo `1.36 USD de activo corriente por cada dólar`), no el saldo crudo
+      de activo corriente. Los textos anteriores se recalcularon con
+      `VERSION_CALCULO_RATIOS = 2026-11-22.1`.
 - [x] Los márgenes y el ROA con pérdidas dicen «pierde» o «pérdida equivalente»
       en lugar de «genera/retiene -X».
 - [x] `interpretacion` nunca supera 256 caracteres (máximo observado: 181).
@@ -299,11 +303,13 @@ ALTER TABLE parametro_sector
 
 ## 8. Limitaciones conocidas (no son fallos de esta entrega)
 
-1. **Ratios sin benchmark no se calculan.** `calculateRatio` exige
-   `parametro_sector`; si una fila de `ratio` no lo tiene, el endpoint devuelve
-   error y AU1 lo registra en consola, dejando su valor anterior y sin afectar
-   la respuesta `201` de la carga. El seed siempre crea el benchmark junto con
-   la fila, así que solo afecta a filas creadas a mano.
+1. **Ratios sin benchmark sí se calculan.** `calculateRatio` persiste el valor
+   calculado y una interpretación que indica «Sin referencia sectorial
+   configurada para esta categoría»; `cumple_sector` queda `null`. De los 69
+   ratios calculados, 21 no tienen referencia sectorial. La tabla y el modal
+   muestran «Sin referencia sectorial (cálculo realizado)» en lugar de un `N/A`
+   engañoso. No se inventan benchmarks; los existentes deben indicar sector,
+   período, unidad y fuente.
 2. **DuPont no es interpretable con patrimonio negativo.** Devuelve `0` con una
    interpretación explícita; no se fuerza un valor engañoso.
 3. **C4 depende de datos por producto.** `venta` sigue guardando fecha + monto
@@ -389,9 +395,9 @@ de consola.
 
 ### 11.1 Modelo de datos
 
-La migración `supabase/migrations/007_c4_inventario.sql` crea `producto`,
+La migración `supabase/migrations/0071_c4_inventario.sql` crea `producto`,
 `movimiento_inventario`, `venta_detalle` y `parametro_inventario`, habilita RLS
-sin policies (acceso por `service_role`) y registra la opción de menú `8` con
+sin policies (acceso por `service_role`) y registra la opción de menú `12` con
 acceso para `admin`. Incluye 12 SKU sintéticos idempotentes para la empresa 2,
 reconciliados con las balanzas de comprobación de 2023–2025.
 
@@ -411,6 +417,15 @@ stock. `venta.monto_venta` se conserva para proyecciones y no se recalcula.
 No hay stock de seguridad ni factor `z`. Un denominador en cero devuelve `0`,
 igual que el criterio de `ratioFormulas.ts`.
 
+Las unidades son: demanda en unidades del año seleccionado, costo unitario en
+USD por unidad, `S` en USD por pedido, `h` como tasa anual aplicada al costo
+unitario, lead time y días/año en días, y consumo diario en unidades/día. El
+acumulado ABC incluye el artículo evaluado; `≤80%` → A, `≤95%` → B. Los
+resultados se redondean a 2 decimales y no se presenta precisión decimal exacta.
+El costo unitario y el stock son un snapshot único calibrado a 2025: al consultar
+2023 o 2024 cambia la demanda, pero esos dos valores se mantienen, por lo que el
+horizonte debe interpretarse con esa hipótesis.
+
 ### 11.3 Endpoints y UI
 
 - `/api/v1/inventario/productos` y `/productos/[id]`: CRUD de SKU.
@@ -422,26 +437,27 @@ igual que el criterio de `ratioFormulas.ts`.
   menor). La UI usa el último año con datos cuando el inicial no tiene ventas.
 - Rutas UI: `/inventario/productos`, `/inventario/movimientos`,
   `/inventario/parametros` y `/inventario/modelos`.
-- Permisos: `src/lib/permisos.ts` exige `id_opcion = 8` para escrituras.
+- Permisos: `src/lib/permisos.ts` exige `id_opcion = 12` para escrituras.
 
 ### 11.4 Aceptación con fixture sintético
 
 `npm run verify:inventario` importa `src/lib/inventarioFormulas.ts` (el mismo
-código que usan los endpoints) y comprueba **44/44** casos. El fixture toma
+código que usan los endpoints) y comprueba **47/47** casos. El fixture toma
 cuatro SKU reales del seed 2025 (demanda y stock incluidos), no nombres demo:
 
 | SKU | Producto | Demanda | Costo | Valor anual | Acumulado | Clase | H | EOQ | PR |
-|---|---|---:|---:|---:|---:|:---:|---:|---:|---:|
-| INV-001 | Laptop Core i5 16GB | 337.1674 | 850 | 286592.29 | 47.37% | A | 170 | 19.92 | 13.86 |
-| INV-002 | Monitor LED 24 pulgadas | 1005.5870 | 190 | 191061.53 | 78.95% | A | 38 | 72.75 | 41.33 |
-| INV-003 | Teclado mecánico | 2843.1777 | 28 | 79608.98 | 92.11% | B | 5.6 | 318.66 | 116.84 |
-| INV-010 | Cable HDMI 2 m | 5970.6731 | 8 | 47765.38 | 100.00% | C | 1.6 | 863.91 | 245.37 |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|
+| INV-001 | Laptop Core i5 16GB | 337.1674 | 850.55 | 286777.73 | 47.38% | A | 170.11 | 19.91 | 13.86 |
+| INV-002 | Monitor LED 24 pulgadas | 1005.5870 | 189.97 | 191031.36 | 78.95% | A | 37.99 | 72.76 | 41.33 |
+| INV-003 | Teclado mecánico | 2843.1777 | 28.03 | 79694.27 | 92.12% | B | 5.61 | 318.49 | 116.84 |
+| INV-010 | Cable HDMI 2 m | 5970.6731 | 7.99 | 47705.68 | 100.00% | C | 1.6 | 864.45 | 245.37 |
 
 Parámetros del fixture: `S=100`, `h=20%`, `lead_time=15 días`, `365 días/año`.
 También se verifican casos límite: demanda 0, `h=0`, lead time 0 y redondeo a 2
 decimales.
 
-Para que la UI muestre datos hay que ejecutar la migración `007` en Supabase.
+Para que la UI muestre datos hay que ejecutar la migración `0071` y, sobre una
+BD que ya tuviera el seed anterior, el backfill `0072` en Supabase.
 
 ### 11.5 Datos sembrados de producto (empresa 2)
 
@@ -449,9 +465,11 @@ Los 12 SKU (`INV-001` a `INV-012`) son inventados pero están calibrados contra
 los saldos contables reales de la BC. Los importes son idénticos a los usados en
 el Módulo C; no provienen de los Excel de `estados-financieros/`, que solo
 contienen cuentas contables. Si ya se había ejecutado una versión anterior de la
-migración, vuelve a ejecutarla: limpia los SKU `C4-P%`, actualiza parámetros y
-la descripción de la opción `8`, rellena el `venta_detalle` faltante y restaura
-los stocks del seed.
+migración, vuelve a ejecutarla para limpiar los SKU `C4-P%`, actualizar
+parámetros y la descripción de la opción `12`, y restaurar los stocks del seed;
+después aplica `0072`, que reinserta solo los tres bloques de `venta_detalle`
+sin alterar stocks ni parámetros. El estado verificado es de 36 filas en
+`venta_detalle`, 12 por año (`2023`, `2024` y `2025`).
 
 | Año | Ventas `Σ venta_detalle.subtotal` | Costo de ventas `Σ cantidad·costo_unitario` | Margen | Inventario `Σ stock·costo_unitario` |
 |---|---:|---:|---:|---:|
@@ -475,8 +493,13 @@ el SKU `INV-010` (cable HDMI) queda con stock por debajo del punto de reorden,
 para que la reposición sugerida no sea trivial.
 
 Todas las cifras monetarias visibles usan `src/lib/formatoMonetario.ts`
-(`es-SV`, USD, 2 decimales, símbolo `$`). Las cantidades, unidades, días,
-porcentajes y multiplicadores conservan su formato numérico original.
+(`es-SV`, USD, 2 decimales, símbolo `$`). Las cantidades se expresan en unidades,
+el consumo diario en unidades/día, el lead time y los días/año en días, y las
+tasas como porcentaje anual; todos conservan su formato numérico original.
+La gráfica de DuPont es una sensibilidad teórica por factor: al variar un solo
+factor en el mismo porcentaje las curvas coinciden por la identidad
+multiplicativa. Los deslizadores del escenario afectan solo al ROE mostrado
+arriba, no a esas curvas.
 
 Los SKU nuevos se asignan automáticamente por empresa con el consecutivo
 `INV-###` siguiente al mayor existente (`INV-014` después de `INV-013`). El

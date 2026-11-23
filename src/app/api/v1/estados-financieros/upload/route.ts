@@ -35,6 +35,8 @@ import { getEmpresaPrincipal } from '@/lib/empresaPrincipal'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { recalcularRatios } from '@/lib/ratios'
 
+export const maxDuration = 300
+
 export async function POST(req: Request) {
   return handle(req, async () => {
     const formData = await req.formData()
@@ -82,14 +84,18 @@ async function resolverCuentas(codigos: string[]): Promise<Map<string, number>> 
 }
 
 /** AU1 (Módulo C): silent recalculation; anio + 1 also uses this year as its previous one. */
-async function recalcularSilencioso(empresaId: number, anio: number): Promise<void> {
-  await Promise.all(
-    [anio, anio + 1].map((year) =>
-      recalcularRatios(empresaId, year).catch((err) => {
-        console.error(`[AU1] no se pudieron recalcular los ratios de ${year}:`, err)
-      }),
-    ),
-  )
+async function recalcularSilencioso(empresaId: number, anio: number): Promise<string[]> {
+  const avisos: string[] = []
+  for (const year of [anio, anio + 1]) {
+    try {
+      const resultado = await recalcularRatios(empresaId, year)
+      avisos.push(...resultado.avisos)
+    } catch (err) {
+      console.error(`[AU1] no se pudieron recalcular los ratios de ${year}:`, err)
+      avisos.push(`Los estados se guardaron, pero falló el recálculo de ratios de ${year}.`)
+    }
+  }
+  return avisos
 }
 
 async function cargaUnificada(
@@ -141,7 +147,7 @@ async function cargaUnificada(
     throw error
   }
 
-  await recalcularSilencioso(empresa.empresaId, parsed.anio)
+  avisos.push(...await recalcularSilencioso(empresa.empresaId, parsed.anio))
 
   const resultado = data as { idBalance: number; idResultados: number; reemplazado: boolean }
   return NextResponse.json(
@@ -242,7 +248,7 @@ async function cargaEstadoIndividual(wb: XLSX.WorkBook, file: File, reemplazar: 
     throw leError
   }
 
-  await recalcularSilencioso(parsed.empresaId, parsed.anio)
+  const avisos = await recalcularSilencioso(parsed.empresaId, parsed.anio)
 
   return NextResponse.json(
     {
@@ -252,7 +258,7 @@ async function cargaEstadoIndividual(wb: XLSX.WorkBook, file: File, reemplazar: 
       tipoReporte: parsed.tipoReporte,
       reemplazado: Boolean(existente),
       lineas: rows.length,
-      avisos: [],
+      avisos,
     },
     { status: 201 },
   )

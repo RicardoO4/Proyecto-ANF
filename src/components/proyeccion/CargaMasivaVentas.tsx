@@ -8,12 +8,10 @@ import buttonStyles from '@/styles/shared/Button.module.css'
 import localStyles from '@/styles/estadosfinancieros/CargarEstadoFinanciero.module.css' // Reutilizamos estilos!
 
 interface CargaMasivaVentasProps {
-  ventas: string[]
-  // eslint-disable-next-line no-unused-vars
-  setVentas: (v: string[]) => void
+  onGuardado?: () => void
 }
 
-export const CargaMasivaVentas = (_props: CargaMasivaVentasProps) => {
+export const CargaMasivaVentas = ({ onGuardado }: CargaMasivaVentasProps) => {
   // Lógica casi idéntica a la carga de estados financieros
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -34,6 +32,7 @@ export const CargaMasivaVentas = (_props: CargaMasivaVentasProps) => {
       await ventaHistoricaService.uploadVentasExcel(selectedFile)
       Notifier.dismiss(String(toastId))
       Notifier.success('Ventas cargadas exitosamente desde Excel.')
+      onGuardado?.()
       setSelectedFile(null)
       ;(e.target as HTMLFormElement).reset()
     } catch (error: unknown) {

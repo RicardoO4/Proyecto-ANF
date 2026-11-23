@@ -1,8 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
-import SubMenu from '@/components/shared/SubMenu'
-import { proyeccionesSubMenuLinks } from '@/config/menuConfig'
+import React, { useState, useRef } from 'react'
 import EmpresaFija from '@/components/shared/EmpresaFija'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
 import viewStyles from '@/styles/shared/View.module.css'
@@ -15,11 +13,14 @@ import { formatMoney } from '@/lib/formatoMonetario'
 import { Notifier } from '@/utils/Notifier'
 import type { ProyeccionDTO } from '@/types'
 import Link from 'next/link'
+import BotonResumenIA from '@/components/shared/BotonResumenIA'
+import { useDisponibilidadVentas } from '@/hooks/useDisponibilidadVentas'
 
 export const Proyecciones = () => {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('')
+  const secuencia = useRef(0)
   const [metodo, setMetodo] = useState('')
-  const [ventas, setVentas] = useState<string[]>(Array(12).fill('')) // 12 meses vacíos
+  const disponibilidad = useDisponibilidadVentas()
   const [activeTab, setActiveTab] = useState<'masiva' | 'manual'>('masiva')
 
   const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) =>
@@ -29,20 +30,21 @@ export const Proyecciones = () => {
   const [proyecciones, setProyecciones] = useState<ProyeccionDTO[]>([])
 
   const handleGenerarProyeccion = async () => {
-    if (!empresaSeleccionada || !metodo) {
+    if (!empresaSeleccionada || !metodo || !disponibilidad.datos?.clasica) {
       Notifier.warning('Por favor seleccione una empresa y un método de proyección.')
       return
     }
 
+    const solicitud = ++secuencia.current
     const toastId = Notifier.loading('Generando proyección...')
     try {
       // keep numeric month values in sync for the manual tab
-      setVentas(Array(12).fill(''))
       const response = await ventaHistoricaService.getProyeccionVentas(
         parseInt(empresaSeleccionada, 10),
         12,
         metodo.toUpperCase().replace('-', '_'),
       )
+      if (solicitud !== secuencia.current) { Notifier.dismiss(String(toastId)); return }
       setProyecciones(response)
       Notifier.dismiss(String(toastId))
       Notifier.success('Proyección generada correctamente.')
@@ -55,12 +57,16 @@ export const Proyecciones = () => {
 
   return (
     <div className={viewStyles.viewContainer}>
-      <SubMenu links={proyeccionesSubMenuLinks} />
 
       <h1 className={viewStyles.viewTitle}>Proyección de Ventas</h1>
       <p className="mb-4">
         Este módulo permite realizar una proyección de ventas a 12 meses basada en datos históricos.
       </p>
+      {disponibilidad.error && <p role="alert">{disponibilidad.error}</p>}
+      {disponibilidad.datos && <div className="alert alert-info">
+        Meses reales registrados: {disponibilidad.datos.total}. Para esta proyección se necesitan doce meses consecutivos al final del histórico.
+        {!disponibilidad.datos.clasica && <> Cargue los importes mensuales abajo o utilice <Link href="/proyecciones/pronostico">el pronóstico anual con los datos del balance</Link>.</>}
+      </div>}
 
       {/* --- Selector de Empresa --- */}
       <div className="mb-3">
@@ -74,7 +80,7 @@ export const Proyecciones = () => {
         <select
           className="form-select"
           value={metodo}
-          onChange={(e) => setMetodo(e.target.value)}
+          onChange={(e) => { setMetodo(e.target.value); setProyecciones([]); secuencia.current++ }}
         >
           <option value="">Seleccione un método...</option>
           <option value="minimos-cuadrados">Mínimos Cuadrados</option>
@@ -102,10 +108,10 @@ export const Proyecciones = () => {
       {/* --- Contenido de la pestaña activa --- */}
       <div className="mt-3">
         {activeTab === 'masiva' && (
-          <CargaMasivaVentas ventas={ventas} setVentas={setVentas} />
+          <CargaMasivaVentas onGuardado={() => { setProyecciones([]); secuencia.current++; void disponibilidad.cargar() }} />
         )}
         {activeTab === 'manual' && (
-          <CargaManualVentas ventas={ventas} setVentas={setVentas} />
+          <CargaManualVentas onGuardado={() => { setProyecciones([]); secuencia.current++; void disponibilidad.cargar() }} />
         )}
       </div>
 
@@ -114,6 +120,7 @@ export const Proyecciones = () => {
         <button
           className={buttonStyles.btnPrimary}
           onClick={handleGenerarProyeccion}
+          disabled={!disponibilidad.datos?.clasica || !metodo}
         >
           Generar Proyección
         </button>
@@ -138,6 +145,16 @@ export const Proyecciones = () => {
         {proyecciones.length > 0 && (
           <div className="mt-4 table-responsive">
             <h5>Resultados de la Proyección</h5>
+            <div className="mb-3">
+              <BotonResumenIA
+                key={JSON.stringify(proyecciones)}
+                tipo="proyeccion"
+                datos={{
+                  empresaId: Number(empresaSeleccionada),
+                  metodo: metodo.toUpperCase().replace('-', '_'),
+                }}
+              />
+            </div>
             <table className={viewStyles.table}>
               <thead>
                 <tr>

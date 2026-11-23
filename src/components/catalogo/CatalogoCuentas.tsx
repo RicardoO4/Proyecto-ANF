@@ -13,6 +13,7 @@ import {
 } from '@/services/catalogService'
 import { getErrorMessage } from '@/services/api'
 import { Notifier } from '@/utils/Notifier'
+import { useAuth } from '@/context/AuthContext'
 
 import styles from '@/styles/catalogo/Catalog.module.css'
 
@@ -26,6 +27,8 @@ const normalizar = (texto: string) =>
     .toLowerCase()
 
 export const CatalogoCuentas = () => {
+  const { user } = useAuth()
+  const puedeGestionar = user?.rol === 'ADMIN'
   const [selectedEmpresaId, setSelectedEmpresaId] = useState('')
 
   const [elementos, setElementos] = useState<ElementoCatalogo[]>([])
@@ -171,7 +174,7 @@ export const CatalogoCuentas = () => {
   }
 
   const alternarCuenta = async (fila: CuentaFila) => {
-    if (!selectedEmpresaId || procesando) return
+    if (!puedeGestionar || !selectedEmpresaId || procesando) return
 
     setPendingIds((prev) => new Set(prev).add(fila.cuentaId))
     try {
@@ -201,7 +204,7 @@ export const CatalogoCuentas = () => {
   }
 
   const activarSeleccionadas = async () => {
-    if (activables.length === 0 || !selectedEmpresaId) return
+    if (!puedeGestionar || activables.length === 0 || !selectedEmpresaId) return
     setAccionMasiva('activar')
     try {
       await catalogService.activarCuentas({
@@ -223,7 +226,7 @@ export const CatalogoCuentas = () => {
   }
 
   const desactivarSeleccionadas = async () => {
-    if (desactivables.length === 0) return
+    if (!puedeGestionar || desactivables.length === 0) return
     const resultado = await Notifier.confirm({
       title: `¿Desactivar ${desactivables.length} ${desactivables.length === 1 ? 'cuenta' : 'cuentas'}?`,
       text: 'Las cuentas dejarán de estar disponibles para esta empresa.',
@@ -257,7 +260,7 @@ export const CatalogoCuentas = () => {
       <header className={styles.headerCard}>
         <div className={styles.titleBlock}>
           <h2>Catálogo de Cuentas</h2>
-          <p>Active o desactive las cuentas que esta empresa usará en sus estados financieros.</p>
+          <p>{puedeGestionar ? 'Active o desactive las cuentas que esta empresa usará en sus estados financieros.' : 'Consulta las cuentas y su disponibilidad para la empresa.'}</p>
         </div>
         <div className={styles.selector}>
           <label htmlFor="empresa-select">Empresa</label>
@@ -331,7 +334,7 @@ export const CatalogoCuentas = () => {
             </div>
           </section>
 
-          {seleccionadas.size > 0 && (
+          {puedeGestionar && seleccionadas.size > 0 && (
             <div className={styles.bulkBar} role="region" aria-label="Acciones masivas">
               <span className={styles.bulkCount}>
                 {seleccionadas.size}{' '}
@@ -374,7 +377,7 @@ export const CatalogoCuentas = () => {
             <table className={styles.table} aria-label="Catálogo de cuentas de la empresa">
               <thead>
                 <tr>
-                  <th scope="col" className={styles.checkboxCell}>
+                  {puedeGestionar && <th scope="col" className={styles.checkboxCell}>
                     <input
                       ref={selectAllRef}
                       type="checkbox"
@@ -383,7 +386,7 @@ export const CatalogoCuentas = () => {
                       aria-label="Seleccionar todas las cuentas visibles"
                       disabled={filasVisibles.length === 0 || procesando}
                     />
-                  </th>
+                  </th>}
                   <th scope="col" className={styles.codigoCell}>
                     Código
                   </th>
@@ -391,9 +394,9 @@ export const CatalogoCuentas = () => {
                   <th scope="col" className={styles.estadoCell}>
                     Estado
                   </th>
-                  <th scope="col" className={styles.toggleCell}>
+                  {puedeGestionar && <th scope="col" className={styles.toggleCell}>
                     Acción
-                  </th>
+                  </th>}
                 </tr>
               </thead>
               <tbody>
@@ -417,7 +420,7 @@ export const CatalogoCuentas = () => {
 
                     return (
                       <tr key={`grupo-${elemento.fila.cuentaId}`} className={styles.groupRow}>
-                        <td className={styles.checkboxCell}>
+                        {puedeGestionar && <td className={styles.checkboxCell}>
                           <input
                             type="checkbox"
                             className={styles.checkbox}
@@ -426,8 +429,8 @@ export const CatalogoCuentas = () => {
                             aria-label={`Seleccionar las cuentas de ${elemento.fila.nombreCuenta}`}
                             disabled={idsGrupo.length === 0 || procesando}
                           />
-                        </td>
-                        <th scope="rowgroup" colSpan={4} className={styles.groupCell}>
+                        </td>}
+                        <th scope="rowgroup" colSpan={puedeGestionar ? 4 : 3} className={styles.groupCell}>
                           <div className={styles.groupInner}>
                             <span className={styles.groupCode}>{elemento.fila.codigoCuenta}</span>
                             <span className={styles.groupName}>{elemento.fila.nombreCuenta}</span>
@@ -444,7 +447,7 @@ export const CatalogoCuentas = () => {
                               >
                                 {elemento.fila.activa ? 'Activa' : 'Inactiva'}
                               </span>
-                              <div className="form-check form-switch m-0">
+                              {puedeGestionar && <div className="form-check form-switch m-0">
                                 <input
                                   type="checkbox"
                                   role="switch"
@@ -457,7 +460,7 @@ export const CatalogoCuentas = () => {
                                   }
                                   aria-label={`${elemento.fila.activa ? 'Quitar del' : 'Incluir en el'} catálogo la cuenta acumulativa ${elemento.fila.codigoCuenta} ${elemento.fila.nombreCuenta}`}
                                 />
-                              </div>
+                              </div>}
                             </div>
                           </div>
                         </th>
@@ -472,7 +475,7 @@ export const CatalogoCuentas = () => {
                       key={`cuenta-${fila.cuentaId}`}
                       className={seleccionada ? styles.rowSelected : undefined}
                     >
-                      <td className={styles.checkboxCell}>
+                      {puedeGestionar && <td className={styles.checkboxCell}>
                         <input
                           type="checkbox"
                           className={styles.checkbox}
@@ -481,7 +484,7 @@ export const CatalogoCuentas = () => {
                           aria-label={`Seleccionar la cuenta ${fila.codigoCuenta} ${fila.nombreCuenta}`}
                           disabled={procesando}
                         />
-                      </td>
+                      </td>}
                       <td className={`${styles.codigoCell} ${styles.codigo}`}>{fila.codigoCuenta}</td>
                       <td className={styles.nombre} title={fila.nombreCuenta}>
                         {fila.nombreCuenta}
@@ -496,7 +499,7 @@ export const CatalogoCuentas = () => {
                           {fila.activa ? 'Activa' : 'Inactiva'}
                         </span>
                       </td>
-                      <td className={styles.toggleCell}>
+                      {puedeGestionar && <td className={styles.toggleCell}>
                         <div className="form-check form-switch m-0 d-flex justify-content-center">
                           <input
                             type="checkbox"
@@ -509,13 +512,13 @@ export const CatalogoCuentas = () => {
                             aria-label={`${fila.activa ? 'Desactivar' : 'Activar'} la cuenta ${fila.codigoCuenta} ${fila.nombreCuenta}`}
                           />
                         </div>
-                      </td>
+                      </td>}
                     </tr>
                   )
                 })}
                 {elementosVisibles.length === 0 && (
                   <tr>
-                    <td colSpan={5} className={styles.emptyCell}>
+                    <td colSpan={puedeGestionar ? 5 : 3} className={styles.emptyCell}>
                       {filtrosActivos
                         ? 'No hay cuentas que coincidan con la búsqueda o los filtros.'
                         : 'No hay cuentas registradas en el catálogo maestro.'}

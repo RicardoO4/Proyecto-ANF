@@ -3,7 +3,7 @@
 // { categoriaRatio: {id_categoria_ratio, nombre_categoria} },
 // { parametroSector: {id_parametro_sector, valor_referencia, anio_referencia, nombreRatio} }.
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { mapRatioResponse } from '@/lib/ratios'
+import { mapRatioResponse, type RelacionesRatio } from '@/lib/ratios'
 import { NotFoundException, ValidationException, handle } from '@/lib/errors'
 import { NextResponse } from 'next/server'
 
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
     let query = supabaseAdmin
       .from('ratio')
-      .select('*')
+      .select('*, empresa(empresa_id, nombre_empresa), categoria_ratio(id_categoria_ratio, nombre_tipo), parametro_sector(id_parametro_sector, valor_referencia, anio_referencia, nombre_ratio)')
       .order('id_ratio')
     if (nombreEmpresa) {
       // case-insensitive filter by empresa name (as in the Java repository)
@@ -28,7 +28,8 @@ export async function GET(req: Request) {
     }
     const { data, error } = await query
     if (error) throw error
-    const mapped = await Promise.all((data ?? []).map(mapRatioResponse))
+    type Fila = Parameters<typeof mapRatioResponse>[0] & { empresa: RelacionesRatio['empresa']; categoria_ratio: RelacionesRatio['categoria']; parametro_sector: RelacionesRatio['parametro'] }
+    const mapped = await Promise.all(((data ?? []) as unknown as Fila[]).map(r => mapRatioResponse(r, { empresa: r.empresa, categoria: r.categoria_ratio, parametro: r.parametro_sector })))
     return NextResponse.json(mapped)
   })
 }

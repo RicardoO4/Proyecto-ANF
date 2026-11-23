@@ -11,7 +11,7 @@ interface SectorFormModalProps {
   show: boolean
   onClose: () => void
   // eslint-disable-next-line no-unused-vars
-  onSave: (data: any, id?: number) => void
+  onSave: (data: import("@/services/sectorService").SectorData, id?: number) => void
   initialData?: SectorResponse | null
 }
 
@@ -22,19 +22,19 @@ export const SectorFormModal = ({ show, onClose, onSave, initialData = null }: S
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm()
+  } = useForm<import("@/services/sectorService").SectorData>()
 
   useEffect(() => {
     if (show) {
       // Si hay datos iniciales, los carga; si no, resetea a los valores por defecto.
       reset(
-        (initialData as any) || { nombreSector: '', descripcion: '', paisReferencia: '', fuenteDatos: '' },
+        initialData || { nombreSector: '', descripcion: '', paisReferencia: '', fuenteDatos: '' },
       )
     }
   }, [show, initialData, reset])
 
-  const onSubmit = (data: any) => {
-    onSave(data, (initialData as any)?.idSector)
+  const onSubmit = (data: import("@/services/sectorService").SectorData) => {
+    onSave(data, initialData?.idSector)
   }
 
   return (

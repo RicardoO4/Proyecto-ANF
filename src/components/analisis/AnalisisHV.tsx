@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { apiClient } from '@/services/api'
 
 import viewStyles from '@/styles/shared/View.module.css'
@@ -9,8 +9,10 @@ import styles from '@/styles/analisis/AnalisisHV.module.css'
 import { Notifier } from '@/utils/Notifier'
 import EmpresaFija from '@/components/shared/EmpresaFija'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
+import BotonResumenIA from '@/components/shared/BotonResumenIA'
 import { ACTIVO_TOTAL, VENTAS_NETAS, sumByPrefix } from '@/lib/accountCodes'
-import { formatMoney } from '@/lib/formatoMonetario'
+import type { PeriodoFinanciero } from '@/lib/periodoFinanciero'
+import AvisoPeriodoFinanciero from '@/components/shared/AvisoPeriodoFinanciero'
 
 interface LineaAnalisisHorizontal {
   codigoCuenta: string
@@ -32,8 +34,18 @@ interface LineaAnalisisVertical {
 }
 
 interface ReporteInterno {
+  periodos?: PeriodoFinanciero[]
+  comparacionParcial?: boolean
   analisisHorizontal: LineaAnalisisHorizontal[]
   analisisVertical: LineaAnalisisVertical[]
+}
+
+const formatNumber = (num: number) => {
+  if (typeof num !== 'number') return num as unknown as string
+  return num.toLocaleString('es-SV', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
 }
 
 // Función para formatear porcentajes
@@ -48,6 +60,7 @@ const AnalisisHV = () => {
   const { empresa, error: errorEmpresa } = useEmpresaPrincipal((e) =>
     setEmpresaSeleccionada(String(e.empresaId)),
   )
+  const secuenciaReporte = useRef(0)
   const [anio1, setAnio1] = useState('')
   const [anio2, setAnio2] = useState('')
   const [aniosDisponibles, setAniosDisponibles] = useState<number[]>([])
@@ -79,15 +92,18 @@ const AnalisisHV = () => {
   const handleGenerarReporte = () => {
     if (!empresaSeleccionada || !anio1 || !anio2) return
 
+    const secuencia = ++secuenciaReporte.current
     apiClient
       .get('/analisis/reporte-interno', {
         params: { empresaId: empresaSeleccionada, anio1, anio2 },
       })
       .then((res) => {
+        if (secuencia !== secuenciaReporte.current) return
         setReporte(res.data)
         console.log('Reporte recibido:', res.data)
       })
       .catch((err) => {
+        if (secuencia !== secuenciaReporte.current) return
         console.error('Error al generar reporte:', err)
         Notifier.error('Error al generar el reporte.')
         setReporte(null) // Limpia el reporte anterior si hay un error
@@ -126,8 +142,8 @@ const AnalisisHV = () => {
     <div style={{ marginBottom: '1.5rem' }}>
       <h3 style={{ marginBottom: '0.25rem' }}>{titulo}</h3>
       <p style={{ margin: '0 0 0.5rem', color: '#666', fontSize: '0.9rem' }}>
-        {subtitulo} — Base {anio1}: {formatMoney(base1)} | Base {anio2}:{' '}
-        {formatMoney(base2)}
+        {subtitulo} — Base {anio1}: {formatNumber(base1)} | Base {anio2}:{' '}
+        {formatNumber(base2)}
       </p>
       <div className="table-responsive">
         <table className={viewStyles.table}>
@@ -186,7 +202,7 @@ const AnalisisHV = () => {
           <select
             id="anio1"
             value={anio1}
-            onChange={(e) => setAnio1(e.target.value)}
+            onChange={(e) => { setAnio1(e.target.value); setReporte(null); secuenciaReporte.current++ }}
             disabled={!empresaSeleccionada || aniosDisponibles.length === 0}
           >
             <option value="">Seleccione un año</option>
@@ -203,7 +219,7 @@ const AnalisisHV = () => {
           <select
             id="anio2"
             value={anio2}
-            onChange={(e) => setAnio2(e.target.value)}
+            onChange={(e) => { setAnio2(e.target.value); setReporte(null); secuenciaReporte.current++ }}
             disabled={!empresaSeleccionada || aniosDisponibles.length === 0}
           >
             <option value="">Seleccione un año</option>
@@ -222,9 +238,17 @@ const AnalisisHV = () => {
         >
           Generar Reporte
         </button>
+        <BotonResumenIA
+          key={JSON.stringify(reporte)}
+          tipo="comparativo"
+          datos={{ empresaId: Number(empresaSeleccionada), anio1: Number(anio1), anio2: Number(anio2) }}
+          disabled={!reporte}
+        />
       </div>
 
       {/* Botones de vista */}
+      {reporte?.periodos?.map(p => <AvisoPeriodoFinanciero key={p.anio} periodo={p} />)}
+      {reporte?.comparacionParcial && <p role="note">La comparación incluye un ejercicio preliminar. Las variaciones entre resultados parciales y anuales no representan crecimiento anual comparable.</p>}
       {reporte && (
         <div className={styles.toggleBar}>
           <button
@@ -254,9 +278,9 @@ const AnalisisHV = () => {
               <tr>
                 <th>Código</th>
                 <th>Cuenta</th>
-                <th style={{ textAlign: 'right' }}>Saldo {anio1} ($)</th>
-                <th style={{ textAlign: 'right' }}>Saldo {anio2} ($)</th>
-                <th style={{ textAlign: 'right' }}>Variación Absoluta ($)</th>
+                <th style={{ textAlign: 'right' }}>Saldo {anio1}</th>
+                <th style={{ textAlign: 'right' }}>Saldo {anio2}</th>
+                <th style={{ textAlign: 'right' }}>Variación Absoluta</th>
                 <th style={{ textAlign: 'right' }}>Variación Relativa (%)</th>
               </tr>
             </thead>
@@ -266,9 +290,9 @@ const AnalisisHV = () => {
                   <tr key={i}>
                     <td>{linea.codigoCuenta}</td>
                     <td>{linea.nombreCuenta}</td>
-                    <td style={{ textAlign: 'right' }}>{formatMoney(linea.saldoAnio1)}</td>
-                    <td style={{ textAlign: 'right' }}>{formatMoney(linea.saldoAnio2)}</td>
-                    <td style={{ textAlign: 'right' }}>{formatMoney(linea.variacionAbsoluta)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatNumber(linea.saldoAnio1)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatNumber(linea.saldoAnio2)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatNumber(linea.variacionAbsoluta)}</td>
                     <td style={{ textAlign: 'right' }}>{formatPercent(linea.variacionRelativa)}</td>
                   </tr>
                 ))

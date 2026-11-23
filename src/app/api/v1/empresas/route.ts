@@ -5,6 +5,7 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { BadRequestException, BusinessRuleException, NotFoundException, handle } from '@/lib/errors'
 import { NextResponse } from 'next/server'
+import { autorizar } from '@/lib/permisos'
 
 interface EmpresaResponseBody {
   nombreEmpresa?: string
@@ -48,7 +49,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   return handle(req, async () => {
+    const usuario = await autorizar(req)
     const body = (await req.json()) as EmpresaResponseBody
+    if (usuario.rol === 'ANALISTA') body.usuarioId = usuario.usuarioId
     if (!body.nombreEmpresa) {
       throw new BadRequestException('El nombre de la empresa es obligatorio.')
     }

@@ -1,5 +1,6 @@
 'use client'
 
+import { isAxiosError } from 'axios'
 import React, { useState, useEffect } from 'react'
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
 import SubMenu from '@/components/shared/SubMenu'
@@ -30,7 +31,8 @@ export const Sectores = () => {
   }
 
   useEffect(() => {
-    fetchSectores()
+    const timer = setTimeout(() => void fetchSectores(), 0)
+    return () => clearTimeout(timer)
   }, [])
 
   const handleOpenCreateModal = () => {
@@ -48,7 +50,7 @@ export const Sectores = () => {
     setEditingSector(null)
   }
 
-  const handleSave = async (data: any, id?: number) => {
+  const handleSave = async (data: Parameters<typeof sectorService.createSector>[0], id?: number) => {
     const isEditing = !!id
     const loadingToastId = Notifier.loading(isEditing ? 'Actualizando...' : 'Guardando...')
 
@@ -62,7 +64,8 @@ export const Sectores = () => {
       Notifier.success(`¡Sector ${isEditing ? 'actualizado' : 'creado'} exitosamente!`)
       handleCloseModal()
       fetchSectores()
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const err = isAxiosError<{ message?: string }>(error) ? error : undefined
       if (err?.response && err.response.status === 409) {
         Notifier.error('Ya existe un sector con ese nombre.')
       } else {

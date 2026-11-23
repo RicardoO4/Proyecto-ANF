@@ -1,5 +1,6 @@
 // Projection math — faithful port of ProyeccionService.calcularProyeccion.
 import { BadRequestException, NotFoundException } from '@/lib/errors'
+import { esVentaContableAnual, origenVenta } from './origenVentas'
 import type { MetodoProyeccion, ProyeccionDTO, VentaRow } from '@/types'
 
 function round(value: number, scale: number): number {
@@ -49,10 +50,16 @@ export function calcularProyeccion(
     (last.getUTCFullYear() - first.getUTCFullYear()) * 12 +
     (last.getUTCMonth() - first.getUTCMonth()) +
     1
-  if (span < 11) {
+  if (span < 12) {
     throw new BadRequestException(
-      'Se necesitan al menos 11 meses de datos históricos para proyectar.',
+      'Se necesitan al menos 12 meses de datos históricos para proyectar.',
     )
+  }
+
+  if (ventas.some(esVentaContableAnual)) {
+    const mensuales = ventas.filter(v => origenVenta(v) === 'MENSUAL_REAL')
+    if (mensuales.length) return calcularProyeccion(empresaId, mensuales, mesesFuturos, metodo)
+    throw new BadRequestException('El histórico solo contiene totales anuales. Use Pronósticos avanzados con periodicidad anual.')
   }
 
   // group by YYYY-MM (sum duplicates), sorted ascending
@@ -66,18 +73,14 @@ export function calcularProyeccion(
     .sort((a, b) => (a[0] < b[0] ? -1 : 1))
     .map(([, monto]) => monto)
 
+  const meses = [...byMonth.keys()].sort().slice(-12)
+  if (meses.length < 12 || meses.some((mes, i) => i > 0 && (Number(mes.slice(0, 4)) * 12 + Number(mes.slice(5))) - (Number(meses[i - 1].slice(0, 4)) * 12 + Number(meses[i - 1].slice(5))) !== 1)) {
+    throw new BadRequestException('Se requieren al menos 12 meses consecutivos con datos reales. No se convierten totales anuales en meses.')
+  }
+
   // keep only the last 12 months of data
   if (montos.length > 12) {
     montos = montos.slice(montos.length - 12)
-  }
-
-  // with exactly 11 months, synthesize a 12th data point:
-  // last + average of the consecutive absolute differences
-  if (montos.length === 11) {
-    const diffs: number[] = []
-    for (let i = 1; i < montos.length; i++) diffs.push(montos[i] - montos[i - 1])
-    const avg = diffs.reduce((s, d) => s + d, 0) / diffs.length
-    montos = [...montos, round(montos[montos.length - 1] + avg, 2)]
   }
 
   const lastKey = [...byMonth.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1))[

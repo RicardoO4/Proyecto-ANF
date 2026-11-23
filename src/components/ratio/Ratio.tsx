@@ -1,4 +1,5 @@
 'use client'
+import PeriodosPreliminares from '@/components/shared/PeriodosPreliminares'
 
 import React, { useState, useEffect, useCallback } from 'react'
 import SubMenu from '@/components/shared/SubMenu'
@@ -12,6 +13,11 @@ import { RatioDetailsModal } from '@/components/ratio/RatioDetailsModal'
 import { categoriasRatio } from '@/services/ratioService'
 import { parametroSectorService } from '@/services/ratioService'
 import { useEmpresaPrincipal } from '@/hooks/useEmpresaPrincipal'
+import BotonResumenIA from '@/components/shared/BotonResumenIA'
+import ActualizarIndicadores from './ActualizarIndicadores'
+import recalculoStyles from '@/styles/ratio/ActualizarIndicadores.module.css'
+import { apiClient, getErrorMessage } from '@/services/api'
+import { INFO_CATEGORIA } from '@/lib/asistenteFinanciero'
 import type { RatioResponseDTO, CategoriaRatioResponseDTO, ParametroSectorResponseDTO, EmpresaResponseDTO } from '@/types'
 
 export const Ratio = () => {
@@ -24,6 +30,8 @@ export const Ratio = () => {
 
   // --- Estados para la UI ---
   const [loading, setLoading] = useState(true)
+  const [recalculando, setRecalculando] = useState(false)
+  const [avisosRecalculo, setAvisosRecalculo] = useState<string[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingRatio, setEditingRatio] = useState<Record<string, unknown> | null>(null)
 
@@ -69,22 +77,43 @@ export const Ratio = () => {
     ? [{ empresaId: empresa.empresaId, nombreEmpresa: empresa.nombreEmpresa } as EmpresaResponseDTO]
     : []
 
-  // --- Definición de las columnas para la tabla (versión original) ---
+  const etiquetaUnidad = (categoria?: string | null) => {
+    const unidad = categoria ? INFO_CATEGORIA[categoria]?.unidad : undefined
+    if (unidad === 'porcentaje') return '%'
+    if (unidad === 'dias') return 'días'
+    return unidad ?? 'N/A'
+  }
+
   const columnas = [
     { Header: 'ID', accessor: 'id_ratio' },
     {
-      Header: 'EMPRESA',
-      accessor: (row: RatioResponseDTO) => (row.empresa ? row.empresa.nombre_empresa : 'N/A'),
+      Header: 'INDICADOR',
+      accessor: (row: RatioResponseDTO) => row.categoriaRatio?.nombre_categoria ?? 'N/A',
     },
     {
-      Header: 'CATEGORÍA',
-      accessor: (row: RatioResponseDTO) => (row.categoriaRatio ? row.categoriaRatio.nombre_categoria : 'N/A'),
+      Header: 'VALOR CALCULADO',
+      accessor: (row: RatioResponseDTO) =>
+        row.valor_calculado === null ? 'Sin cálculo' : Number(row.valor_calculado).toFixed(4),
     },
     {
-      Header: 'PARÁMETRO',
-      accessor: (row: RatioResponseDTO) => (row.parametroSector ? row.parametroSector.nombreRatio : 'N/A'),
+      Header: 'UNIDAD',
+      accessor: (row: RatioResponseDTO) => etiquetaUnidad(row.categoriaRatio?.nombre_categoria),
     },
-    { Header: 'AÑO', accessor: 'anio_ratio' },
+    {
+      Header: 'REFERENCIA SECTORIAL',
+      accessor: (row: RatioResponseDTO) =>
+        row.parametroSector?.valor_referencia != null
+          ? Number(row.parametroSector.valor_referencia).toFixed(4)
+          : 'Sin referencia sectorial (cálculo realizado)',
+    },
+    {
+      Header: 'AÑO REFERENCIA',
+      accessor: (row: RatioResponseDTO) => row.parametroSector?.anio_referencia ?? 'N/A',
+    },
+    {
+      Header: 'AÑO CÁLCULO',
+      accessor: (row: RatioResponseDTO) => row.anio_ratio ?? 'N/A',
+    },
     { Header: 'PERÍODO', accessor: 'periodo_ratio' },
   ]
 
@@ -238,11 +267,42 @@ export const Ratio = () => {
     }
   }
 
+  // Módulo E: el resumen con IA usa el año más reciente con ratios calculados.
+  const ratiosConValor = ratios.filter((r) => r.valor_calculado != null && r.anio_ratio)
+  const anioResumen = ratiosConValor.length > 0 ? Math.max(...ratiosConValor.map((r) => Number(r.anio_ratio))) : 0
+  const empresaResumen = ratiosConValor[0]?.empresa?.empresa_id ?? 0
+
+  const recalcularTodos = async (forzar = false) => {
+    setRecalculando(true)
+    try {
+      const { data } = await apiClient.post<{ calculados: number; omitidos: number; avisos: string[] }>('/ratios/recalcular', { forzar }, { timeout: 300_000 })
+      setAvisosRecalculo(data.avisos)
+      if (data.calculados || data.avisos.length) await fetchData(filtroEmpresa ?? '')
+      if (data.avisos.length) Notifier.warning('Recálculo terminado con avisos. Revise el detalle.')
+      else if (!data.calculados && data.omitidos) Notifier.success('Los indicadores ya están actualizados. No se repitieron los cálculos.')
+      else Notifier.success(`${data.calculados} indicadores actualizados; ${data.omitidos} sin cambios.`)
+    } catch (e) { Notifier.error(getErrorMessage(e, 'No se pudo completar el recálculo.')) }
+    finally { setRecalculando(false) }
+  }
+
   return (
     <div style={{ padding: '20px' }}>
       <SubMenu links={sectoresSubMenuLinks} />
+      <PeriodosPreliminares />
 
-      <div style={{ marginTop: '2rem' }}>
+      <div className={recalculoStyles.toolbar}>
+        <ActualizarIndicadores disabled={loading || !empresa} cargando={recalculando} onActualizar={forzar => void recalcularTodos(forzar)} />
+        <BotonResumenIA
+          key={JSON.stringify(ratios)}
+          tipo="ratios"
+          datos={{ empresaId: empresaResumen, anio: anioResumen }}
+          disabled={loading || anioResumen === 0}
+          etiqueta={anioResumen ? `Resumen con IA (${anioResumen})` : 'Resumen con IA'}
+        />
+      </div>
+      {avisosRecalculo.length > 0 && <details role="status"><summary>Avisos del último recálculo ({avisosRecalculo.length})</summary><ul>{avisosRecalculo.map((a, i) => <li key={i}>{a}</li>)}</ul></details>}
+
+      <div style={{ marginTop: '1rem' }}>
         {loading ? (
           <p>Cargando ratios...</p>
         ) : (

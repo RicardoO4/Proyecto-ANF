@@ -6,6 +6,8 @@ import { BadRequestException, BusinessRuleException, NotFoundException, handle }
 import { createAuthUserForUsuario, deleteAuthUserForUsuario } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 import { NextResponse } from 'next/server'
+import { ROLES } from '@/lib/roles'
+import { invalidarPermisos } from '@/lib/permisos'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -70,6 +72,7 @@ export async function PUT(req: Request, { params }: Params) {
     if (!current) throw new NotFoundException('Usuario no encontrado')
 
     const updates: Record<string, unknown> = {}
+    if(body.rol&&!ROLES.some(rol=>rol===body.rol))throw new BadRequestException('Rol inválido.')
     if (body.nombreUsuario) updates.nombre_usuario = body.nombreUsuario
     if (body.apellidoUsuario) updates.apellido_usuario = body.apellidoUsuario
     if (body.userName) {
@@ -105,6 +108,7 @@ export async function PUT(req: Request, { params }: Params) {
       .select(select())
       .single()
     if (error) throw error
+    invalidarPermisos(id)
     return NextResponse.json(toResponseDTO(data))
   })
 }

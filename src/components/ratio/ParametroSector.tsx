@@ -59,7 +59,6 @@ export const ParametroSector = () => {
     { Header: 'Sector', accessor: 'nombreSector' },
     { Header: 'Valor', accessor: 'valorReferencia' },
     { Header: 'Año', accessor: 'anioReferencia' },
-    { Header: 'Fuente', accessor: 'fuente' },
   ]
 
   const handleNuevo = () => {
@@ -140,7 +139,7 @@ export const ParametroSector = () => {
             titulo="Gestión de Parámetros por Sector"
             textoBotonNuevo="Nuevo Parámetro"
             columnas={columnas}
-            datos={parametros as unknown as Record<string, unknown>[]}
+            datos={parametros}
             enEditar={handleEditar}
             enEliminar={handleEliminar}
             onNuevoClick={handleNuevo}
