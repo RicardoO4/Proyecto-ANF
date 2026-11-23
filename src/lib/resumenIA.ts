@@ -7,7 +7,7 @@ import { obtenerPeriodosFinancieros } from './periodosFinancierosServidor'
 import { describirPeriodo } from './periodoFinanciero'
 import { obtenerBaseFinanciera } from '@/lib/baseFinanciera'
 import { getEmpresaPrincipal } from '@/lib/empresaPrincipal'
-import { generarProforma } from '@/lib/proforma'
+import { generarProforma, type SupuestosProforma } from '@/lib/proforma'
 // Resumen con IA de cada análisis (Módulo E).
 //
 // Cada pantalla de análisis envía su tipo y sus parámetros. El servidor
@@ -345,10 +345,18 @@ async function proforma(d: Datos): Promise<Preparado> {
     const empresa = await getEmpresaPrincipal()
     const base = await obtenerBaseFinanciera(empresa.empresaId, numero(d, 'anioBase', { min: 1900, entero: true }))
     let p
-    try { p = generarProforma(base, { ventasProyectadas: base.ventas * (1 + numero(d, 'crecimiento') / 100), retencion: numero(d, 'retencion'), porcentajeVariableGastos: numero(d, 'porcentajeVariableGastos') }) }
+    try { p = generarProforma(base, {
+      ventasProyectadas: base.ventas * (1 + numero(d, 'crecimiento') / 100),
+      retencion: numero(d, 'retencion'), porcentajeVariableGastos: numero(d, 'porcentajeVariableGastos'),
+      tasaImpuesto: d.tasaImpuesto === undefined ? 0 : numero(d, 'tasaImpuesto'),
+      tasaInteresFinanciamiento: d.tasaInteresFinanciamiento === undefined ? 0 : numero(d, 'tasaInteresFinanciamiento'),
+      codigoImpuesto: d.codigoImpuesto === undefined ? '' : d.codigoImpuesto as string,
+      porcentajesVariablesBalance: d.porcentajesVariablesBalance as SupuestosProforma['porcentajesVariablesBalance'],
+      porcentajesVariablesResultados: d.porcentajesVariablesResultados as SupuestosProforma['porcentajesVariablesResultados'],
+    }) }
     catch (error) { throw new BadRequestException(error instanceof Error ? error.message : 'Supuestos inválidos.') }
-    const datosClave = [{ etiqueta: 'Ingresos proyectados', valor: dinero(p.ingresos) }, { etiqueta: 'Costos y gastos', valor: dinero(p.gastos) }, { etiqueta: 'Utilidad neta', valor: dinero(p.utilidad) }, { etiqueta: 'Utilidad retenida', valor: dinero(p.retenida) }, { etiqueta: 'Financiamiento externo requerido (FER)', valor: dinero(p.fer) }, { etiqueta: 'Total activos', valor: dinero(p.activos) }, { etiqueta: 'Total pasivos', valor: dinero(p.pasivos) }, { etiqueta: 'Patrimonio', valor: dinero(p.patrimonio) }]
-    return { titulo: `Estados Proforma ${p.anio}`, clave: `proforma|${empresa.empresaId}|${base.anio}|${JSON.stringify(d)}`, datosClave, mensaje: `Proforma a partir de estados reales de ${base.anio}. Ingresos y costo de ventas proporcionales, gastos operativos variables ${d.porcentajeVariableGastos}%, demás gastos fijos; activos corrientes sin caja y proveedores proporcionales. Retención ${d.retencion}%. ${datosClave.map(f => `${f.etiqueta}: ${f.valor}`).join('; ')}. Explica las hipótesis, FER positivo requiere financiamiento y negativo se conserva como efectivo. No presentes la proyección como certeza.` }
+    const datosClave = [{ etiqueta: 'Ingresos proyectados', valor: dinero(p.ingresos) }, { etiqueta: 'Costos, gastos e impuesto', valor: dinero(p.gastos) }, { etiqueta: 'Utilidad antes de impuestos', valor: dinero(p.utilidadAntesImpuestos) }, { etiqueta: 'Impuesto sobre utilidad', valor: dinero(p.impuesto) }, { etiqueta: 'Intereses del financiamiento nuevo', valor: dinero(p.interesesNuevos) }, { etiqueta: 'Utilidad neta', valor: dinero(p.utilidad) }, { etiqueta: 'Utilidad retenida', valor: dinero(p.retenida) }, { etiqueta: 'Dividendos estimados', valor: dinero(p.dividendos) }, { etiqueta: 'FER antes del interés nuevo', valor: dinero(p.ferAntesIntereses) }, { etiqueta: 'Financiamiento externo requerido (FER)', valor: dinero(p.fer) }, { etiqueta: 'Total activos', valor: dinero(p.activos) }, { etiqueta: 'Total pasivos', valor: dinero(p.pasivos) }, { etiqueta: 'Patrimonio', valor: dinero(p.patrimonio) }]
+    return { titulo: `Estados Proforma ${p.anio}`, clave: `proforma|${empresa.empresaId}|${base.anio}|${JSON.stringify(d)}`, datosClave, mensaje: `Proforma a partir de estados registrados de ${base.anio}. Porcentaje variable por cuenta (el resto permanece fijo): resultados ${JSON.stringify(p.resultados.map(l => ({codigo:l.codigo,variable:l.impuestoCalculado?'impuesto calculado':l.porcentajeVariable})))}, balance ${JSON.stringify(p.balance.map(l => ({codigo:l.codigo,variable:l.porcentajeVariable})))}. Retención ${d.retencion}%; las pérdidas se incorporan completas. Impuesto ${p.tasaImpuesto}% sobre utilidad positiva, sin crédito por pérdidas y supuesto pagado en el periodo; ${p.codigoImpuesto ? `sustituye la cuenta base ${p.codigoImpuesto}` : 'ajuste analítico adicional'}. Interés ${p.tasaInteresFinanciamiento}% anual sobre financiamiento nuevo desde inicio del año sin amortizaciones. Se resuelven simultáneamente intereses, impuesto, retención y FER. Son supuestos académicos configurables, no tasas legales predeterminadas. ${datosClave.map(f => `${f.etiqueta}: ${f.valor}`).join('; ')}. Explica hipótesis y límites, FER positivo requiere financiamiento y negativo se conserva como efectivo. No presentes la proyección como certeza ni como asientos registrados.` }
   }
   const ventasActuales = numero(d, 'ventasActuales', { min: 0 })
   const ventasProyectadas = numero(d, 'ventasProyectadas', { min: 0 })
