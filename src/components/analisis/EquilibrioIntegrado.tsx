@@ -13,26 +13,47 @@ export default function EquilibrioIntegrado() {
   const { base, empresa, error, cargando, cargar } = useBaseFinanciera()
 
   if (!base || cargando) {
-    return <div className={view.viewContainer}>
-      <h1>Análisis de Punto de Equilibrio</h1>
-      {cargando && <p role="status">Cargando datos contables…</p>}
-      {error && <p role="alert">{error}</p>}
-    </div>
+    return (
+      <div className={view.viewContainer}>
+        <h1>Análisis de Punto de Equilibrio</h1>
+        {cargando && <p role="status">Cargando datos contables…</p>}
+        {error && <p role="alert">{error}</p>}
+      </div>
+    )
   }
 
-  return <CalculadoraEquilibrio key={`${base.empresaId}-${base.anio}`} base={base} nombreEmpresa={empresa?.nombreEmpresa} cargar={cargar} />
+  return (
+    <CalculadoraEquilibrio
+      key={`${base.empresaId}-${base.anio}`}
+      base={base}
+      nombreEmpresa={empresa?.nombreEmpresa}
+      cargar={cargar}
+    />
+  )
 }
 
-function CalculadoraEquilibrio({ base, nombreEmpresa, cargar }: {
+function CalculadoraEquilibrio({
+  base,
+  nombreEmpresa,
+  cargar,
+}: {
   base: BaseFinanciera
   nombreEmpresa?: string
   cargar: (anio?: number) => Promise<void>
 }) {
-  const gastosFijos = base.resultados.filter(r => r.codigo.startsWith('4102') || r.codigo.startsWith('4103')).reduce((total, r) => total + r.saldo, 0)
-  const costoVentas = base.resultados.find(r => r.codigo.startsWith('4101'))?.saldo ?? 0
-  const fijosIniciales = base.tieneResultados ? Number((gastosFijos > 0 ? gastosFijos : (base.costosGastos || 0)).toFixed(2)) : 0
-  const variableInicial = base.tieneResultados ? Number((costoVentas > 0 ? costoVentas / 1000 : 40).toFixed(2)) : 0
-  const precioInicial = base.tieneResultados ? Number((variableInicial > 0 ? variableInicial * 1.35 : 100).toFixed(2)) : 0
+  const gastosFijos = base.resultados
+    .filter((r) => r.codigo.startsWith('4102') || r.codigo.startsWith('4103'))
+    .reduce((total, r) => total + r.saldo, 0)
+  const costoVentas = base.resultados.find((r) => r.codigo.startsWith('4101'))?.saldo ?? 0
+  const fijosIniciales = base.tieneResultados
+    ? Number((gastosFijos > 0 ? gastosFijos : base.costosGastos || 0).toFixed(2))
+    : 0
+  const variableInicial = base.tieneResultados
+    ? Number((costoVentas > 0 ? costoVentas / 1000 : 40).toFixed(2))
+    : 0
+  const precioInicial = base.tieneResultados
+    ? Number((variableInicial > 0 ? variableInicial * 1.35 : 100).toFixed(2))
+    : 0
 
   const [costosFijos, setCostosFijos] = useState(fijosIniciales)
   const [precioVenta, setPrecioVenta] = useState(precioInicial)
@@ -45,7 +66,7 @@ function CalculadoraEquilibrio({ base, nombreEmpresa, cargar }: {
   const handleCalcular = () => {
     const resultado = calcularPuntoEquilibrio(costosFijos, precioVenta, costoVariable)
     if (!resultado) {
-      alert('Ingrese valores no negativos y un precio mayor al costo variable.')
+      alert('Ingrese valores no negativos y un precio de venta mayor al costo variable.')
       return
     }
     setUnidadesEquilibrio(resultado.unidadesEquilibrio)
@@ -62,7 +83,7 @@ function CalculadoraEquilibrio({ base, nombreEmpresa, cargar }: {
     resultLabel: { color: 'var(--text-secondary)', fontSize: '12px', textTransform: 'uppercase' as const, fontWeight: 'bold' },
     resultValue: { color: 'var(--text-primary)', fontSize: '32px', fontWeight: 'bold', margin: '5px 0 20px 0' },
     resultValueHighlight: { color: 'var(--fey-signal)', fontSize: '32px', fontWeight: 'bold', margin: '5px 0 20px 0' },
-    chartContainer: { backgroundColor: 'var(--surface-card)', border: '1px solid var(--border-default)', borderRadius: '8px', padding: '24px', marginTop: '20px', height: '400px' }
+    chartContainer: { backgroundColor: 'var(--surface-card)', border: '1px solid var(--border-default)', borderRadius: '8px', padding: '24px', marginTop: '20px', height: '420px' }
   }
 
   return (
@@ -73,10 +94,8 @@ function CalculadoraEquilibrio({ base, nombreEmpresa, cargar }: {
       </p>
       <AvisoPeriodoFinanciero periodo={base.periodo} />
 
-
       {base && (
         <>
-          {/* Selector de año conectado a la BD */}
           <label className="d-block mb-3">
             Año:
             <select
@@ -100,7 +119,7 @@ function CalculadoraEquilibrio({ base, nombreEmpresa, cargar }: {
           )}
 
           <div style={styles.grid}>
-            {/* Formulario */}
+            {/* Formulario de Entrada */}
             <div style={styles.card}>
               <label style={styles.label}>Costos Fijos Totales ($)</label>
               <input
@@ -149,18 +168,22 @@ function CalculadoraEquilibrio({ base, nombreEmpresa, cargar }: {
               </button>
             </div>
 
-            {/* Panel de Resultados e IA */}
+            {/* Tarjeta de Resultados */}
             <div style={{ ...styles.card, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div>
                 <h3 style={styles.resultLabel}>Unidades para alcanzar el equilibrio</h3>
                 <p style={styles.resultValue}>
-                  {unidadesEquilibrio !== null ? `${unidadesEquilibrio.toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} unds` : '---'}
+                  {unidadesEquilibrio !== null
+                    ? `${unidadesEquilibrio.toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} unds`
+                    : '---'}
                 </p>
               </div>
               <div>
                 <h3 style={styles.resultLabel}>Ventas en dólares para el equilibrio</h3>
                 <p style={styles.resultValueHighlight}>
-                  {ventasEquilibrio !== null ? `$${ventasEquilibrio.toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '---'}
+                  {ventasEquilibrio !== null
+                    ? `$${ventasEquilibrio.toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : '---'}
                 </p>
               </div>
 
@@ -172,19 +195,57 @@ function CalculadoraEquilibrio({ base, nombreEmpresa, cargar }: {
             </div>
           </div>
 
-          {/* Gráfico de Recharts */}
+          {/* Gráfico de Recharts Corregido */}
           {datosGrafico.length > 0 && (
             <div style={styles.chartContainer}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={datosGrafico} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <LineChart data={datosGrafico} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
-                  <XAxis dataKey="unidades" name="Unidades" stroke="var(--text-secondary)" />
-                  <YAxis stroke="var(--text-secondary)" />
-                  <Tooltip formatter={(value) =>`$${Number(value || 0).toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
-                  <Legend />
-                  <Line type="monotone" dataKey="costosFijos" name="Costos Fijos" stroke="var(--text-secondary)" strokeDasharray="5 5" strokeWidth={2} />
-                  <Line type="monotone" dataKey="costosTotales" name="Costos Totales" stroke="var(--text-tertiary)" strokeWidth={2} />
-                  <Line type="monotone" dataKey="ventasTotales" name="Ventas Totales" stroke="var(--accent-positive)" strokeWidth={2} />
+                  <XAxis
+                    dataKey="unidades"
+                    name="Unidades"
+                    stroke="var(--text-secondary)"
+                    tickFormatter={(val) => Number(val).toLocaleString('es-SV', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  />
+                  <YAxis
+                    stroke="var(--text-secondary)"
+                    tickFormatter={(val) => `$${Number(val).toLocaleString('es-SV', { notation: 'compact', compactDisplay: 'short' })}`}
+                  />
+                  <Tooltip
+                    labelFormatter={(label) =>
+                      `Volumen: ${Number(label).toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} unds`
+                    }
+                    formatter={(value) => [
+                      `$${Number(value || 0).toLocaleString('es-SV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                      '',
+                    ]}
+                  />
+                  <Legend verticalAlign="top" height={36} />
+                  <Line
+                    type="monotone"
+                    dataKey="costosFijos"
+                    name="Costos Fijos"
+                    stroke="var(--text-secondary)"
+                    strokeDasharray="5 5"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="costosTotales"
+                    name="Costos Totales"
+                    stroke="var(--text-tertiary)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="ventasTotales"
+                    name="Ventas Totales"
+                    stroke="var(--accent-positive)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
