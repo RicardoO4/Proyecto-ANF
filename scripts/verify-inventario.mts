@@ -13,9 +13,9 @@ import { siguienteCodigoSku } from '../src/lib/inventarioSku.ts'
 let fallos = 0
 let total = 0
 
-function check(nombre: string, obtenido: number | string, esperado: number | string) {
+function check(nombre: string, obtenido: number | string | null, esperado: number | string | null) {
   total++
-  const ok = typeof esperado === 'number'
+  const ok = esperado === null || obtenido === null ? obtenido === esperado : typeof esperado === 'number'
     ? Math.abs(Number(obtenido) - esperado) <= 0.005
     : String(obtenido) === esperado
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${nombre.padEnd(52)} ${String(obtenido).padStart(12)}  (esperado ${esperado})`)
@@ -78,7 +78,7 @@ for (const esperado of esperadoPR) {
 
 console.log('\n== 4. Casos límite ==')
 check('valorAnual(0, 10)', valorAnual(0, 10), 0)
-check('loteEconomico con h=0', loteEconomico(100, 10, 0, 10), 0)
+check('loteEconomico con h=0: no calculable', loteEconomico(100, 10, 0, 10), null)
 check('puntoReorden con lead time=0', puntoReorden(100, 0), 0)
 check('puntoReorden con demanda=0', puntoReorden(0, 10), 0)
 check('redondeo 2 decimales', redondearInventario(1.005), 1.01)

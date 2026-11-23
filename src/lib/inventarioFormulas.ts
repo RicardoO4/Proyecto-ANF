@@ -20,8 +20,8 @@ export interface ItemABC extends ProductoDemanda {
 
 export interface ItemEOQ extends ProductoDemanda {
   costoMantenimiento: number
-  loteEconomico: number
-  pedidosAnuales: number
+  loteEconomico: number | null
+  pedidosAnuales: number | null
 }
 
 export interface ItemReorden extends ProductoDemanda {
@@ -80,14 +80,16 @@ export function loteEconomico(
   costoPedido: number,
   tasaMantenimiento: number,
   costoUnitario: number,
-): number {
+): number | null {
   const costoMantenimiento = tasaMantenimiento * costoUnitario
-  if (demandaAnual <= 0 || costoPedido <= 0 || costoMantenimiento <= 0) return 0
+  if (demandaAnual === 0) return 0
+  if (![demandaAnual, costoPedido, costoMantenimiento].every(Number.isFinite) || demandaAnual < 0 || costoPedido <= 0 || costoMantenimiento <= 0) return null
   return redondearInventario(Math.sqrt((2 * demandaAnual * costoPedido) / costoMantenimiento))
 }
 
-export function pedidosAnuales(demandaAnual: number, eoq: number): number {
-  if (eoq <= 0 || demandaAnual <= 0) return 0
+export function pedidosAnuales(demandaAnual: number, eoq: number | null): number | null {
+  if (demandaAnual === 0) return 0
+  if (eoq === null || eoq <= 0 || demandaAnual < 0) return null
   return redondearInventario(demandaAnual / eoq)
 }
 

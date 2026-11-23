@@ -15,7 +15,6 @@ import { generarProforma, type SupuestosProforma } from '@/lib/proforma'
 // (no confía en números enviados por el navegador), arma un mensaje
 // compacto —para ahorrar tokens de la versión gratuita— y pide a Gemini la
 // explicación. Solo lee la base de datos; nunca envía el nombre de la empresa.
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { BadRequestException, NotFoundException } from '@/lib/errors'
 import { generarReporteInterno, calcularEvolucionRatios } from '@/lib/analisis'
 import { calcularProyeccion, proyeccionLogaritmica, proyeccionPromedioMovil } from '@/lib/proyeccion'
@@ -23,7 +22,7 @@ import { interpretarRatios } from '@/lib/asistenteFinanciero'
 import { MESES, calcularPresupuesto, validarSupuestos, type SupuestosPresupuesto } from '@/lib/presupuesto'
 import { compararProyectos, validarCapital, type SupuestosCapital } from '@/lib/capital'
 import { dinero, interpretarConCache, num, pct, type InterpretacionIA, type MetaIA } from '@/lib/iaComun'
-import type { LineaAnalisisDTO, MetodoProyeccion, VentaRow } from '@/types'
+import type { LineaAnalisisDTO, MetodoProyeccion } from '@/types'
 
 export const TIPOS_RESUMEN = [
   'comparativo',
@@ -285,18 +284,21 @@ async function proyeccion(d: Datos): Promise<Preparado> {
   const empresaId = numero(d, 'empresaId', { min: 1, entero: true })
   const metodo = String(d.metodo ?? '')
   if (metodo !== 'UNIFICADO_COMPARATIVO' && !(metodo in METODOS)) throw new BadRequestException(`Metodo de proyeccion invalido: ${metodo}`)
-  const { data, error } = await supabaseAdmin
-    .from('venta')
-    .select('id_venta, fecha_venta, monto_venta, observacion, empresa_id')
-    .eq('empresa_id', empresaId)
-    .order('fecha_venta', { ascending: true })
-  if (error) throw error
-  const ventas = (data ?? []) as VentaRow[]
+  const { ventas } = await obtenerVentasProyeccion(empresaId, 'mensual')
   const serie = agruparVentasMensuales(ventas)
   const metodos: MetodoProyeccion[] = metodo === 'UNIFICADO_COMPARATIVO'
     ? Object.keys(METODOS) as MetodoProyeccion[]
     : [metodo as MetodoProyeccion]
-  const resultados = metodos.map(m => ({ metodo: m, filas: calcularProyeccion(empresaId, ventas, 12, m) }))
+  const noCalculables: string[] = []
+  const resultados = metodos.flatMap(m => {
+    try { return [{ metodo: m, filas: calcularProyeccion(empresaId, ventas, 12, m) }] }
+    catch (error) {
+      if (!(error instanceof BadRequestException) || metodo !== 'UNIFICADO_COMPARATIVO') throw error
+      noCalculables.push(`${METODOS[m]}: ${error.message}`)
+      return []
+    }
+  })
+  if (!resultados.length) throw new BadRequestException(noCalculables.join(' '))
   const historico = serie.historico.slice(-12).map(v => `${v.periodo}: ${dinero(v.monto)}`)
   const datosClave = resultados.flatMap(r => [
     { etiqueta: `${METODOS[r.metodo]} - ${r.filas[0].fechaProyectada}`, valor: dinero(r.filas[0].montoProyectado) },
@@ -305,7 +307,7 @@ async function proyeccion(d: Datos): Promise<Preparado> {
   return {
     titulo: 'Proyeccion de ventas',
     clave: `proyeccion|${empresaId}|${metodo}`,
-    mensaje: `Proyeccion de ventas a 12 meses. Fuente: ${serie.escenarioSimulado ? 'escenario simulado mensual para practica academica; no presentarlo como ventas reales' : 'ventas registradas'}. Historico mensual usado: ${historico.join('; ')}. Resultados calculados en el servidor: ${resultados.map(r => `${METODOS[r.metodo]}: ${r.filas.map(f => `${f.fechaProyectada}: ${dinero(f.montoProyectado)}`).join('; ')}`).join(' | ')}. Explica y compara los metodos disponibles. No confundir meses con anios. Las estimaciones no son ventas realizadas.`,
+    mensaje: `Proyeccion de ventas a 12 meses. Fuente: ${serie.escenarioSimulado ? 'escenario simulado mensual para practica academica; no presentarlo como ventas reales' : 'ventas registradas'}. Historico mensual usado: ${historico.join('; ')}. Resultados calculados en el servidor: ${resultados.map(r => `${METODOS[r.metodo]}: ${r.filas.map(f => `${f.fechaProyectada}: ${dinero(f.montoProyectado)}`).join('; ')}`).join(' | ')}. Explica y compara los metodos disponibles. Metodos no calculables: ${noCalculables.join('; ') || 'ninguno'}. No inventes resultados para esos metodos. No confundir meses con anios. Las estimaciones no son ventas realizadas.`,
     datosClave,
   }
 }

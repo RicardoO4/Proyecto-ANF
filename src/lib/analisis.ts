@@ -213,11 +213,11 @@ function computeRatio(
 
   switch (key) {
     case 'LIQUIDEZ_CORRIENTE':
-      return A(PASIVO_CORRIENTE) !== 0 ? round2(A(ACTIVO_CORRIENTE) / A(PASIVO_CORRIENTE)) : 0.0
+      return A(PASIVO_CORRIENTE) !== 0 ? round2(A(ACTIVO_CORRIENTE) / A(PASIVO_CORRIENTE)) : null
     case 'PRUEBA_ACIDA':
       return A(PASIVO_CORRIENTE) !== 0
         ? round2((A(ACTIVO_CORRIENTE) - A(INVENTARIOS)) / A(PASIVO_CORRIENTE))
-        : 0.0
+        : null
     case 'ROE': {
       const patrimonio = promedio(PATRIMONIO_TOTAL)
       // Patrimonio ≤ 0 → ROE no significativo (N/M): pérdida ÷ patrimonio
@@ -225,13 +225,13 @@ function computeRatio(
       return A(PATRIMONIO_TOTAL) > 0 && patrimonio > 0 ? round2((utilidadNeta / patrimonio) * 100) : null
     }
     case 'ROA':
-      return promedio(ACTIVO_TOTAL) !== 0 ? round2((utilidadNeta / promedio(ACTIVO_TOTAL)) * 100) : 0.0
+      return promedio(ACTIVO_TOTAL) !== 0 ? round2((utilidadNeta / promedio(ACTIVO_TOTAL)) * 100) : null
     case 'ENDEUDAMIENTO':
       return A(ACTIVO_TOTAL) !== 0
         ? round2((A(PASIVO_TOTAL) / A(ACTIVO_TOTAL)) * 100)
-        : 0.0
+        : null
     default:
-      return 0.0
+      return null
   }
 }
 

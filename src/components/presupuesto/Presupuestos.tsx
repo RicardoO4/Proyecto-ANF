@@ -393,6 +393,7 @@ const Presupuestos = () => {
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
+              <p className={styles.ayuda}>El efectivo final se muestra antes de contratar financiamiento. La necesidad indicada no se suma automáticamente a la caja ni incluye amortizaciones o intereses de préstamos nuevos.</p>
               <TablaMensual titulo={cedulaCaja(presupuesto).titulo} filas={cedulaCaja(presupuesto).filas} />
             </>
           ) : (

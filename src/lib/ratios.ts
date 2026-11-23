@@ -20,7 +20,6 @@ import {
   EFECTIVO,
   TIPO_REPORTE,
   VENTAS_NETAS,
-  VENTAS_BRUTAS,
   COSTO_VENTAS,
   GASTOS_OPERATIVOS,
   ACTIVOS_FIJOS,
@@ -74,7 +73,7 @@ interface BaseRecalculo {
 interface LoteRatios { empresaId: number; datos: BaseRecalculo; filas: FilaCalculada[] }
 const loteRatios = new AsyncLocalStorage<LoteRatios>()
 // Increment when formulas, account-code rules or interpretations change.
-export const VERSION_CALCULO_RATIOS = '2026-11-22.1'
+export const VERSION_CALCULO_RATIOS = '2026-11-22.2'
 
 /**
  * SUM(saldo) filtered by empresa, year, report type and account codes.
@@ -503,18 +502,17 @@ export function calcularMargenBruto(id: number) {
     id,
     'Índice de margen bruto',
     async (get) => {
-      const ventasBrutas = await get(VENTAS_BRUTAS, TIPO_REPORTE.RESULTADOS)
       const costoVentas = await get(COSTO_VENTAS, TIPO_REPORTE.RESULTADOS)
       const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
-      const valor = ventasNetas !== 0 ? round((ventasBrutas - costoVentas) / ventasNetas, 4) : 0
+      const valor = ventasNetas !== 0 ? round((ventasNetas - costoVentas) / ventasNetas, 4) : null
       const ratio = await loadRatio(id)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
-      const cumple = valor >= ref
+      const cumple = valor !== null && valor >= ref
       const posicion = cumple ? 'por encima' : 'por debajo'
       return {
         valor,
         cumple,
-        interpretacion: `Por cada dólar de ventas, la empresa retiene ${f2(valor * 100)} centavos como utilidad bruta, un margen ${posicion} del benchmark del sector de ${f2(ref * 100)}%.`,
+        interpretacion: valor === null ? 'No calculable: las ventas netas son cero.' : `Por cada dólar de ventas netas, la empresa retiene ${f2(valor * 100)} centavos como utilidad bruta, un margen ${posicion} del benchmark del sector de ${f2(ref * 100)}%.`,
       }
     },
   )
@@ -525,20 +523,19 @@ export function calcularMargenOperativo(id: number) {
     id,
     'Índice de margen operativo',
     async (get) => {
-      const ventasBrutas = await get(VENTAS_BRUTAS, TIPO_REPORTE.RESULTADOS)
       const costoVentas = await get(COSTO_VENTAS, TIPO_REPORTE.RESULTADOS)
       const gastosOperativos = await get(GASTOS_OPERATIVOS, TIPO_REPORTE.RESULTADOS)
       const ventasNetas = await get(VENTAS_NETAS, TIPO_REPORTE.RESULTADOS)
       const valor =
-        ventasNetas !== 0 ? round((ventasBrutas - costoVentas - gastosOperativos) / ventasNetas, 4) : 0
+        ventasNetas !== 0 ? round((ventasNetas - costoVentas - gastosOperativos) / ventasNetas, 4) : null
       const ratio = await loadRatio(id)
       const ref = Number(ratio.parametroSector?.valor_referencia ?? 0)
-      const cumple = valor >= ref
+      const cumple = valor !== null && valor >= ref
       const posicion = cumple ? 'eficiente' : 'comprometida'
       return {
         valor,
         cumple,
-        interpretacion: `Por cada dólar de ventas, la empresa genera ${f2(valor * 100)} centavos de utilidad operativa; una gestión ${posicion} en comparación con el benchmark del sector de ${f2(ref * 100)}%.`,
+        interpretacion: valor === null ? 'No calculable: las ventas netas son cero.' : `Por cada dólar de ventas netas, la empresa genera ${f2(valor * 100)} centavos de utilidad operativa; una gestión ${posicion} en comparación con el benchmark del sector de ${f2(ref * 100)}%.`,
       }
     },
   )

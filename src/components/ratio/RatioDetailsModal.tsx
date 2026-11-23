@@ -7,6 +7,7 @@ import buttonStyles from '@/styles/shared/Button.module.css'
 import modalStyles from '@/styles/shared/Modal.module.css'
 import detailsStyles from '@/styles/ratios/RatioDetailsModal.module.css'
 import type { RatioResponseDTO } from '@/types'
+import { INFO_CATEGORIA, valorRatioEnUnidad } from '@/lib/ratioMetadatos'
 
 interface RatioDetailsModalProps {
   show: boolean
@@ -26,7 +27,10 @@ export const RatioDetailsModal = ({ show, onClose, ratio }: RatioDetailsModalPro
     }
 
     if (typeof value === 'number') {
-      return value.toFixed(4) // Conserva la precisión NUMERIC(15,4)
+      const categoria = ratio?.categoriaRatio?.nombre_categoria
+      const unidad = categoria ? INFO_CATEGORIA[categoria]?.unidad : undefined
+      const etiqueta = unidad === 'porcentaje' ? (type === 'diferencia' ? 'puntos porcentuales' : '%') : unidad === 'dias' ? 'días' : unidad ?? ''
+      return `${valorRatioEnUnidad(value, categoria)} ${etiqueta}`.trim()
     }
 
     return value as string
@@ -60,17 +64,17 @@ export const RatioDetailsModal = ({ show, onClose, ratio }: RatioDetailsModalPro
                 <span>{formatValue(ratio.valor_sector_promedio)}</span>
               ) : (
                 <span className={detailsStyles.valueNotCalculated}>
-                  Sin referencia sectorial (cálculo realizado)
+                  Sin referencia sectorial
                 </span>
               )}
             </li>
             <li>
               <strong>Diferencia vs. Sector:</strong>
-              <span>{formatValue(ratio.diferencia_vs_sector)}</span>
+              <span>{ratio.parametroSector ? formatValue(ratio.diferencia_vs_sector, 'diferencia') : 'Sin referencia sectorial'}</span>
             </li>
             <li>
               <strong>Cumple con Benchmark:</strong>
-              <span>{formatValue(ratio.cumple_sector, 'boolean')}</span>
+              <span>{ratio.parametroSector ? formatValue(ratio.cumple_sector, 'boolean') : 'Sin referencia sectorial'}</span>
             </li>
             <li className={detailsStyles.interpretationItem}>
               <strong>Interpretación:</strong>

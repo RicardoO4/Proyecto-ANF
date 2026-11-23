@@ -102,11 +102,11 @@ export const ModelosInventario = () => {
     },
     {
       Header: 'EOQ',
-      accessor: (f: ModelosInventarioResponse['eoq'][number]) => Number(f.loteEconomico).toFixed(2),
+      accessor: (f: ModelosInventarioResponse['eoq'][number]) => f.loteEconomico === null ? 'No calculable' : f.loteEconomico.toFixed(2),
     },
     {
       Header: 'Pedidos/año',
-      accessor: (f: ModelosInventarioResponse['eoq'][number]) => Number(f.pedidosAnuales).toFixed(2),
+      accessor: (f: ModelosInventarioResponse['eoq'][number]) => f.pedidosAnuales === null ? 'No calculable' : f.pedidosAnuales.toFixed(2),
     },
   ]
 
@@ -191,6 +191,7 @@ export const ModelosInventario = () => {
             mantenimiento sobre el costo unitario; el acumulado ABC incluye el artículo y usa ≤80%
             para A y ≤95% para B. Resultados redondeados a 2 decimales; no se afirma precisión
             decimal exacta.
+            Para calcular EOQ con demanda positiva, el costo por pedido y el costo anual de mantenimiento deben ser mayores que cero.
           </p>
 
           <div className={styles.seccion}>

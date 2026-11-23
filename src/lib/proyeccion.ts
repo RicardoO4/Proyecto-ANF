@@ -8,6 +8,17 @@ function round(value: number, scale: number): number {
   return Math.round(value * factor) / factor
 }
 
+/** Unidad III, pp. 55–56: promedio simple de las variaciones relativas. */
+export function tasaIncrementoPorcentual(montos: number[]): number {
+  if (montos.length < 2 || montos.some(m => !Number.isFinite(m) || m < 0)) throw new BadRequestException('Se requieren al menos dos importes de ventas válidos.')
+  const tasas = montos.slice(1).map((monto, i) => {
+    const base = montos[i]
+    if (base === 0 && monto !== 0) throw new BadRequestException('Incremento porcentual no calculable: hay un periodo con ventas después de una base cero. Los otros métodos siguen disponibles.')
+    return base === 0 ? 0 : (monto - base) / base
+  })
+  return tasas.reduce((suma, tasa) => suma + tasa, 0) / tasas.length
+}
+
 function endOfMonth(year: number, month1Based: number): Date {
   return new Date(Date.UTC(year, month1Based, 0))
 }
@@ -72,19 +83,7 @@ export function calcularProyeccion(
       resultados.push({ fechaProyectada: isoDate(fecha), montoProyectado: round(y, 2) })
     }
   } else if (metodo === 'INCREMENTO_PORCENTUAL') {
-    let sumaIncrementos = 0
-    let sumaBases = 0
-
-    for (let i = 1; i < montos.length; i++) {
-      sumaIncrementos += (montos[i] - montos[i - 1])
-      sumaBases += montos[i - 1]
-    }
-
-    if (sumaBases === 0) {
-      throw new BadRequestException('Error: La suma de bases es cero.')
-    }
-
-    const rProm = round(sumaIncrementos / sumaBases, 6)
+    const rProm = tasaIncrementoPorcentual(montos)
     let montoBase = montos[montos.length - 1]
 
     for (let i = 1; i <= mesesFuturos; i++) {

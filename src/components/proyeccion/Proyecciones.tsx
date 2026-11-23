@@ -9,6 +9,7 @@ import { CargaMasivaVentas } from '@/components/proyeccion/CargaMasivaVentas'
 import { CargaManualVentas } from '@/components/proyeccion/CargaManualVentas'
 import { ventaHistoricaService, type VentaHistorica } from '@/services/ventaHistoricaService'
 import { formatMoney } from '@/lib/formatoMonetario'
+import { getErrorMessage } from '@/services/api'
 import { Notifier } from '@/utils/Notifier'
 import Link from 'next/link'
 import BotonResumenIA from '@/components/shared/BotonResumenIA'
@@ -40,9 +41,9 @@ const obtenerMesNombreSolo = (fechaStr: string | undefined, idx: number) => {
 
 interface ResultadoProyeccionUnificado {
   mesLabel: string
-  minimosCuadrados: number
-  incrementoPorcentual: number
-  incrementoAbsoluto: number
+  minimosCuadrados: number | null
+  incrementoPorcentual: number | null
+  incrementoAbsoluto: number | null
 }
 
 export const Proyecciones = () => {
@@ -58,6 +59,7 @@ export const Proyecciones = () => {
   const [proyeccionesUnificadas, setProyeccionesUnificadas] = useState<ResultadoProyeccionUnificado[]>([])
   const [historicoVentas, setHistoricoVentas] = useState<{ mesLabel: string; historico: number }[]>([])
   const [escenarioSimulado, setEscenarioSimulado] = useState(false)
+  const [erroresProyeccion, setErroresProyeccion] = useState<string[]>([])
   const [anioProyectado, setAnioProyectado] = useState<string>('2026')
 
   const cargarHistoricoBD = useCallback(async (empId: string) => {
@@ -88,42 +90,29 @@ export const Proyecciones = () => {
       await cargarHistoricoBD(empIdStr)
       const empId = parseInt(empIdStr, 10)
 
-      const [resMC, resIP, resIA] = await Promise.all([
+      const respuestas = await Promise.allSettled([
         ventaHistoricaService.getProyeccionVentas(empId, 12, 'MINIMOS_CUADRADOS'),
         ventaHistoricaService.getProyeccionVentas(empId, 12, 'INCREMENTO_PORCENTUAL'),
-        ventaHistoricaService.getProyeccionVentas(empId, 12, 'INCREMENTO_ABSOLUTO')
+        ventaHistoricaService.getProyeccionVentas(empId, 12, 'INCREMENTO_ABSOLUTO'),
       ])
-
       if (solicitud !== secuencia.current) return
-
-      if (resMC.length > 0) {
-        const primeraFecha = resMC[0].fechaProyectada || (resMC[0] as unknown as { fecha?: string }).fecha
-        if (primeraFecha) {
-          const partes = primeraFecha.split('T')[0].split('-')
-          setAnioProyectado(partes[0] || '2026')
-        }
-      }
-
-      const unificados: ResultadoProyeccionUnificado[] = resMC.map((pMC, index) => {
-        const pIP = resIP[index] || {}
-        const pIA = resIA[index] || {}
-
-        const fechaStr = pMC.fechaProyectada || (pMC as unknown as { fecha?: string }).fecha
-        const montoMC = pMC.montoProyectado ?? (pMC as unknown as { monto?: number }).monto ?? 0
-        const montoIP = pIP.montoProyectado ?? (pIP as unknown as { monto?: number }).monto ?? 0
-        const montoIA = pIA.montoProyectado ?? (pIA as unknown as { monto?: number }).monto ?? 0
-
-        return {
-          mesLabel: obtenerMesNombreSolo(fechaStr, index),
-          minimosCuadrados: Number(Number(montoMC).toFixed(2)),
-          incrementoPorcentual: Number(Number(montoIP).toFixed(2)),
-          incrementoAbsoluto: Number(Number(montoIA).toFixed(2))
-        }
-      })
+      const nombres = ['Minimos cuadrados', 'Incremento porcentual', 'Incremento absoluto']
+      setErroresProyeccion(respuestas.flatMap((r, i) => r.status === 'rejected' ? [`${nombres[i]}: ${getErrorMessage(r.reason, 'No se pudo calcular.')}`] : []))
+      const [resMC, resIP, resIA] = respuestas.map(r => r.status === 'fulfilled' ? r.value : [])
+      const referencia = resMC.length ? resMC : resIA.length ? resIA : resIP
+      if (referencia.length) setAnioProyectado(referencia[0].fechaProyectada.slice(0, 4))
+      const unificados: ResultadoProyeccionUnificado[] = referencia.map((fila, index) => ({
+        mesLabel: obtenerMesNombreSolo(fila.fechaProyectada, index),
+        minimosCuadrados: resMC[index]?.montoProyectado ?? null,
+        incrementoPorcentual: resIP[index]?.montoProyectado ?? null,
+        incrementoAbsoluto: resIA[index]?.montoProyectado ?? null,
+      }))
 
       setProyeccionesUnificadas(unificados)
     } catch (error) {
-      console.error('Error al autogenerar proyecciones:', error)
+      if (solicitud !== secuencia.current) return
+      setProyeccionesUnificadas([])
+      setErroresProyeccion([getErrorMessage(error, 'No se pudieron generar las proyecciones.')])
     }
   }, [cargarHistoricoBD])
 
@@ -167,6 +156,8 @@ export const Proyecciones = () => {
   return (
     <div className={viewStyles.viewContainer}>
       <h1 className={viewStyles.viewTitle}>Proyección de Ventas Mensuales</h1>
+      <p>Incremento porcentual: promedio simple de las variaciones porcentuales mensuales, según la Unidad III. Una transición de cero a ventas positivas impide calcular este método.</p>
+      {erroresProyeccion.map((mensaje, i) => <p role="status" key={i}>{mensaje}</p>)}
       {escenarioSimulado && <p role="status">Fuente: escenario simulado mensual para práctica académica. Las ventas de inventarios y los demás registros no se incluyen en esta proyección.</p>}
       <p className="mb-4">
         Este módulo presenta la proyección comparativa de ventas a 12 meses basada en datos históricos mediante tres métodos clásicos: <strong>Mínimos Cuadrados</strong>, <strong>Incremento Porcentual</strong> e <strong>Incremento Absoluto</strong>.
@@ -288,7 +279,7 @@ export const Proyecciones = () => {
                       {formatMoney(p.minimosCuadrados)}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      {formatMoney(p.incrementoPorcentual)}
+                      {p.incrementoPorcentual === null ? 'No calculable' : formatMoney(p.incrementoPorcentual)}
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       {formatMoney(p.incrementoAbsoluto)}

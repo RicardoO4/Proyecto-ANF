@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { ValidationException, handle } from '@/lib/errors'
-import { leerEmpresaId, parametroDTO } from '@/lib/inventarioApi'
+import { leerEmpresaId, leerCuerpoInventario, parametroDTO } from '@/lib/inventarioApi'
 import { NextResponse } from 'next/server'
 
 type ParametroInput = {
@@ -15,6 +15,9 @@ type ParametroInput = {
 
 function validar(body: ParametroInput) {
   const empresaId = leerEmpresaId(body.empresaId)
+  for (const clave of ['costoPedido', 'tasaMantenimiento', 'leadTimeDias'] as const) {
+    if (body[clave] == null || !['number', 'string'].includes(typeof body[clave])) throw new ValidationException(`${clave}: Debe ser un número.`)
+  }
   const costoPedido = Number(body.costoPedido)
   const tasaMantenimiento = Number(body.tasaMantenimiento)
   const leadTimeDias = Number(body.leadTimeDias)
@@ -64,7 +67,7 @@ export async function GET(req: Request) {
 
 export async function PUT(req: Request) {
   return handle(req, async () => {
-    const valores = validar((await req.json()) as ParametroInput)
+    const valores = validar(await leerCuerpoInventario(req) as ParametroInput)
     const { data, error } = await supabaseAdmin
       .from('parametro_inventario')
       .upsert(valores, { onConflict: 'empresa_id' })

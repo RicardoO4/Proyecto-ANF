@@ -1,7 +1,8 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { BusinessRuleException, NotFoundException, ValidationException, handle } from '@/lib/errors'
-import { leerEmpresaId, movimientoDTO } from '@/lib/inventarioApi'
+import { ValidationException, handle } from '@/lib/errors'
+import { leerEmpresaId, leerCuerpoInventario, errorMovimientoInventario, movimientoDTO } from '@/lib/inventarioApi'
 import { NextResponse } from 'next/server'
+import { leerPaginasInventario } from '@/lib/paginasInventario'
 
 type MovimientoInput = {
   empresaId?: number
@@ -15,20 +16,19 @@ type MovimientoInput = {
 export async function GET(req: Request) {
   return handle(req, async () => {
     const empresaId = leerEmpresaId(new URL(req.url).searchParams.get('empresaId'))
-    const { data, error } = await supabaseAdmin
+    const data = await leerPaginasInventario((desde, hasta) => supabaseAdmin
       .from('movimiento_inventario')
       .select('*, producto!inner(codigo_sku, nombre)')
       .eq('empresa_id', empresaId)
       .order('fecha', { ascending: false })
-      .order('id_movimiento', { ascending: false })
-    if (error) throw error
+      .order('id_movimiento', { ascending: false }).range(desde, hasta))
     return NextResponse.json((data ?? []).map(movimientoDTO))
   })
 }
 
 export async function POST(req: Request) {
   return handle(req, async () => {
-    const body = (await req.json()) as MovimientoInput
+    const body = (await leerCuerpoInventario(req)) as MovimientoInput
     const empresaId = leerEmpresaId(body.empresaId)
     const productoId = Number(body.productoId)
     if (!Number.isInteger(productoId) || productoId <= 0) {
@@ -41,48 +41,19 @@ export async function POST(req: Request) {
     if (!Number.isFinite(cantidad) || cantidad <= 0) {
       throw new ValidationException('cantidad: Debe ser mayor a cero')
     }
-    if (!Number.isInteger(cantidad)) {
+    if (!Number.isInteger(cantidad) || cantidad > 2147483647) {
       throw new ValidationException('cantidad: Debe ser un número entero de unidades')
     }
-    if (!body.fecha || Number.isNaN(Date.parse(body.fecha))) {
+    if (typeof body.fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.fecha) || Number.isNaN(Date.parse(body.fecha)) || new Date(body.fecha).toISOString().slice(0, 10) !== body.fecha) {
       throw new ValidationException('fecha: Fecha inválida')
     }
 
-    const { data: producto, error: errorProducto } = await supabaseAdmin
-      .from('producto')
-      .select('id_producto, stock_actual')
-      .eq('id_producto', productoId)
-      .eq('empresa_id', empresaId)
-      .maybeSingle()
-    if (errorProducto) throw errorProducto
-    if (!producto) throw new NotFoundException('Producto no encontrado')
-
-    const stockActual = Number(producto.stock_actual)
-    const nuevoStock = body.tipoMovimiento === 'ENTRADA' ? stockActual + cantidad : stockActual - cantidad
-    if (nuevoStock < 0) {
-      throw new BusinessRuleException('Stock insuficiente para registrar la salida.')
-    }
-
-    const { data: movimiento, error: errorMovimiento } = await supabaseAdmin
-      .from('movimiento_inventario')
-      .insert({
-        empresa_id: empresaId,
-        producto_id: productoId,
-        tipo_movimiento: body.tipoMovimiento,
-        cantidad,
-        fecha: body.fecha,
-        observacion: body.observacion ?? null,
-      })
-      .select('*')
-      .single()
-    if (errorMovimiento) throw errorMovimiento
-
-    const { error: errorStock } = await supabaseAdmin
-      .from('producto')
-      .update({ stock_actual: nuevoStock })
-      .eq('id_producto', productoId)
-      .eq('empresa_id', empresaId)
-    if (errorStock) throw errorStock
+    if (body.observacion != null && typeof body.observacion !== 'string') throw new ValidationException('observacion: Debe ser texto.')
+    const { data: movimiento, error } = await supabaseAdmin.rpc('inventario_registrar_movimiento', {
+      p_empresa: empresaId, p_producto: productoId, p_tipo: body.tipoMovimiento,
+      p_cantidad: cantidad, p_fecha: body.fecha, p_observacion: body.observacion ?? null,
+    }).single<Record<string, unknown>>()
+    if (error) errorMovimientoInventario(error)
 
     return NextResponse.json(movimientoDTO(movimiento), { status: 201 })
   })

@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { ValidationException, handle } from '@/lib/errors'
 import { leerEmpresaId, parametroDTO, parametrosPorDefecto, productoDTO } from '@/lib/inventarioApi'
 import { anioVenta, ventasRealesDelAnio } from '@/lib/origenVentas'
+import { leerPaginasInventario } from '@/lib/paginasInventario'
 import {
   calcularEOQ,
   calcularReorden,
@@ -27,29 +28,27 @@ export async function GET(req: Request) {
     }
 
     const [
-      { data: productos, error: errorProductos },
+      productos,
       { data: parametro, error: errorParametro },
-      { data: ventasDetalle, error: errorVentas },
+      ventasDetalle,
     ] = await Promise.all([
-      supabaseAdmin
+      leerPaginasInventario((desde, hasta) => supabaseAdmin
         .from('producto')
         .select('*')
         .eq('empresa_id', empresaId)
         .eq('activo', true)
-        .order('codigo_sku'),
+        .order('codigo_sku').order('id_producto').range(desde, hasta)),
       supabaseAdmin
         .from('parametro_inventario')
         .select('*')
         .eq('empresa_id', empresaId)
         .maybeSingle(),
-      supabaseAdmin
+      leerPaginasInventario((desde, hasta) => supabaseAdmin
         .from('venta')
         .select('id_venta, fecha_venta, observacion, venta_detalle!inner(producto_id, cantidad)')
-        .eq('empresa_id', empresaId),
+        .eq('empresa_id', empresaId).order('id_venta').range(desde, hasta)),
     ])
-    if (errorProductos) throw errorProductos
     if (errorParametro) throw errorParametro
-    if (errorVentas) throw errorVentas
 
     const filasDetalle = (ventasDetalle ?? []) as unknown as VentaDetalleRow[]
     const aniosDisponibles = Array.from(new Set(filasDetalle.map(anioVenta)))

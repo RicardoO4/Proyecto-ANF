@@ -17,7 +17,7 @@ import BotonResumenIA from '@/components/shared/BotonResumenIA'
 import ActualizarIndicadores from './ActualizarIndicadores'
 import recalculoStyles from '@/styles/ratio/ActualizarIndicadores.module.css'
 import { apiClient, getErrorMessage } from '@/services/api'
-import { INFO_CATEGORIA } from '@/lib/ratioMetadatos'
+import { INFO_CATEGORIA, valorRatioEnUnidad } from '@/lib/ratioMetadatos'
 import type { RatioResponseDTO, CategoriaRatioResponseDTO, ParametroSectorResponseDTO, EmpresaResponseDTO } from '@/types'
 
 export const Ratio = () => {
@@ -45,7 +45,7 @@ export const Ratio = () => {
       setLoading(true)
       const ratiosData = await ratioService.getRatios(nombreEmpresa)
       setRatios(ratiosData)
-    } catch (error) {
+    } catch {
       Notifier.error('No se pudieron cargar los ratios.')
     } finally {
       setLoading(false)
@@ -62,7 +62,7 @@ export const Ratio = () => {
         ])
         setCategorias(categoriasData as CategoriaRatioResponseDTO[])
         setParametros(parametrosData)
-      } catch (error) {
+      } catch {
         Notifier.error('No se pudieron cargar los datos para los formularios.')
       }
     }
@@ -84,12 +84,6 @@ export const Ratio = () => {
     return unidad ?? 'N/A'
   }
 
-  const valorEnUnidad = (valor: number | null | undefined, categoria?: string | null) => {
-    if (valor == null) return 'Sin cálculo'
-    const porcentaje = categoria ? INFO_CATEGORIA[categoria]?.unidad === 'porcentaje' : false
-    return (Number(valor) * (porcentaje ? 100 : 1)).toFixed(4)
-  }
-
   const columnas = [
     { Header: 'ID', accessor: 'id_ratio' },
     {
@@ -99,7 +93,7 @@ export const Ratio = () => {
     {
       Header: 'VALOR CALCULADO',
       accessor: (row: RatioResponseDTO) =>
-        valorEnUnidad(row.valor_calculado, row.categoriaRatio?.nombre_categoria),
+        valorRatioEnUnidad(row.valor_calculado, row.categoriaRatio?.nombre_categoria),
     },
     {
       Header: 'UNIDAD',
@@ -109,8 +103,8 @@ export const Ratio = () => {
       Header: 'REFERENCIA SECTORIAL',
       accessor: (row: RatioResponseDTO) =>
         row.parametroSector?.valor_referencia != null
-          ? valorEnUnidad(row.parametroSector.valor_referencia, row.categoriaRatio?.nombre_categoria)
-          : 'Sin referencia sectorial (cálculo realizado)',
+          ? valorRatioEnUnidad(row.parametroSector.valor_referencia, row.categoriaRatio?.nombre_categoria)
+          : 'Sin referencia sectorial',
     },
     {
       Header: 'AÑO REFERENCIA',

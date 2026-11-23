@@ -14,16 +14,18 @@ export function descomponerDupont(ventas: number, utilidad: number, activos: num
   return { margen, rotacion, multiplicador, roe: patrimonio > 0 ? utilidad / patrimonio : null }
 }
 
-export function calcularGraficoSensibilidadDupont(roeBase: number) {
+export function calcularGraficoSensibilidadDupont(roeBase: number, margenCambio = 0, rotacionCambio = 0, capitalCambio = 0) {
   return Array.from({ length: 9 }, (_, i) => {
     const cambio = -20 + i * 5
     const roePorcentaje = roeBase * 100
-    const roeSimulado = roePorcentaje * (1 + cambio / 100)
+    const m = 1 + margenCambio / 100, r = 1 + rotacionCambio / 100, k = 1 + capitalCambio / 100
+    const redondear = (valor: number) => Number(valor.toFixed(4))
     return {
       cambio,
-      margen: Number(roeSimulado.toFixed(4)),
-      rotacion: Number(roeSimulado.toFixed(4)),
-      capital: Number(roeSimulado.toFixed(4)),
+      combinado: redondear(roePorcentaje * m * r * k),
+      margen: redondear(roePorcentaje * (m + cambio / 100) * r * k),
+      rotacion: redondear(roePorcentaje * m * (r + cambio / 100) * k),
+      capital: redondear(roePorcentaje * m * r * (k + cambio / 100)),
     }
   })
 }

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
 import { useBaseFinanciera } from '@/hooks/useBaseFinanciera'
 import AvisoPeriodoFinanciero from '@/components/shared/AvisoPeriodoFinanciero'
-import { descomponerDupont } from '@/lib/rentabilidad'
+import { descomponerDupont, calcularGraficoSensibilidadDupont } from '@/lib/rentabilidad'
 import BotonResumenIA from '@/components/shared/BotonResumenIA'
 import view from '@/styles/shared/View.module.css'
 
@@ -23,30 +23,7 @@ export default function DupontIntegrado() {
       ? (d.margen ?? 0) * (1 + margenCambio / 100) * (d.rotacion ?? 0) * (1 + rotacionCambio / 100) * (d.multiplicador ?? 0) * (1 + capitalCambio / 100)
       : null
 
-  // Gráfico reactivo a las posiciones actuales de los tres deslizadores
-  const grafico = Array.from({ length: 9 }, (_, i) => {
-    const cambio = -20 + i * 5
-    const roeBasePct = (d?.roe ?? 0) * 100
-    const mFactor = 1 + margenCambio / 100
-    const rFactor = 1 + rotacionCambio / 100
-    const kFactor = 1 + capitalCambio / 100
-
-    // Curva del Escenario Combinado al variar el rango global
-    const roeCombinado = roeBasePct * mFactor * rFactor * kFactor * (1 + cambio / 100)
-
-    // Sensibilidades individuales aplicando el desplazamiento actual de cada slider
-    const sensMargen = roeBasePct * (1 + (margenCambio + cambio) / 100) * rFactor * kFactor
-    const sensRotacion = roeBasePct * mFactor * (1 + (rotacionCambio + cambio) / 100) * kFactor
-    const sensCapital = roeBasePct * mFactor * rFactor * (1 + (capitalCambio + cambio) / 100)
-
-    return {
-      cambio,
-      combinado: Number(roeCombinado.toFixed(2)),
-      margen: Number(sensMargen.toFixed(2)),
-      rotacion: Number(sensRotacion.toFixed(2)),
-      capital: Number(sensCapital.toFixed(2)),
-    }
-  })
+  const grafico = calcularGraficoSensibilidadDupont(d?.roe ?? 0, margenCambio, rotacionCambio, capitalCambio)
 
   return (
     <div className={view.viewContainer}>
@@ -132,7 +109,7 @@ export default function DupontIntegrado() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis
                         dataKey="cambio"
-                        label={{ value: 'Cambio relativo de un factor (%)', position: 'insideBottom', offset: -10 }}
+                        label={{ value: 'Cambio adicional de un control (puntos porcentuales)', position: 'insideBottom', offset: -10 }}
                       />
                       <YAxis unit="%" />
                       <Tooltip formatter={(value) => `${Number(value).toFixed(2)}%`} />
@@ -140,7 +117,7 @@ export default function DupontIntegrado() {
                       <Line
                         type="monotone"
                         dataKey="combinado"
-                        name="ROE Escenario Combinado"
+                        name="ROE del escenario actual"
                         stroke="#4ebe96"
                         strokeWidth={3}
                         dot={{ r: 4 }}
@@ -176,7 +153,7 @@ export default function DupontIntegrado() {
                   </ResponsiveContainer>
 
                   <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                    * El gráfico actualiza en tiempo real la trayectoria del ROE acumulado y la sensibilidad individual al ajustar los deslizadores de Margen, Rotación y Multiplicador.
+                    Cada curva añade los puntos porcentuales del eje X a un solo control y mantiene los otros dos constantes. La línea del escenario actual es la referencia. En cero todas coinciden; con controles iguales también pueden superponerse por la identidad multiplicativa de DuPont.
                   </p>
                 </>
               )}

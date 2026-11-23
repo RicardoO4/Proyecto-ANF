@@ -1,6 +1,11 @@
 /** Unidades compartidas por la interfaz y el asistente; sin dependencias del servidor. */
 export type UnidadRatio = 'veces' | 'porcentaje' | 'dias'
 
+export function valorRatioEnUnidad(valor: number | null | undefined, categoria?: string | null): string {
+  if (valor == null || !Number.isFinite(Number(valor))) return 'Sin cálculo'
+  return (Number(valor) * (categoria && INFO_CATEGORIA[categoria]?.unidad === 'porcentaje' ? 100 : 1)).toFixed(4)
+}
+
 export const INFO_CATEGORIA: Record<string, { unidad: UnidadRatio; menorEsMejor: boolean }> = {
   'Razón de circulante o liquidez corriente': { unidad: 'veces', menorEsMejor: false },
   'Razón de efectivo': { unidad: 'veces', menorEsMejor: false },
