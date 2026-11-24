@@ -79,6 +79,7 @@ export const estadosFinancierosSubMenuLinks = [
 export const inventarioSubMenuLinks = [
   { to: '/inventario/productos', label: 'Productos' },
   { to: '/inventario/movimientos', label: 'Movimientos' },
+  { to: '/inventario/ventas', label: 'Ventas SKU' },
   { to: '/inventario/parametros', label: 'Parámetros' },
   { to: '/inventario/modelos', label: 'Modelos ABC / EOQ / PR' },
 ]

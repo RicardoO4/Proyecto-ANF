@@ -101,54 +101,63 @@ WHERE empresa_id = 2;
 INSERT INTO producto (codigo_sku, nombre, descripcion, costo_unitario, stock_actual, empresa_id)
 SELECT v.codigo_sku, v.nombre, v.descripcion, v.costo_unitario, v.stock_actual, 2
 FROM (VALUES
-    ('INV-001', 'Laptop Core i5 16GB', 'Portátil corporativo 16 GB RAM / 512 GB SSD', 850.55::numeric, 201),
-    ('INV-002', 'Monitor LED 24 pulgadas', 'Monitor Full HD 24 pulgadas', 189.97::numeric, 585),
-    ('INV-003', 'Teclado mecánico', 'Teclado mecánico retroiluminado', 28.03::numeric, 305),
-    ('INV-004', 'Mouse inalámbrico', 'Mouse óptico inalámbrico 2.4 GHz', 15.00::numeric, 285),
-    ('INV-005', 'Impresora láser', 'Impresora láser monocroma de escritorio', 420.39::numeric, 244),
-    ('INV-006', 'Toner negro', 'Cartucho de toner negro alta capacidad', 61.99::numeric, 1379),
-    ('INV-007', 'Silla ergonómica', 'Silla de oficina con soporte lumbar', 114.94::numeric, 818),
-    ('INV-008', 'Escritorio 1.20 m', 'Escritorio modular de oficina 1.20 m', 159.88::numeric, 695),
-    ('INV-009', 'Switch 8 puertos', 'Switch Ethernet 8 puertos 10/100/1000', 48.02::numeric, 1068),
-    ('INV-010', 'Cable HDMI 2 m', 'Cable HDMI 2.0 de 2 metros', 7.99::numeric, 107),
-    ('INV-011', 'Disco SSD 512 GB', 'Unidad SSD SATA 512 GB', 94.98::numeric, 810),
-    ('INV-012', 'Router Wi-Fi', 'Router inalámbrico doble banda', 78.03::numeric, 482)
+    ('INV-001', 'Motor 1.6 L', 'Motor completo 1.6 L para vehículo ligero', 1100.00::numeric, 155),
+    ('INV-002', 'Motor 1.8 L', 'Motor completo 1.8 L para vehículo ligero', 1500.00::numeric, 74),
+    ('INV-003', 'Motor 1.4 L', 'Motor completo 1.4 L para vehículo ligero', 950.00::numeric, 9),
+    ('INV-004', 'Motor 1.0 L', 'Motor completo 1.0 L para vehículo ligero', 650.00::numeric, 7),
+    ('INV-005', 'Motor 2.0 L diésel', 'Motor diésel 2.0 L para vehículo ligero', 2400.00::numeric, 43),
+    ('INV-006', 'Motor 1.2 L', 'Motor completo 1.2 L para vehículo ligero', 700.00::numeric, 122),
+    ('INV-007', 'Motor 1.5 L turbo', 'Motor turbo 1.5 L para vehículo ligero', 1800.00::numeric, 52),
+    ('INV-008', 'Motor 2.4 L', 'Motor completo 2.4 L para vehículo ligero', 1250.00::numeric, 89),
+    ('INV-009', 'Alternador', 'Alternador de vehículo', 189.99::numeric, 270),
+    ('INV-010', 'Bujía', 'Bujía de encendido', 3.81::numeric, 240),
+    ('INV-011', 'Filtro de aceite', 'Filtro de aceite de motor', 4.05::numeric, 18996),
+    ('INV-012', 'Correa de distribución', 'Correa de distribución de motor', 65.17::numeric, 577),
+    ('INV-013', 'Módulo ECU', 'Unidad de control electrónico del motor', 125.00::numeric, 13)
 ) AS v(codigo_sku, nombre, descripcion, costo_unitario, stock_actual)
 WHERE EXISTS (SELECT 1 FROM empresa WHERE empresa_id = 2)
 ON CONFLICT (empresa_id, codigo_sku) DO NOTHING;
 
-UPDATE producto p
-SET stock_actual = v.stock_actual, costo_unitario = v.costo_unitario
-FROM (VALUES
-    ('INV-001', 850.55::numeric, 201),
-    ('INV-002', 189.97::numeric, 585),
-    ('INV-003', 28.03::numeric, 305),
-    ('INV-004', 15.00::numeric, 285),
-    ('INV-005', 420.39::numeric, 244),
-    ('INV-006', 61.99::numeric, 1379),
-    ('INV-007', 114.94::numeric, 818),
-    ('INV-008', 159.88::numeric, 695),
-    ('INV-009', 48.02::numeric, 1068),
-    ('INV-010', 7.99::numeric, 107),
-    ('INV-011', 94.98::numeric, 810),
-    ('INV-012', 78.03::numeric, 482)
-) AS v(codigo_sku, costo_unitario, stock_actual)
-WHERE p.empresa_id = 2 AND p.codigo_sku = v.codigo_sku;
+DO $$
+BEGIN
+  PERFORM set_config('anf.inventario_movimiento','1',true);
+
+  UPDATE producto p
+  SET stock_actual = v.stock_actual, costo_unitario = v.costo_unitario
+  FROM (VALUES
+      ('INV-001', 1100.00::numeric, 155),
+      ('INV-002', 1500.00::numeric, 74),
+      ('INV-003', 950.00::numeric, 9),
+      ('INV-004', 650.00::numeric, 7),
+      ('INV-005', 2400.00::numeric, 43),
+      ('INV-006', 700.00::numeric, 122),
+      ('INV-007', 1800.00::numeric, 52),
+      ('INV-008', 1250.00::numeric, 89),
+      ('INV-009', 189.99::numeric, 270),
+      ('INV-010', 3.81::numeric, 240),
+      ('INV-011', 4.05::numeric, 18996),
+      ('INV-012', 65.17::numeric, 577),
+      ('INV-013', 125.00::numeric, 13)
+  ) AS v(codigo_sku, costo_unitario, stock_actual)
+  WHERE p.empresa_id = 2 AND p.codigo_sku = v.codigo_sku;
+
+  PERFORM set_config('anf.inventario_movimiento','0',true);
+END $$;
 
 WITH datos AS (
     SELECT * FROM (VALUES
-        ('INV-001', 302.2754::numeric, 921.822616::numeric, 278644.30::numeric),
-        ('INV-002', 901.5232::numeric, 206.054442::numeric, 185762.86::numeric),
-        ('INV-003', 2548.9496::numeric, 30.365916::numeric, 77401.19::numeric),
-        ('INV-004', 3806.4313::numeric, 16.267455::numeric, 61920.95::numeric),
-        ('INV-005', 339.8599::numeric, 455.488835::numeric, 154802.39::numeric),
-        ('INV-006', 1841.8216::numeric, 67.238819::numeric, 123841.91::numeric),
-        ('INV-007', 1117.1048::numeric, 124.717171::numeric, 139322.15::numeric),
-        ('INV-008', 892.1323::numeric, 173.519544::numeric, 154802.39::numeric),
-        ('INV-009', 1784.2647::numeric, 52.055858::numeric, 92881.43::numeric),
-        ('INV-010', 5352.7941::numeric, 8.675977::numeric, 46440.72::numeric),
-        ('INV-011', 1352.2848::numeric, 103.027225::numeric, 139322.15::numeric),
-        ('INV-012', 1098.0098::numeric, 84.590711::numeric, 92881.43::numeric)
+        ('INV-001', 233.7276::numeric, 1192.1754::numeric, 278644.30::numeric),
+        ('INV-002', 114.1749::numeric, 1627.0026::numeric, 185762.86::numeric),
+        ('INV-003', 75.2074::numeric, 1029.1699::numeric, 77401.19::numeric),
+        ('INV-004', 87.8407::numeric, 704.9232::numeric, 61920.95::numeric),
+        ('INV-005', 59.5307::numeric, 2600.3791::numeric, 154802.39::numeric),
+        ('INV-006', 163.1065::numeric, 759.2702::numeric, 123841.91::numeric),
+        ('INV-007', 71.3334::numeric, 1953.1124::numeric, 139322.15::numeric),
+        ('INV-008', 114.1073::numeric, 1356.6388::numeric, 154802.39::numeric),
+        ('INV-009', 450.9732::numeric, 205.9578::numeric, 92881.43::numeric),
+        ('INV-010', 11225.4121::numeric, 4.1371::numeric, 46440.72::numeric),
+        ('INV-011', 31713.5605::numeric, 4.3931::numeric, 139322.15::numeric),
+        ('INV-012', 1314.6801::numeric, 70.6495::numeric, 92881.43::numeric)
     ) AS v(codigo_sku, cantidad, precio_unitario, subtotal)
 ), nuevas_ventas AS (
     INSERT INTO venta (fecha_venta, monto_venta, observacion, empresa_id)
@@ -168,18 +177,18 @@ ON CONFLICT (venta_id, producto_id) DO NOTHING;
 
 WITH datos AS (
     SELECT * FROM (VALUES
-        ('INV-001', 318.4610::numeric, 924.730940::numeric, 294490.74::numeric),
-        ('INV-002', 949.7959::numeric, 206.704577::numeric, 196327.16::numeric),
-        ('INV-003', 2685.4349::numeric, 30.461725::numeric, 81802.98::numeric),
-        ('INV-004', 4010.2495::numeric, 16.318783::numeric, 65442.39::numeric),
-        ('INV-005', 358.0580::numeric, 456.925889::numeric, 163605.97::numeric),
-        ('INV-006', 1940.4433::numeric, 67.450963::numeric, 130884.77::numeric),
-        ('INV-007', 1176.9210::numeric, 125.110666::numeric, 147245.37::numeric),
-        ('INV-008', 939.9022::numeric, 174.067015::numeric, 163605.97::numeric),
-        ('INV-009', 1879.8045::numeric, 52.220101::numeric, 98163.58::numeric),
-        ('INV-010', 5639.4134::numeric, 8.703350::numeric, 49081.79::numeric),
-        ('INV-011', 1424.6939::numeric, 103.352285::numeric, 147245.37::numeric),
-        ('INV-012', 1156.8027::numeric, 84.857677::numeric, 98163.59::numeric)
+        ('INV-001', 246.2427::numeric, 1195.9369::numeric, 294490.74::numeric),
+        ('INV-002', 120.2885::numeric, 1632.1357::numeric, 196327.16::numeric),
+        ('INV-003', 79.2345::numeric, 1032.4162::numeric, 81802.98::numeric),
+        ('INV-004', 92.5442::numeric, 707.1474::numeric, 65442.39::numeric),
+        ('INV-005', 62.7183::numeric, 2608.5843::numeric, 163605.97::numeric),
+        ('INV-006', 171.8401::numeric, 761.6660::numeric, 130884.77::numeric),
+        ('INV-007', 75.1529::numeric, 1959.2773::numeric, 147245.37::numeric),
+        ('INV-008', 120.2172::numeric, 1360.9198::numeric, 163605.97::numeric),
+        ('INV-009', 475.1208::numeric, 206.6076::numeric, 98163.58::numeric),
+        ('INV-010', 11826.4856::numeric, 4.1502::numeric, 49081.79::numeric),
+        ('INV-011', 33411.7728::numeric, 4.4070::numeric, 147245.37::numeric),
+        ('INV-012', 1385.0746::numeric, 70.8724::numeric, 98163.59::numeric)
     ) AS v(codigo_sku, cantidad, precio_unitario, subtotal)
 ), nuevas_ventas AS (
     INSERT INTO venta (fecha_venta, monto_venta, observacion, empresa_id)
@@ -199,18 +208,18 @@ ON CONFLICT (venta_id, producto_id) DO NOTHING;
 
 WITH datos AS (
     SELECT * FROM (VALUES
-        ('INV-001', 337.1674::numeric, 933.807895::numeric, 314849.58::numeric),
-        ('INV-002', 1005.5870::numeric, 208.733526::numeric, 209899.72::numeric),
-        ('INV-003', 2843.1777::numeric, 30.760729::numeric, 87458.22::numeric),
-        ('INV-004', 4245.8120::numeric, 16.478961::numeric, 69966.57::numeric),
-        ('INV-005', 379.0904::numeric, 461.410893::numeric, 174916.44::numeric),
-        ('INV-006', 2054.4251::numeric, 68.113045::numeric, 139933.15::numeric),
-        ('INV-007', 1246.0535::numeric, 126.338709::numeric, 157424.79::numeric),
-        ('INV-008', 995.1122::numeric, 175.775596::numeric, 174916.44::numeric),
-        ('INV-009', 1990.2244::numeric, 52.732677::numeric, 104949.86::numeric),
-        ('INV-010', 5970.6731::numeric, 8.788780::numeric, 52474.93::numeric),
-        ('INV-011', 1508.3806::numeric, 104.366756::numeric, 157424.79::numeric),
-        ('INV-012', 1224.7535::numeric, 85.690598::numeric, 104949.86::numeric)
+        ('INV-001', 260.7070::numeric, 1207.6760::numeric, 314849.58::numeric),
+        ('INV-002', 127.3542::numeric, 1648.1570::numeric, 209899.72::numeric),
+        ('INV-003', 83.8887::numeric, 1042.5507::numeric, 87458.22::numeric),
+        ('INV-004', 97.9803::numeric, 714.0881::numeric, 69966.57::numeric),
+        ('INV-005', 66.4024::numeric, 2634.1885::numeric, 174916.44::numeric),
+        ('INV-006', 181.9340::numeric, 769.1424::numeric, 139933.15::numeric),
+        ('INV-007', 79.5674::numeric, 1978.5087::numeric, 157424.79::numeric),
+        ('INV-008', 127.2788::numeric, 1374.2779::numeric, 174916.44::numeric),
+        ('INV-009', 503.0295::numeric, 208.6356::numeric, 104949.86::numeric),
+        ('INV-010', 12521.1759::numeric, 4.1909::numeric, 52474.93::numeric),
+        ('INV-011', 35374.3802::numeric, 4.4502::numeric, 157424.79::numeric),
+        ('INV-012', 1466.4342::numeric, 71.5681::numeric, 104949.86::numeric)
     ) AS v(codigo_sku, cantidad, precio_unitario, subtotal)
 ), nuevas_ventas AS (
     INSERT INTO venta (fecha_venta, monto_venta, observacion, empresa_id)
@@ -231,54 +240,54 @@ ON CONFLICT (venta_id, producto_id) DO NOTHING;
 INSERT INTO movimiento_inventario (producto_id, empresa_id, tipo_movimiento, cantidad, fecha, observacion)
 SELECT p.id_producto, 2, 'ENTRADA', d.cantidad, d.fecha, d.observacion
 FROM (VALUES
-    ('INV-001', 121, DATE '2022-12-31', 'INV apertura 2022'),
-    ('INV-002', 353, DATE '2022-12-31', 'INV apertura 2022'),
-    ('INV-003', 184, DATE '2022-12-31', 'INV apertura 2022'),
-    ('INV-004', 172, DATE '2022-12-31', 'INV apertura 2022'),
-    ('INV-005', 147, DATE '2022-12-31', 'INV apertura 2022'),
-    ('INV-006', 832, DATE '2022-12-31', 'INV apertura 2022'),
-    ('INV-007', 493, DATE '2022-12-31', 'INV apertura 2022'),
-    ('INV-008', 419, DATE '2022-12-31', 'INV apertura 2022'),
-    ('INV-009', 645, DATE '2022-12-31', 'INV apertura 2022'),
-    ('INV-010', 64, DATE '2022-12-31', 'INV apertura 2022'),
-    ('INV-011', 489, DATE '2022-12-31', 'INV apertura 2022'),
-    ('INV-012', 291, DATE '2022-12-31', 'INV apertura 2022'),
-    ('INV-001', 343, DATE '2023-01-05', 'INV compras 2023'),
-    ('INV-002', 1019, DATE '2023-01-05', 'INV compras 2023'),
-    ('INV-003', 2610, DATE '2023-01-05', 'INV compras 2023'),
-    ('INV-004', 3864, DATE '2023-01-05', 'INV compras 2023'),
-    ('INV-005', 389, DATE '2023-01-05', 'INV compras 2023'),
-    ('INV-006', 2119, DATE '2023-01-05', 'INV compras 2023'),
-    ('INV-007', 1282, DATE '2023-01-05', 'INV compras 2023'),
-    ('INV-008', 1032, DATE '2023-01-05', 'INV compras 2023'),
-    ('INV-009', 1999, DATE '2023-01-05', 'INV compras 2023'),
-    ('INV-010', 5374, DATE '2023-01-05', 'INV compras 2023'),
-    ('INV-011', 1515, DATE '2023-01-05', 'INV compras 2023'),
-    ('INV-012', 1195, DATE '2023-01-05', 'INV compras 2023'),
-    ('INV-001', 345, DATE '2024-01-05', 'INV compras 2024'),
-    ('INV-002', 1027, DATE '2024-01-05', 'INV compras 2024'),
-    ('INV-003', 2726, DATE '2024-01-05', 'INV compras 2024'),
-    ('INV-004', 4048, DATE '2024-01-05', 'INV compras 2024'),
-    ('INV-005', 390, DATE '2024-01-05', 'INV compras 2024'),
-    ('INV-006', 2122, DATE '2024-01-05', 'INV compras 2024'),
-    ('INV-007', 1285, DATE '2024-01-05', 'INV compras 2024'),
-    ('INV-008', 1032, DATE '2024-01-05', 'INV compras 2024'),
-    ('INV-009', 2021, DATE '2024-01-05', 'INV compras 2024'),
-    ('INV-010', 5654, DATE '2024-01-05', 'INV compras 2024'),
-    ('INV-011', 1532, DATE '2024-01-05', 'INV compras 2024'),
-    ('INV-012', 1220, DATE '2024-01-05', 'INV compras 2024'),
-    ('INV-001', 350, DATE '2025-01-05', 'INV compras 2025'),
-    ('INV-002', 1043, DATE '2025-01-05', 'INV compras 2025'),
-    ('INV-003', 2862, DATE '2025-01-05', 'INV compras 2025'),
-    ('INV-004', 4264, DATE '2025-01-05', 'INV compras 2025'),
-    ('INV-005', 395, DATE '2025-01-05', 'INV compras 2025'),
-    ('INV-006', 2142, DATE '2025-01-05', 'INV compras 2025'),
-    ('INV-007', 1298, DATE '2025-01-05', 'INV compras 2025'),
-    ('INV-008', 1039, DATE '2025-01-05', 'INV compras 2025'),
-    ('INV-009', 2058, DATE '2025-01-05', 'INV compras 2025'),
-    ('INV-010', 5977, DATE '2025-01-05', 'INV compras 2025'),
-    ('INV-011', 1560, DATE '2025-01-05', 'INV compras 2025'),
-    ('INV-012', 1255, DATE '2025-01-05', 'INV compras 2025')
+    ('INV-001', 116, DATE '2022-12-31', 'INV apertura 2022'),
+    ('INV-002', 56, DATE '2022-12-31', 'INV apertura 2022'),
+    ('INV-003', 7, DATE '2022-12-31', 'INV apertura 2022'),
+    ('INV-004', 5, DATE '2022-12-31', 'INV apertura 2022'),
+    ('INV-005', 32, DATE '2022-12-31', 'INV apertura 2022'),
+    ('INV-006', 92, DATE '2022-12-31', 'INV apertura 2022'),
+    ('INV-007', 39, DATE '2022-12-31', 'INV apertura 2022'),
+    ('INV-008', 67, DATE '2022-12-31', 'INV apertura 2022'),
+    ('INV-009', 203, DATE '2022-12-31', 'INV apertura 2022'),
+    ('INV-010', 180, DATE '2022-12-31', 'INV apertura 2022'),
+    ('INV-011', 14247, DATE '2022-12-31', 'INV apertura 2022'),
+    ('INV-012', 433, DATE '2022-12-31', 'INV apertura 2022'),
+    ('INV-001', 246, DATE '2023-01-05', 'INV compras 2023'),
+    ('INV-002', 120, DATE '2023-01-05', 'INV compras 2023'),
+    ('INV-003', 76, DATE '2023-01-05', 'INV compras 2023'),
+    ('INV-004', 88, DATE '2023-01-05', 'INV compras 2023'),
+    ('INV-005', 64, DATE '2023-01-05', 'INV compras 2023'),
+    ('INV-006', 172, DATE '2023-01-05', 'INV compras 2023'),
+    ('INV-007', 76, DATE '2023-01-05', 'INV compras 2023'),
+    ('INV-008', 121, DATE '2023-01-05', 'INV compras 2023'),
+    ('INV-009', 472, DATE '2023-01-05', 'INV compras 2023'),
+    ('INV-010', 11245, DATE '2023-01-05', 'INV compras 2023'),
+    ('INV-011', 33212, DATE '2023-01-05', 'INV compras 2023'),
+    ('INV-012', 1360, DATE '2023-01-05', 'INV compras 2023'),
+    ('INV-001', 259, DATE '2024-01-05', 'INV compras 2024'),
+    ('INV-002', 126, DATE '2024-01-05', 'INV compras 2024'),
+    ('INV-003', 80, DATE '2024-01-05', 'INV compras 2024'),
+    ('INV-004', 93, DATE '2024-01-05', 'INV compras 2024'),
+    ('INV-005', 66, DATE '2024-01-05', 'INV compras 2024'),
+    ('INV-006', 182, DATE '2024-01-05', 'INV compras 2024'),
+    ('INV-007', 79, DATE '2024-01-05', 'INV compras 2024'),
+    ('INV-008', 128, DATE '2024-01-05', 'INV compras 2024'),
+    ('INV-009', 497, DATE '2024-01-05', 'INV compras 2024'),
+    ('INV-010', 11846, DATE '2024-01-05', 'INV compras 2024'),
+    ('INV-011', 34991, DATE '2024-01-05', 'INV compras 2024'),
+    ('INV-012', 1433, DATE '2024-01-05', 'INV compras 2024'),
+    ('INV-001', 275, DATE '2025-01-05', 'INV compras 2025'),
+    ('INV-002', 134, DATE '2025-01-05', 'INV compras 2025'),
+    ('INV-003', 84, DATE '2025-01-05', 'INV compras 2025'),
+    ('INV-004', 99, DATE '2025-01-05', 'INV compras 2025'),
+    ('INV-005', 70, DATE '2025-01-05', 'INV compras 2025'),
+    ('INV-006', 193, DATE '2025-01-05', 'INV compras 2025'),
+    ('INV-007', 84, DATE '2025-01-05', 'INV compras 2025'),
+    ('INV-008', 135, DATE '2025-01-05', 'INV compras 2025'),
+    ('INV-009', 527, DATE '2025-01-05', 'INV compras 2025'),
+    ('INV-010', 12542, DATE '2025-01-05', 'INV compras 2025'),
+    ('INV-011', 37046, DATE '2025-01-05', 'INV compras 2025'),
+    ('INV-012', 1517, DATE '2025-01-05', 'INV compras 2025')
 ) AS d(codigo_sku, cantidad, fecha, observacion)
 JOIN producto p ON p.empresa_id = 2 AND p.codigo_sku = d.codigo_sku
 WHERE EXISTS (SELECT 1 FROM empresa WHERE empresa_id = 2)

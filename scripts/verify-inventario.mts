@@ -23,16 +23,16 @@ function check(nombre: string, obtenido: number | string | null, esperado: numbe
 }
 
 const productos: ProductoDemanda[] = [
-  { id: 1, codigoSku: 'INV-001', nombre: 'Laptop Core i5 16GB', demandaAnual: 337.1674, costoUnitario: 850.55, stockActual: 201 },
-  { id: 2, codigoSku: 'INV-002', nombre: 'Monitor LED 24 pulgadas', demandaAnual: 1005.587, costoUnitario: 189.97, stockActual: 585 },
-  { id: 3, codigoSku: 'INV-003', nombre: 'Teclado mecánico', demandaAnual: 2843.1777, costoUnitario: 28.03, stockActual: 305 },
-  { id: 10, codigoSku: 'INV-010', nombre: 'Cable HDMI 2 m', demandaAnual: 5970.6731, costoUnitario: 7.99, stockActual: 107 },
+  { id: 1, codigoSku: 'INV-001', nombre: 'Motor 1.6 L', demandaAnual: 260.707, costoUnitario: 1100, stockActual: 155 },
+  { id: 2, codigoSku: 'INV-002', nombre: 'Motor 1.8 L', demandaAnual: 127.3542, costoUnitario: 1500, stockActual: 74 },
+  { id: 3, codigoSku: 'INV-003', nombre: 'Motor 1.4 L', demandaAnual: 83.8887, costoUnitario: 950, stockActual: 9 },
+  { id: 10, codigoSku: 'INV-010', nombre: 'Bujía', demandaAnual: 12521.1759, costoUnitario: 3.81, stockActual: 240 },
 ]
 
 const abc = clasificacionABC(productos, 0.8, 0.95)
 const esperadoABC = [
-  { sku: 'INV-001', valor: 286777.73, acumulado: 47.38, clase: 'A' },
-  { sku: 'INV-002', valor: 191031.36, acumulado: 78.95, clase: 'A' },
+  { sku: 'INV-001', valor: 286777.7, acumulado: 47.38, clase: 'A' },
+  { sku: 'INV-002', valor: 191031.3, acumulado: 78.95, clase: 'A' },
   { sku: 'INV-003', valor: 79694.27, acumulado: 92.12, clase: 'B' },
   { sku: 'INV-010', valor: 47705.68, acumulado: 100, clase: 'C' },
 ]
@@ -44,15 +44,15 @@ for (const esperado of esperadoABC) {
   check(`${esperado.sku} acumulado %`, item?.acumulado ?? -1, esperado.acumulado)
   check(`${esperado.sku} clase`, item?.clase ?? '', esperado.clase)
 }
-check('suma valores anuales', abc.reduce((s, item) => s + item.valorAnual, 0), 605209.04)
+check('suma valores anuales', abc.reduce((s, item) => s + item.valorAnual, 0), 605208.95)
 
 console.log('\n== 2. EOQ (S=100, h=20%) ==')
 const eoq = calcularEOQ(productos, 100, 0.2)
 const esperadoEOQ = [
-  { sku: 'INV-001', h: 170.11, eoq: 19.91, pedidos: 16.93 },
-  { sku: 'INV-002', h: 37.99, eoq: 72.76, pedidos: 13.82 },
-  { sku: 'INV-003', h: 5.61, eoq: 318.49, pedidos: 8.93 },
-  { sku: 'INV-010', h: 1.6, eoq: 864.45, pedidos: 6.91 },
+  { sku: 'INV-001', h: 220, eoq: 15.4, pedidos: 16.93 },
+  { sku: 'INV-002', h: 300, eoq: 9.21, pedidos: 13.83 },
+  { sku: 'INV-003', h: 190, eoq: 9.4, pedidos: 8.92 },
+  { sku: 'INV-010', h: 0.76, eoq: 1812.84, pedidos: 6.91 },
 ]
 for (const esperado of esperadoEOQ) {
   const item = eoq.find((row) => row.codigoSku === esperado.sku)
@@ -64,10 +64,10 @@ for (const esperado of esperadoEOQ) {
 console.log('\n== 3. Punto de reorden (lead time=15 días, 365 días/año) ==')
 const reorden = calcularReorden(productos, 15, 365)
 const esperadoPR = [
-  { sku: 'INV-001', consumo: 0.92, pr: 13.86, reposicion: 0 },
-  { sku: 'INV-002', consumo: 2.76, pr: 41.33, reposicion: 0 },
-  { sku: 'INV-003', consumo: 7.79, pr: 116.84, reposicion: 0 },
-  { sku: 'INV-010', consumo: 16.36, pr: 245.37, reposicion: 138.37 },
+  { sku: 'INV-001', consumo: 0.71, pr: 10.71, reposicion: 0 },
+  { sku: 'INV-002', consumo: 0.35, pr: 5.23, reposicion: 0 },
+  { sku: 'INV-003', consumo: 0.23, pr: 3.45, reposicion: 0 },
+  { sku: 'INV-010', consumo: 34.3, pr: 514.57, reposicion: 274.57 },
 ]
 for (const esperado of esperadoPR) {
   const item = reorden.find((row) => row.codigoSku === esperado.sku)

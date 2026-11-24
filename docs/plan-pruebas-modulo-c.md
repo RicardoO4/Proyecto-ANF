@@ -422,9 +422,12 @@ USD por unidad, `S` en USD por pedido, `h` como tasa anual aplicada al costo
 unitario, lead time y días/año en días, y consumo diario en unidades/día. El
 acumulado ABC incluye el artículo evaluado; `≤80%` → A, `≤95%` → B. Los
 resultados se redondean a 2 decimales y no se presenta precisión decimal exacta.
-El costo unitario y el stock son un snapshot único calibrado a 2025: al consultar
-2023 o 2024 cambia la demanda, pero esos dos valores se mantienen, por lo que el
-horizonte debe interpretarse con esa hipótesis.
+El costo unitario y el stock son un snapshot único calibrado a 2025 con precios
+reales de referencia (motores usados/reman y repuestos nuevos en USD): al
+consultar 2023 o 2024 cambia la demanda, pero esos dos valores se mantienen, por
+lo que el horizonte debe interpretarse con esa hipótesis. Las cantidades de
+`venta_detalle` se recalibraron para conservar el costo BC de cada año sin
+modificar los subtotales ni el monto de las ventas.
 
 ### 11.3 Endpoints y UI
 
@@ -447,29 +450,52 @@ cuatro SKU reales del seed 2025 (demanda y stock incluidos), no nombres demo:
 
 | SKU | Producto | Demanda | Costo | Valor anual | Acumulado | Clase | H | EOQ | PR |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|
-| INV-001 | Laptop Core i5 16GB | 337.1674 | 850.55 | 286777.73 | 47.38% | A | 170.11 | 19.91 | 13.86 |
-| INV-002 | Monitor LED 24 pulgadas | 1005.5870 | 189.97 | 191031.36 | 78.95% | A | 37.99 | 72.76 | 41.33 |
-| INV-003 | Teclado mecánico | 2843.1777 | 28.03 | 79694.27 | 92.12% | B | 5.61 | 318.49 | 116.84 |
-| INV-010 | Cable HDMI 2 m | 5970.6731 | 7.99 | 47705.68 | 100.00% | C | 1.6 | 864.45 | 245.37 |
+| INV-001 | Motor 1.6 L | 260.7070 | 1100.00 | 286777.70 | 47.38% | A | 220.00 | 15.40 | 10.71 |
+| INV-002 | Motor 1.8 L | 127.3542 | 1500.00 | 191031.30 | 78.95% | A | 300.00 | 9.21 | 5.23 |
+| INV-003 | Motor 1.4 L | 83.8887 | 950.00 | 79694.27 | 92.12% | B | 190.00 | 9.40 | 3.45 |
+| INV-010 | Bujía | 12521.1759 | 3.81 | 47705.68 | 100.00% | C | 0.76 | 1812.84 | 514.57 |
 
 Parámetros del fixture: `S=100`, `h=20%`, `lead_time=15 días`, `365 días/año`.
-También se verifican casos límite: demanda 0, `h=0`, lead time 0 y redondeo a 2
+`H` se muestra a dos decimales; el EOQ usa la tasa exacta de cada SKU. También
+se verifican casos límite: demanda 0, `h=0`, lead time 0 y redondeo a 2
 decimales.
 
-Para que la UI muestre datos hay que ejecutar la migración `0071` y, sobre una
-BD que ya tuviera el seed anterior, el backfill `0072` en Supabase.
+Para que la UI muestre datos hay que ejecutar la migración `0071`. Sobre una BD
+que ya tuviera el seed anterior, aplica en orden
+`20261123050000_c4_inventario_2025_detalle_backfill.sql`,
+`20261123060000_catalogo_productos_vehiculos.sql` y
+`20261123070000_c4_costos_reales_recalibrados.sql` en Supabase.
 
 ### 11.5 Datos sembrados de producto (empresa 2)
 
-Los 12 SKU (`INV-001` a `INV-012`) son inventados pero están calibrados contra
-los saldos contables reales de la BC. Los importes son idénticos a los usados en
-el Módulo C; no provienen de los Excel de `estados-financieros/`, que solo
-contienen cuentas contables. Si ya se había ejecutado una versión anterior de la
-migración, vuelve a ejecutarla para limpiar los SKU `C4-P%`, actualizar
-parámetros y la descripción de la opción `12`, y restaurar los stocks del seed;
-después aplica `0072`, que reinserta solo los tres bloques de `venta_detalle`
-sin alterar stocks ni parámetros. El estado verificado es de 36 filas en
-`venta_detalle`, 12 por año (`2023`, `2024` y `2025`).
+Los 13 SKU (`INV-001` a `INV-013`) son inventados pero están calibrados contra
+los saldos contables reales de la BC. El `costo_unitario` corresponde ahora a
+precios reales de referencia en USD: motores usados/reman y repuestos nuevos.
+Los subtotales de venta y el costo BC anual se conservan; no provienen de los
+Excel de `estados-financieros/`, que solo contienen cuentas contables.
+`INV-013` no participa en la demanda ni en los totales C4: aporta `1,625.00`
+adicionales al valor del catálogo (`856,423.59` frente a `854,798.59` de los 12
+SKU con demanda). Si ya se había ejecutado una versión anterior de la migración,
+vuelve a ejecutar `0071` para limpiar los SKU `C4-P%`, actualizar parámetros y la
+descripción de la opción `12`, y restaurar el seed; después aplica en orden las
+tres migraciones correctivas enumeradas en 11.4. El estado verificado es de 36
+filas en `venta_detalle`, 12 por año (`2023`, `2024` y `2025`).
+
+| SKU | Producto | Costo | Stock |
+|---|---|---:|---:|
+| INV-001 | Motor 1.6 L | 1100.00 | 155 |
+| INV-002 | Motor 1.8 L | 1500.00 | 74 |
+| INV-003 | Motor 1.4 L | 950.00 | 9 |
+| INV-004 | Motor 1.0 L | 650.00 | 7 |
+| INV-005 | Motor 2.0 L diésel | 2400.00 | 43 |
+| INV-006 | Motor 1.2 L | 700.00 | 122 |
+| INV-007 | Motor 1.5 L turbo | 1800.00 | 52 |
+| INV-008 | Motor 2.4 L | 1250.00 | 89 |
+| INV-009 | Alternador | 189.99 | 270 |
+| INV-010 | Bujía | 3.81 | 240 |
+| INV-011 | Filtro de aceite | 4.05 | 18,996 |
+| INV-012 | Correa de distribución | 65.17 | 577 |
+| INV-013 | Módulo ECU | 125.00 | 13 |
 
 | Año | Ventas `Σ venta_detalle.subtotal` | Costo de ventas `Σ cantidad·costo_unitario` | Margen | Inventario `Σ stock·costo_unitario` |
 |---|---:|---:|---:|---:|
@@ -477,20 +503,21 @@ sin alterar stocks ni parámetros. El estado verificado es de 36 filas en
 | 2024 | 1,636,059.68 | 1,503,995.03 | 132,064.65 (8.07%) | 800,699.18 |
 | 2025 | 1,749,164.35 | 1,592,339.86 | 156,824.49 (8.97%) | 854,798.59 |
 
-El inventario final sembrado en `producto.stock_actual` es el de 2025
-(`854,798.59`, línea `1105`). Las unidades de stock y las cantidades de
-`movimiento_inventario` son enteras; el `costo_unitario` se ajustó a dos
-decimales por SKU para conservar exactamente ese total de inventario. Como
-efecto colateral, el costo de ventas calculado desde `venta_detalle` cambia
-ligeramente respecto del costo BC original. Las entradas de
-`movimiento_inventario` parten de una apertura 2022 equivalente al 75% del
-inventario 2023 y agregan compras anuales; las salidas se representan en
-`venta_detalle`, por lo que `apertura + compras − ventas = stock final` por SKU.
+El inventario final sembrado en `producto.stock_actual` para los 12 SKU con
+demanda es el de 2025 (`854,798.59`). `INV-013` aporta `1,625.00` adicionales y
+no interviene en estos cálculos. Las cantidades de `venta_detalle` tienen cuatro
+decimales y se recalcularon como `costo BC original ÷ costo real`, cerrando el
+residual de centavos contra `INV-011`; el `precio_unitario` es
+`subtotal ÷ cantidad`. Las unidades de stock y de `movimiento_inventario` siguen
+siendo enteras. Las entradas parten de una apertura 2022 equivalente al 75% del
+stock final redondeado y agregan compras anuales proporcionales a la demanda;
+las salidas se representan en `venta_detalle`, por lo que
+`round(apertura + compras − ventas) = stock final` por SKU.
 
 Parámetros aplicados: `S=100`, `h=20%`, `lead_time=15 días`, `365 días/año`.
 Con los valores de 2025 la clasificación ABC queda en 7 artículos A, 3 B y 2 C;
-el SKU `INV-010` (cable HDMI) queda con stock por debajo del punto de reorden,
-para que la reposición sugerida no sea trivial.
+el SKU `INV-010` (bujía) queda con stock por debajo del punto de reorden
+(`240 < 514.57`), para que la reposición sugerida no sea trivial.
 
 Todas las cifras monetarias visibles usan `src/lib/formatoMonetario.ts`
 (`es-SV`, USD, 2 decimales, símbolo `$`). Las cantidades se expresan en unidades,

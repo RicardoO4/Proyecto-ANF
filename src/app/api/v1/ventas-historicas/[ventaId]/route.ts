@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { NotFoundException, BadRequestException, handle } from '@/lib/errors'
 import { guardarVentasMensuales } from '@/lib/guardarVentas'
 import { esVentaAnual } from '@/lib/ventasMensuales'
+import { esVentaDetalleSku } from '@/lib/origenVentas'
 import { NextResponse } from 'next/server'
 
 type Params = { params: Promise<{ ventaId: string }> }
@@ -24,6 +25,7 @@ export async function PUT(req: Request, { params }: Params) {
     if (errorActual) throw errorActual
     if (!current) throw new NotFoundException('Venta no encontrada')
     if (esVentaAnual(current.observacion)) throw new BadRequestException('Este total anual proviene de los estados financieros. Corrija el Excel contable para actualizarlo.')
+    if (esVentaDetalleSku(current.observacion)) throw new BadRequestException('Esta venta corresponde al detalle por SKU del módulo de inventarios. No se edita desde el histórico mensual.')
 
     await guardarVentasMensuales(current.empresa_id, [{ fechaVenta: body.fechaVenta ?? current.fecha_venta, montoVenta: body.montoVenta ?? Number(current.monto_venta), observacion: body.observacion === undefined ? current.observacion : body.observacion }], ventaId)
 
@@ -54,6 +56,7 @@ export async function DELETE(req: Request, { params }: Params) {
       .maybeSingle()
     if (!current) throw new NotFoundException('Venta no encontrada')
     if (esVentaAnual(current.observacion)) throw new BadRequestException('No se elimina un total anual desde el histórico mensual. Actualice sus estados financieros.')
+    if (esVentaDetalleSku(current.observacion)) throw new BadRequestException('Esta venta corresponde al detalle por SKU del módulo de inventarios. No se elimina desde el histórico mensual.')
     const { error } = await supabaseAdmin.from('venta').delete().eq('id_venta', ventaId)
     if (error) throw error
     return new NextResponse(null, { status: 204 })

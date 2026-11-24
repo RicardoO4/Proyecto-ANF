@@ -4,6 +4,7 @@
 // backend (always null) — preserved.
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { NotFoundException, handle } from '@/lib/errors'
+import { esVentaDetalleSku } from '@/lib/origenVentas'
 import { NextResponse } from 'next/server'
 
 type Params = { params: Promise<{ empresaId: string }> }
@@ -24,13 +25,14 @@ export async function GET(req: Request, { params }: Params) {
       .eq('empresa_id', empresaId)
       .order('fecha_venta', { ascending: true })
     if (error) throw error
-    return NextResponse.json(
-      ((data ?? []) as {
+    const filas = ((data ?? []) as {
         id_venta: number
         fecha_venta: string
         monto_venta: number
         observacion: string | null
-      }[]).map((v) => ({
+      }[]).filter((v) => !esVentaDetalleSku({ observacion: v.observacion }))
+    return NextResponse.json(
+      filas.map((v) => ({
         id: v.id_venta,
         fechaVenta: v.fecha_venta,
         montoVenta: Number(v.monto_venta),
