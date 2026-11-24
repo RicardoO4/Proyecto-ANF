@@ -63,6 +63,29 @@ export interface ModelosInventarioResponse {
   reorden: ItemReorden[]
 }
 
+export interface VentaInventario {
+  idVenta: number
+  idDetalle: number
+  productoId: number
+  empresaId: number
+  codigoSku?: string
+  nombreProducto?: string
+  fechaVenta: string
+  anio: number
+  cantidad: number
+  precioUnitario: number
+  subtotal: number
+  observacion: string | null
+}
+
+export interface VentaInventarioInput {
+  empresaId: number
+  productoId: number
+  anio: number
+  cantidad: number
+  precioVentaUnitario: number
+}
+
 export const inventarioService = {
   async getProductos(empresaId: number): Promise<ProductoInventario[]> {
     const resp = await apiClient.get<ProductoInventario[]>('/inventario/productos', {
@@ -121,5 +144,28 @@ export const inventarioService = {
       params: { empresaId, ...(anio === null ? {} : { anio }) },
     })
     return resp.data
+  },
+
+  async getVentas(empresaId: number, anio?: number | null): Promise<VentaInventario[]> {
+    const resp = await apiClient.get<VentaInventario[]>('/inventario/ventas', {
+      params: { empresaId, ...(anio == null ? {} : { anio }) },
+    })
+    return resp.data
+  },
+
+  async getPrecioVentaSugerido(empresaId: number, productoId: number): Promise<number | null> {
+    const resp = await apiClient.get<{ precioVentaUnitario: number | null }>('/inventario/ventas/precio-sugerido', {
+      params: { empresaId, productoId },
+    })
+    return resp.data.precioVentaUnitario
+  },
+
+  async createVenta(payload: VentaInventarioInput): Promise<VentaInventario> {
+    const resp = await apiClient.post<VentaInventario>('/inventario/ventas', payload)
+    return resp.data
+  },
+
+  async deleteVenta(id: number, empresaId: number): Promise<void> {
+    await apiClient.delete(`/inventario/ventas/${id}`, { params: { empresaId } })
   },
 }

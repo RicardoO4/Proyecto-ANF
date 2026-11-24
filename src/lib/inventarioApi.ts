@@ -3,6 +3,7 @@ import type {
   MovimientoInventario,
   ParametroInventario,
   ProductoInventario,
+  VentaInventario,
 } from '@/services/inventarioService'
 
 export function leerEmpresaId(valor: unknown): number {
@@ -66,6 +67,29 @@ export function movimientoDTO(row: Record<string, unknown>): MovimientoInventari
     observacion: row.observacion == null ? null : String(row.observacion),
     codigoSku: codigoSku == null ? undefined : String(codigoSku),
     nombreProducto: nombreProducto == null ? undefined : String(nombreProducto),
+  }
+}
+
+export function ventaInventarioDTO(row: Record<string, unknown>): VentaInventario {
+  const producto = row.producto as Record<string, unknown> | null
+  const venta = row.venta as Record<string, unknown> | null
+  const codigoSku = row.codigo_sku ?? producto?.codigo_sku
+  const nombreProducto = row.nombre ?? producto?.nombre
+  const fechaVenta = String(row.fecha_venta ?? venta?.fecha_venta ?? '')
+  const observacion = row.observacion ?? venta?.observacion
+  return {
+    idVenta: Number(row.venta_id ?? venta?.id_venta),
+    idDetalle: Number(row.id_detalle),
+    productoId: Number(row.producto_id),
+    empresaId: Number(row.empresa_id),
+    codigoSku: codigoSku == null ? undefined : String(codigoSku),
+    nombreProducto: nombreProducto == null ? undefined : String(nombreProducto),
+    fechaVenta,
+    anio: Number(fechaVenta.slice(0, 4)),
+    cantidad: Number(row.cantidad),
+    precioUnitario: Number(row.precio_unitario),
+    subtotal: Number(row.subtotal),
+    observacion: observacion == null ? null : String(observacion),
   }
 }
 

@@ -2,6 +2,7 @@
 // Ventas whose date falls between Jan 1 and Dec 31 of the year, fecha asc.
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { NotFoundException, handle } from '@/lib/errors'
+import { esVentaDetalleSku } from '@/lib/origenVentas'
 import { NextResponse } from 'next/server'
 
 type Params = { params: Promise<{ empresaId: string; anio: string }> }
@@ -26,13 +27,14 @@ export async function GET(req: Request, { params }: Params) {
       .lte('fecha_venta', `${anio}-12-31`)
       .order('fecha_venta', { ascending: true })
     if (error) throw error
-    return NextResponse.json(
-      ((data ?? []) as {
+    const filas = ((data ?? []) as {
         id_venta: number
         fecha_venta: string
         monto_venta: number
         observacion: string | null
-      }[]).map((v) => ({
+      }[]).filter((v) => !esVentaDetalleSku({ observacion: v.observacion }))
+    return NextResponse.json(
+      filas.map((v) => ({
         id: v.id_venta,
         fechaVenta: v.fecha_venta,
         montoVenta: Number(v.monto_venta),
